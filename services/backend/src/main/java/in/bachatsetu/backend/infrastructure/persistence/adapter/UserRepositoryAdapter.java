@@ -1,0 +1,64 @@
+package in.bachatsetu.backend.infrastructure.persistence.adapter;
+
+import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.mapper.UserJpaMapper;
+import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.UserSpringDataRepository;
+import in.bachatsetu.backend.shared.domain.AggregateId;
+import in.bachatsetu.backend.shared.domain.Email;
+import in.bachatsetu.backend.shared.domain.PhoneNumber;
+import in.bachatsetu.backend.user.domain.model.UserProfile;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
+import java.util.Optional;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+@Repository
+@ConditionalOnPersistenceRepositories
+@ConditionalOnBean(TenantScopeProvider.class)
+@Transactional(readOnly = true)
+public class UserRepositoryAdapter implements UserRepository {
+
+    private final UserSpringDataRepository repository;
+    private final UserJpaMapper mapper;
+    private final TenantScopeProvider tenantScopeProvider;
+
+    public UserRepositoryAdapter(
+            UserSpringDataRepository repository,
+            UserJpaMapper mapper,
+            TenantScopeProvider tenantScopeProvider) {
+        this.repository = repository;
+        this.mapper = mapper;
+        this.tenantScopeProvider = tenantScopeProvider;
+    }
+
+    @Override
+    public Optional<UserProfile> findById(AggregateId userId) {
+        return repository.findByIdAndDeletedFalse(userId.value()).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserProfile> findByEmail(Email email) {
+        return repository.findByEmailIgnoreCaseAndDeletedFalse(email.value()).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserProfile> findByPhoneNumber(PhoneNumber phoneNumber) {
+        return repository.findByPhoneNumberAndDeletedFalse(phoneNumber.value()).map(mapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public void save(UserProfile user) {
+        RepositoryOperations.execute(() -> {
+            Optional<UserJpaEntity> existing = repository.findById(user.id().value());
+            AggregateId tenantId = existing
+                    .map(UserJpaEntity::getTenantId)
+                    .map(AggregateId::new)
+                    .orElseGet(tenantScopeProvider::currentTenantId);
+            UserJpaEntity candidate = mapper.toEntity(user, tenantId.value());
+            repository.save(RepositoryOperations.preserveState(candidate, existing));
+            return null;
+        });
+    }
+}

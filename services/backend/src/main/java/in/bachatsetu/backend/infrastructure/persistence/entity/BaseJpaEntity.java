@@ -107,6 +107,21 @@ public abstract class BaseJpaEntity {
         deletedBy = null;
     }
 
+    public final void copyPersistenceStateFrom(BaseJpaEntity source) {
+        Objects.requireNonNull(source, "source must not be null");
+        if (!Objects.equals(id, source.id)) {
+            throw new IllegalArgumentException("persistence identity must match");
+        }
+        createdAt = source.createdAt;
+        createdBy = source.createdBy;
+        updatedAt = source.updatedAt;
+        updatedBy = source.updatedBy;
+        version = source.version;
+        deleted = source.deleted;
+        deletedAt = source.deletedAt;
+        deletedBy = source.deletedBy;
+    }
+
     @Override
     public final boolean equals(Object other) {
         if (this == other) {

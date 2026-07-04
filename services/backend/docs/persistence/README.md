@@ -37,3 +37,7 @@ Tests mirror this structure under `src/test/java/in/bachatsetu/backend/infrastru
 ## Future Module Adapter Shape
 
 A future module may add a concrete JPA entity, Spring Data repository, MapStruct mapper, and repository adapter beneath this persistence root. Those types must remain outside the domain packages and must not introduce persistence annotations into domain objects.
+
+Concrete entity mapping decisions are documented in [jpa-entity-mapping.md](jpa-entity-mapping.md).
+
+Repository implementation decisions are documented in [repository-layer.md](repository-layer.md).
