@@ -41,3 +41,5 @@ A future module may add a concrete JPA entity, Spring Data repository, MapStruct
 Concrete entity mapping decisions are documented in [jpa-entity-mapping.md](jpa-entity-mapping.md).
 
 Repository implementation decisions are documented in [repository-layer.md](repository-layer.md).
+
+Flyway migration decisions are documented in [database-migrations.md](database-migrations.md).

@@ -1,0 +1,71 @@
+INSERT INTO identity.roles (
+    id, tenant_id, role_code, role_name, role_scope, description, status,
+    created_at, created_by, updated_at, updated_by, version, is_deleted
+) VALUES
+    ('10000000-0000-0000-0000-000000000001', NULL, 'PLATFORM_ADMIN', 'Platform Administrator', 'PLATFORM',
+     'Operates the BachatSetu platform with audited administrative access.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('10000000-0000-0000-0000-000000000002', NULL, 'SUPPORT_OPERATOR', 'Support Operator', 'PLATFORM',
+     'Provides restricted and audited customer support.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('10000000-0000-0000-0000-000000000003', NULL, 'TENANT_ADMIN', 'Tenant Administrator', 'TENANT',
+     'Administers tenant-scoped configuration and operators.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('10000000-0000-0000-0000-000000000004', NULL, 'GROUP_ORGANIZER', 'Group Organizer', 'GROUP',
+     'Operates a Bhishi group within authorized boundaries.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('10000000-0000-0000-0000-000000000005', NULL, 'GROUP_MEMBER', 'Group Member', 'GROUP',
+     'Participates in an authorized Bhishi group.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE)
+ON CONFLICT (id) DO UPDATE SET
+    role_name = EXCLUDED.role_name,
+    role_scope = EXCLUDED.role_scope,
+    description = EXCLUDED.description,
+    status = EXCLUDED.status,
+    updated_at = EXCLUDED.updated_at;
+
+INSERT INTO identity.permissions (
+    id, permission_code, module_code, action_code, description, status,
+    created_at, created_by, updated_at, updated_by, version, is_deleted
+) VALUES
+    ('20000000-0000-0000-0000-000000000001', 'USER.READ', 'USER', 'READ', 'Read authorized user profiles.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000002', 'USER.MANAGE', 'USER', 'MANAGE', 'Manage authorized user profiles.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000003', 'ROLE.READ', 'ROLE', 'READ', 'Read role and permission definitions.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000004', 'ROLE.MANAGE', 'ROLE', 'MANAGE', 'Manage role and permission definitions.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000005', 'GROUP.CREATE', 'GROUP', 'CREATE', 'Create a savings group.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000006', 'GROUP.READ', 'GROUP', 'READ', 'Read an authorized savings group.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000007', 'GROUP.MANAGE', 'GROUP', 'MANAGE', 'Manage an authorized savings group.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000008', 'MEMBER.READ', 'MEMBER', 'READ', 'Read authorized group membership.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000009', 'MEMBER.MANAGE', 'MEMBER', 'MANAGE', 'Manage authorized group membership.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000010', 'PAYMENT.READ', 'PAYMENT', 'READ', 'Read authorized payment records.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000011', 'PAYMENT.RECORD', 'PAYMENT', 'RECORD', 'Record an authorized payment.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000012', 'PAYMENT.RECONCILE', 'PAYMENT', 'RECONCILE', 'Reconcile authorized payment records.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000013', 'RECEIPT.READ', 'RECEIPT', 'READ', 'Read authorized receipts.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000014', 'DRAW.READ', 'DRAW', 'READ', 'Read authorized draw records.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000015', 'DRAW.MANAGE', 'DRAW', 'MANAGE', 'Manage an authorized draw.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000016', 'NOTIFICATION.SEND', 'NOTIFICATION', 'SEND', 'Queue authorized member communications.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE),
+    ('20000000-0000-0000-0000-000000000017', 'AUDIT.READ', 'AUDIT', 'READ', 'Read authorized audit records.', 'ACTIVE',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, 0, FALSE)
+ON CONFLICT (id) DO UPDATE SET
+    permission_code = EXCLUDED.permission_code,
+    module_code = EXCLUDED.module_code,
+    action_code = EXCLUDED.action_code,
+    description = EXCLUDED.description,
+    status = EXCLUDED.status,
+    updated_at = EXCLUDED.updated_at;
