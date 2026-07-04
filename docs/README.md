@@ -9,6 +9,8 @@ No application code should be added until the foundation is reviewed and approve
 ```text
 docs/
   README.md
+  api/
+    rest-api-contract.md
   architecture/
     repository-structure.md
     documentation-structure.md
@@ -53,10 +55,11 @@ docs/
 7. Database Standards
 8. PostgreSQL Database Architecture
 9. API Standards
-10. Development Workflow
-11. CI/CD Strategy
-12. Testing Strategy
-13. Coding and Naming Standards
+10. REST API Contract
+11. Development Workflow
+12. CI/CD Strategy
+13. Testing Strategy
+14. Coding and Naming Standards
 
 ## Decision Log
 

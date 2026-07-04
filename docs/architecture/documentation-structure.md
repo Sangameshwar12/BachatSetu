@@ -7,6 +7,8 @@ BachatSetu documentation should be treated as a product asset. It must stay clos
 ```text
 docs/
   README.md
+  api/
+    rest-api-contract.md
   architecture/
     repository-structure.md
     documentation-structure.md

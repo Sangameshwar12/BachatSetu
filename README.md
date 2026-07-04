@@ -11,6 +11,7 @@ BachatSetu/
   README.md
   docs/
     README.md
+    api/
     architecture/
     database/
     operations/
@@ -36,6 +37,7 @@ BachatSetu/
 - [Documentation Structure](docs/architecture/documentation-structure.md)
 - [System Architecture](docs/architecture/system-architecture.md)
 - [API Standards](docs/architecture/api-standards.md)
+- [REST API Contract](docs/api/rest-api-contract.md)
 - [Database Standards](docs/architecture/database-standards.md)
 - [PostgreSQL Database Architecture](docs/database/postgresql-database-architecture.md)
 - [Security Standards](docs/architecture/security-standards.md)
