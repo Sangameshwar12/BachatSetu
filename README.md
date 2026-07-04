@@ -12,6 +12,7 @@ BachatSetu/
   docs/
     README.md
     architecture/
+    database/
     operations/
     product/
     roadmap/
@@ -36,6 +37,7 @@ BachatSetu/
 - [System Architecture](docs/architecture/system-architecture.md)
 - [API Standards](docs/architecture/api-standards.md)
 - [Database Standards](docs/architecture/database-standards.md)
+- [PostgreSQL Database Architecture](docs/database/postgresql-database-architecture.md)
 - [Security Standards](docs/architecture/security-standards.md)
 - [Business Domain Design](docs/product/business-domain-design.md)
 - [Coding Standards](docs/standards/coding-standards.md)
@@ -60,4 +62,3 @@ BachatSetu/
 - Prefer simple, modular architecture first; evolve into distributed services only when the product and scale require it.
 - Make every financial state change traceable, reversible by controlled process, and observable.
 - Keep compliance, privacy, security, and operational readiness as first-class engineering concerns.
-"# BachatSetu" 

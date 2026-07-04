@@ -14,6 +14,8 @@ docs/
     api-standards.md
     database-standards.md
     security-standards.md
+  database/
+    postgresql-database-architecture.md
   operations/
     production-readiness.md
   product/

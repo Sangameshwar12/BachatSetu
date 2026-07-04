@@ -16,6 +16,8 @@ docs/
     api-standards.md
     database-standards.md
     security-standards.md
+  database/
+    postgresql-database-architecture.md
   operations/
     production-readiness.md
   product/
@@ -49,11 +51,12 @@ docs/
 5. Development Roadmap
 6. Security Standards
 7. Database Standards
-8. API Standards
-9. Development Workflow
-10. CI/CD Strategy
-11. Testing Strategy
-12. Coding and Naming Standards
+8. PostgreSQL Database Architecture
+9. API Standards
+10. Development Workflow
+11. CI/CD Strategy
+12. Testing Strategy
+13. Coding and Naming Standards
 
 ## Decision Log
 
