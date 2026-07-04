@@ -1,5 +1,7 @@
 package in.bachatsetu.backend.infrastructure.persistence.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import in.bachatsetu.backend.infrastructure.persistence.entity.audit.AuditLogJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.AuctionBidJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.DrawJpaEntity;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 class HibernateMetadataTest {
 
     @Test
+    @SuppressWarnings("PMD.CloseResource")
     void hibernateBuildsTheCompleteEntityMetamodel() {
         StandardServiceRegistry registry = new StandardServiceRegistryBuilder()
                 .applySetting(AvailableSettings.DIALECT, PostgreSQLDialect.class.getName())
@@ -45,7 +48,7 @@ class HibernateMetadataTest {
             sources.addAnnotatedClass(AuditLogJpaEntity.class);
 
             try (var sessionFactory = sources.buildMetadata().buildSessionFactory()) {
-                // Building the factory validates entity names, associations, and mappedBy references.
+                assertThat(sessionFactory.isOpen()).isTrue();
             }
         } finally {
             StandardServiceRegistryBuilder.destroy(registry);

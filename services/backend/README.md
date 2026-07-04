@@ -33,3 +33,5 @@ in.bachatsetu.backend
 Business modules may depend on `shared.domain`. A business module must not import another module's aggregate or entity; cross-module relationships are represented by identifiers and domain events.
 
 Persistence foundation decisions are documented in [docs/persistence/README.md](docs/persistence/README.md).
+
+Build quality gates are documented in [docs/quality/build-quality.md](docs/quality/build-quality.md).

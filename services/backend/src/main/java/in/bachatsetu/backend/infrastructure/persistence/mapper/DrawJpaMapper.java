@@ -4,7 +4,6 @@ import in.bachatsetu.backend.draw.domain.model.AuctionBid;
 import in.bachatsetu.backend.draw.domain.model.Draw;
 import in.bachatsetu.backend.draw.domain.model.DrawNumber;
 import in.bachatsetu.backend.draw.domain.model.DrawStatus;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.AuctionBidJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.DrawJpaEntity;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.util.List;

@@ -36,6 +36,41 @@ class PaymentTest {
                 .isInstanceOf(InvalidPaymentStateException.class);
     }
 
+    @Test
+    void recordsAProviderFailureOnTheCurrentAttempt() {
+        AggregateId actorId = AggregateId.newId();
+        Payment payment = newPayment(actorId);
+        PaymentAttempt attempt = payment.startAttempt(actorId, NOW.plusSeconds(10));
+
+        payment.fail(" provider-declined ", actorId, NOW.plusSeconds(20));
+
+        assertThat(payment.status()).isEqualTo(PaymentStatus.FAILED);
+        assertThat(attempt.id()).isNotNull();
+        assertThat(attempt.sequence()).isEqualTo(1);
+        assertThat(attempt.initiatedAt()).isEqualTo(NOW.plusSeconds(10));
+        assertThat(attempt.status()).isEqualTo(PaymentAttemptStatus.FAILED);
+        assertThat(attempt.providerReference()).isNull();
+        assertThat(attempt.failureCode()).isEqualTo("provider-declined");
+    }
+
+    @Test
+    void rejectsNonPositivePaymentAmounts() {
+        AggregateId actorId = AggregateId.newId();
+
+        assertThatThrownBy(() -> Payment.initiate(
+                        AggregateId.newId(),
+                        AggregateId.newId(),
+                        AggregateId.newId(),
+                        AggregateId.newId(),
+                        new PaymentReference("PAY-12345678"),
+                        new IdempotencyKey("checkout-attempt-0001"),
+                        Money.zero(Money.INR),
+                        PaymentMethod.UPI,
+                        actorId,
+                        NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     private Payment newPayment(AggregateId actorId) {
         return Payment.initiate(
                 AggregateId.newId(),

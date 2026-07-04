@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <Match>
+        <Class name="~.*MapperImpl"/>
+    </Match>
+    <Match>
+        <Class name="~.*\.integration\..*"/>
+        <Bug pattern="MS_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <!-- EntityManager is a container-managed collaborator injected by reference. -->
+        <Class name="in.bachatsetu.backend.infrastructure.persistence.adapter.EntityManagerJpaReferenceProvider"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <!-- Aggregate constructors enforce invariants; domain aggregates do not implement finalizers. -->
+        <Class name="in.bachatsetu.backend.shared.domain.BaseAggregateRoot"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+</FindBugsFilter>

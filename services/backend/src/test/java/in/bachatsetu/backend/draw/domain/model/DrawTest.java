@@ -1,7 +1,9 @@
 package in.bachatsetu.backend.draw.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import in.bachatsetu.backend.draw.domain.exception.InvalidDrawStateException;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.Money;
 import java.time.Instant;
@@ -36,5 +38,44 @@ class DrawTest {
         assertThat(first.status()).isEqualTo(BidStatus.OUTBID);
         assertThat(lower.status()).isEqualTo(BidStatus.OUTBID);
         assertThat(higher.status()).isEqualTo(BidStatus.LEADING);
+    }
+
+    @Test
+    void completesAnAuctionWithItsLeadingBid() {
+        AggregateId actorId = AggregateId.newId();
+        AggregateId memberId = AggregateId.newId();
+        Draw draw = newAuction(actorId);
+        draw.open(actorId, NOW.plusSeconds(10));
+        AuctionBid bid = draw.submitBid(
+                memberId, new BidAmount(Money.inr(10_000)), actorId, NOW.plusSeconds(20));
+
+        draw.complete(memberId, actorId, NOW.plusSeconds(30));
+
+        assertThat(draw.status()).isEqualTo(DrawStatus.COMPLETED);
+        assertThat(draw.winnerMemberId()).isEqualTo(memberId);
+        assertThat(bid.status()).isEqualTo(BidStatus.ACCEPTED);
+        assertThat(draw.domainEvents()).hasSize(3);
+    }
+
+    @Test
+    void rejectsOpeningBeforeTheScheduledTime() {
+        AggregateId actorId = AggregateId.newId();
+        Draw draw = newAuction(actorId);
+
+        assertThatThrownBy(() -> draw.open(actorId, NOW.plusSeconds(5)))
+                .isInstanceOf(InvalidDrawStateException.class);
+    }
+
+    private Draw newAuction(AggregateId actorId) {
+        return Draw.schedule(
+                AggregateId.newId(),
+                AggregateId.newId(),
+                AggregateId.newId(),
+                AggregateId.newId(),
+                new DrawNumber(1),
+                DrawType.AUCTION,
+                NOW.plusSeconds(10),
+                actorId,
+                NOW);
     }
 }

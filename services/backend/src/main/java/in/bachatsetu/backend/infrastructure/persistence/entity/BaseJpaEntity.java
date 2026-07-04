@@ -127,10 +127,10 @@ public abstract class BaseJpaEntity {
         if (this == other) {
             return true;
         }
-        if (other == null || Hibernate.getClass(this) != Hibernate.getClass(other)) {
+        if (!(other instanceof BaseJpaEntity that)
+                || Hibernate.getClass(this) != Hibernate.getClass(other)) {
             return false;
         }
-        BaseJpaEntity that = (BaseJpaEntity) other;
         return id != null && id.equals(that.id);
     }
 

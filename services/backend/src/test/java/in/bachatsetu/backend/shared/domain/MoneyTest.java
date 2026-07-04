@@ -3,6 +3,7 @@ package in.bachatsetu.backend.shared.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+import java.math.BigDecimal;
 import java.util.Currency;
 import org.junit.jupiter.api.Test;
 
@@ -21,5 +22,18 @@ class MoneyTest {
         Money dollars = new Money(100, Currency.getInstance("USD"));
 
         assertThatIllegalArgumentException().isThrownBy(() -> rupees.add(dollars));
+    }
+
+    @Test
+    void convertsMajorUnitsAndSupportsScalingAndComparison() {
+        Money amount = Money.ofMajor(new BigDecimal("12.34"), Money.INR);
+        Money scaled = amount.multiply(2);
+        Money zero = Money.zero(Money.INR);
+
+        assertThat(amount.minorUnits()).isEqualTo(1_234);
+        assertThat(scaled).isEqualTo(Money.inr(2_468));
+        assertThat(amount.isPositive()).isTrue();
+        assertThat(amount.isNegative()).isFalse();
+        assertThat(amount).isGreaterThan(zero);
     }
 }

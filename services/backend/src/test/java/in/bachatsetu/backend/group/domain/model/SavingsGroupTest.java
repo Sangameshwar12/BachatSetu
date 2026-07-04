@@ -23,6 +23,12 @@ class SavingsGroupTest {
 
         group.activate(10, organizerId, NOW.plusSeconds(60));
 
+        assertThat(group.tenantId()).isNotNull();
+        assertThat(group.organizerId()).isEqualTo(organizerId);
+        assertThat(group.code()).isEqualTo(new GroupCode("BS-001"));
+        assertThat(group.name()).isEqualTo(new GroupName("Bachat Circle"));
+        assertThat(group.type()).isEqualTo(GroupType.BHISHI);
+        assertThat(group.rule()).isNotNull();
         assertThat(group.status()).isEqualTo(GroupStatus.ACTIVE);
         assertThat(group.version()).isEqualTo(1);
         assertThat(group.domainEvents()).singleElement().isInstanceOf(GroupActivated.class);

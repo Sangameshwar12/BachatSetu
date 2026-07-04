@@ -14,8 +14,9 @@ on:
 
 jobs:
   verify:
-    name: Maven Verify
+    name: Build and Quality Gates
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -31,3 +32,15 @@ jobs:
       - name: Verify
         working-directory: services/backend
         run: mvn -B -ntp clean verify
+
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-quality-reports
+          if-no-files-found: warn
+          path: |
+            services/backend/target/checkstyle-result.xml
+            services/backend/target/pmd.xml
+            services/backend/target/spotbugsXml.xml
+            services/backend/target/site/jacoco/
