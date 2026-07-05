@@ -1,9 +1,10 @@
 package in.bachatsetu.backend.auth.domain.model;
 
-public enum AuthAccountStatus {
+/** Authentication lifecycle states for a user. */
+public enum UserStatus {
     PENDING_VERIFICATION,
     ACTIVE,
     LOCKED,
     SUSPENDED,
-    CLOSED
+    DISABLED
 }

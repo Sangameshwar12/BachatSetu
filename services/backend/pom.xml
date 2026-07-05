@@ -263,6 +263,7 @@
                         <include>in/bachatsetu/backend/payment/domain/model/Payment*</include>
                         <include>in/bachatsetu/backend/draw/domain/model/Draw*</include>
                         <include>in/bachatsetu/backend/draw/domain/model/AuctionBid*</include>
+                        <include>in/bachatsetu/backend/auth/domain/**</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -294,6 +295,19 @@
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
                                             <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>in.bachatsetu.backend.auth.domain.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>1.00</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

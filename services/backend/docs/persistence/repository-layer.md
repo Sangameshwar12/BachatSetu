@@ -30,7 +30,7 @@ in.bachatsetu.backend.infrastructure.persistence
 
 ## Explicit Boundaries
 
-- `AuthAccountRepository` has no adapter because authentication is excluded and no auth JPA entity exists.
+- Authentication repository ports and adapters remain outside the persistence layer scope.
 - `UserProfile` does not contain `tenantId`. `UserRepositoryAdapter` is conditionally enabled only when a `TenantScopeProvider` is supplied by a future tenant-aware application boundary.
 - Role, permission, monthly-cycle, installment, and audit-log domain ports do not exist yet. Their Spring Data repositories are available, but no fake domain adapters were introduced.
 
