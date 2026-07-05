@@ -1,7 +1,7 @@
 # JWT And Refresh Token Engine
 
-Version: 1.0
-Sprint: 8.6
+Version: 1.1
+Sprint: 8.6, integration amendment by Sprint 8.7
 Status: Implemented
 
 ## Purpose
@@ -134,7 +134,7 @@ Tests cover claim generation/extraction, HS512 enforcement, tampering, malformed
 
 ## Known Limitations
 
-- No Spring Security filter chain, bearer-token filter, `AuthenticationManager`, `UserDetailsService`, login/logout endpoint, or refresh REST endpoint is included.
+- Spring Security consumes validated access tokens through the existing use case as documented in [Spring Security](spring-security.md); no login, logout, or refresh REST endpoint is included.
 - HS512 uses one symmetric deployment secret; the RS256 migration above is required before independent verification services receive keys.
 - Session/device attestation and distributed token revocation caching are not included.
 - Access JWT revocation is bounded by the configured short expiry; refresh revocation is immediate in PostgreSQL.

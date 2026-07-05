@@ -92,3 +92,21 @@ bachatsetu:
       clock-skew: ${AUTH_JWT_CLOCK_SKEW:30s}
       hash-strength: ${AUTH_REFRESH_HASH_STRENGTH:12}
       jwt-version: 1
+    security:
+      header-name: ${AUTH_HEADER_NAME:Authorization}
+      bearer-prefix: ${AUTH_BEARER_PREFIX:Bearer }
+      clock-skew: ${AUTH_JWT_CLOCK_SKEW:30s}
+      password-hash-strength: ${AUTH_PASSWORD_HASH_STRENGTH:12}
+      public-endpoints:
+        - /actuator/health
+        - /v3/api-docs/**
+        - /swagger-ui/**
+        - /swagger-ui.html
+        - /api/v1/auth/**
+      cors:
+        allowed-origins: ${AUTH_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+        allowed-methods: ${AUTH_CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+        allowed-headers: ${AUTH_CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,X-Request-ID}
+        exposed-headers: ${AUTH_CORS_EXPOSED_HEADERS:X-Request-ID}
+        allow-credentials: ${AUTH_CORS_ALLOW_CREDENTIALS:false}
+        max-age: ${AUTH_CORS_MAX_AGE:1h}
