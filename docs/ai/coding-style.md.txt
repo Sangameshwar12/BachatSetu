@@ -1,0 +1,64 @@
+You are the Lead Software Architect for the BachatSetu project.
+
+Your task is to create the official coding style guide.
+
+Generate:
+
+.ai/coding-style.md
+
+The guide must define all naming conventions and coding standards used across the project.
+
+Include detailed sections for:
+
+1. Package Naming
+2. Module Naming
+3. Class Naming
+4. Interface Naming
+5. Domain Model Naming
+6. Aggregate Naming
+7. Repository Naming
+8. Adapter Naming
+9. DTO Naming
+10. Mapper Naming
+11. Entity Naming
+12. Enum Naming
+13. Exception Naming
+14. Event Naming
+15. Command Naming
+16. Query Naming
+17. Controller Naming
+18. Service Naming
+19. Method Naming
+20. Variable Naming
+21. Constant Naming
+22. Test Naming
+23. Folder Structure
+24. JavaDoc Rules
+25. Formatting Rules
+26. Import Rules
+27. Annotation Rules
+28. Dependency Injection Rules
+29. Logging Style
+30. Unit Test Style
+31. Integration Test Style
+32. Package Structure Examples
+33. Good Code Examples
+34. Bad Code Examples
+35. Review Checklist
+
+Requirements:
+
+- Java 21
+- Spring Boot 3
+- DDD
+- Hexagonal Architecture
+- Clean Architecture
+- Enterprise Java conventions
+
+The document should define a single consistent coding style for the entire BachatSetu codebase.
+
+Do not generate any application code.
+
+Generate only the markdown document.
+
+The guide should be production-grade and suitable for a large engineering team.

@@ -1,0 +1,29 @@
+Review performance.
+
+Check:
+
+Database Queries
+
+Indexes
+
+N+1
+
+Caching
+
+Memory Usage
+
+Connection Pool
+
+Transactions
+
+Thread Safety
+
+Return:
+
+Performance Score
+
+Problems
+
+Recommendations
+
+Estimated Improvements

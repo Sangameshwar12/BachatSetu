@@ -1,0 +1,23 @@
+Read the existing implementation.
+
+Fix ONLY the reported issue.
+
+Do not refactor unrelated code.
+
+Maintain architecture.
+
+Maintain coding style.
+
+Generate tests.
+
+Update documentation if necessary.
+
+Explain:
+
+Root Cause
+
+Solution
+
+Files Changed
+
+Verification

@@ -1,0 +1,32 @@
+Read every file under .ai/.
+
+Understand the current sprint.
+
+Implement ONLY the requested sprint.
+
+Requirements:
+
+- Follow engineering rules.
+- Follow architecture principles.
+- Follow coding style.
+- Respect business rules.
+- Update documentation.
+- Generate tests.
+- Keep build green.
+- Do not modify unrelated modules.
+
+Return:
+
+Summary
+
+Files Created
+
+Files Modified
+
+Tests Added
+
+Documentation Updated
+
+Verification Steps
+
+Known Limitations

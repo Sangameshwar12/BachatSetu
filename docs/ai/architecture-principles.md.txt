@@ -1,0 +1,421 @@
+You are the Chief Software Architect and Principal Engineer for the BachatSetu project.
+
+Context
+
+BachatSetu is a production-grade fintech platform for digitizing India's traditional Bhishi (ROSCA) system.
+
+This document defines the permanent architecture principles for the entire project.
+
+Generate:
+
+.ai/architecture-principles.md
+
+This document is the official architecture handbook for the project.
+
+It must be used by all AI coding assistants before generating code.
+
+---------------------------------------
+
+Include the following sections.
+
+# 1. Architecture Vision
+
+Explain:
+
+Why the project uses enterprise architecture.
+
+Long-term maintainability goals.
+
+Scalability goals.
+
+Security goals.
+
+Developer experience goals.
+
+---------------------------------------
+
+# 2. Architecture Style
+
+Explain in detail:
+
+Domain Driven Design
+
+Hexagonal Architecture
+
+Clean Architecture
+
+Modular Monolith
+
+SOLID Principles
+
+Repository Pattern
+
+Ports and Adapters
+
+Dependency Inversion
+
+Composition over Inheritance
+
+Explain why each principle was selected.
+
+---------------------------------------
+
+# 3. High-Level System Architecture
+
+Include textual architecture diagrams.
+
+Show communication between:
+
+Frontend
+
+REST API
+
+Application Layer
+
+Domain Layer
+
+Ports
+
+Adapters
+
+Persistence
+
+Database
+
+Notification Services
+
+Future Mobile App
+
+Future External Integrations
+
+---------------------------------------
+
+# 4. Module Architecture
+
+Define project modules.
+
+Examples:
+
+auth
+
+group
+
+member
+
+payment
+
+notification
+
+audit
+
+shared
+
+Explain responsibilities of every module.
+
+Explain boundaries.
+
+Explain ownership.
+
+---------------------------------------
+
+# 5. Layer Responsibilities
+
+Interfaces Layer
+
+Application Layer
+
+Domain Layer
+
+Infrastructure Layer
+
+Persistence Layer
+
+Configuration Layer
+
+Explain what is allowed.
+
+Explain what is forbidden.
+
+---------------------------------------
+
+# 6. Dependency Rules
+
+Define dependency direction.
+
+Domain depends on nothing.
+
+Application depends only on Domain.
+
+Infrastructure depends on Domain.
+
+Controllers depend only on Application.
+
+Repositories implement Domain Ports.
+
+Include examples.
+
+Include forbidden dependency examples.
+
+---------------------------------------
+
+# 7. Domain Driven Design
+
+Explain:
+
+Entities
+
+Value Objects
+
+Aggregates
+
+Aggregate Roots
+
+Repositories
+
+Factories
+
+Domain Services
+
+Domain Events
+
+Specifications
+
+Policies
+
+Provide practical fintech examples.
+
+---------------------------------------
+
+# 8. Aggregate Design
+
+Explain aggregate boundaries.
+
+Transaction boundaries.
+
+Consistency rules.
+
+Aggregate invariants.
+
+When to split aggregates.
+
+When NOT to split aggregates.
+
+---------------------------------------
+
+# 9. Repository Pattern
+
+Repository Interfaces
+
+Repository Adapters
+
+Persistence Mapping
+
+No business logic inside repositories.
+
+---------------------------------------
+
+# 10. Transaction Strategy
+
+Explain:
+
+Transactional boundaries.
+
+Read operations.
+
+Write operations.
+
+Idempotency.
+
+Compensation strategy.
+
+---------------------------------------
+
+# 11. Event Strategy
+
+Future Domain Events.
+
+Integration Events.
+
+Audit Events.
+
+Notification Events.
+
+Explain event flow.
+
+---------------------------------------
+
+# 12. API Architecture
+
+REST conventions.
+
+DTO rules.
+
+Validation.
+
+Versioning.
+
+Error handling.
+
+---------------------------------------
+
+# 13. Persistence Architecture
+
+Hibernate
+
+Flyway
+
+Optimistic Locking
+
+Indexes
+
+Lazy Loading
+
+UUID
+
+Audit Columns
+
+Soft Delete
+
+---------------------------------------
+
+# 14. Security by Design
+
+Authentication boundaries.
+
+Authorization boundaries.
+
+RBAC.
+
+JWT.
+
+OTP.
+
+Audit.
+
+Secrets.
+
+Encryption.
+
+---------------------------------------
+
+# 15. Scalability
+
+Caching.
+
+Redis.
+
+Horizontal Scaling.
+
+Database Scaling.
+
+Read Replicas.
+
+Future Microservices strategy.
+
+---------------------------------------
+
+# 16. Performance Principles
+
+Avoid N+1.
+
+Pagination.
+
+Batch Processing.
+
+Connection Pooling.
+
+Caching.
+
+Indexes.
+
+---------------------------------------
+
+# 17. Coding Principles
+
+Immutability.
+
+Constructor Injection.
+
+No Field Injection.
+
+One Responsibility.
+
+Small Methods.
+
+Clean Code.
+
+Meaningful Names.
+
+---------------------------------------
+
+# 18. Anti-Patterns
+
+Explain what is forbidden.
+
+Examples:
+
+God Objects
+
+Fat Controllers
+
+Business Logic in Controllers
+
+Business Logic in Repositories
+
+Circular Dependencies
+
+Field Injection
+
+System.out.println()
+
+Wildcard Imports
+
+Large Transactions
+
+Duplicate Business Logic
+
+---------------------------------------
+
+# 19. Architecture Review Checklist
+
+Provide a checklist that every pull request should satisfy.
+
+---------------------------------------
+
+# 20. Future Evolution
+
+Explain how this architecture can evolve into:
+
+Microservices
+
+Event Driven Architecture
+
+CQRS
+
+Kafka
+
+Kubernetes
+
+Cloud Native
+
+Multi Tenant SaaS
+
+without major rewrites.
+
+---------------------------------------
+
+Requirements
+
+This is documentation only.
+
+Do NOT generate Java code.
+
+Do NOT generate APIs.
+
+Do NOT generate SQL.
+
+Do NOT modify any source code.
+
+The document should become the permanent architecture constitution of the project.
+
+It must be detailed, production-grade, and suitable for a fintech platform expected to serve millions of users.

@@ -1,0 +1,385 @@
+You are the Chief Product Officer, Domain Expert, and Principal Software Architect for the BachatSetu project.
+
+Context
+
+BachatSetu is an enterprise-grade fintech platform built to digitize India's traditional Bhishi (ROSCA/Committee/Chit Fund) system.
+
+The application is intended for rural and urban communities across India.
+
+The platform must support:
+
+• Fixed-order Bhishi
+• Lucky Draw Bhishi
+• Auction Bhishi
+• Women Saving Groups
+• Men Saving Groups
+• Mixed Groups
+• Community Savings Groups
+
+This document is NOT a technical document.
+
+It is the official Business Rule Book for the entire project.
+
+Generate
+
+.ai/business-rules.md
+
+The document must explain the business domain completely.
+
+Include the following sections.
+
+---------------------------------------
+
+1. Introduction
+
+What is Bhishi?
+
+History
+
+Purpose
+
+Real-world examples
+
+Common terminology
+
+Benefits
+
+Risks
+
+---------------------------------------
+
+2. Business Actors
+
+Organizer
+
+Member
+
+Admin
+
+Super Admin
+
+Auditor
+
+Accountant
+
+Each actor should include
+
+Responsibilities
+
+Permissions
+
+Restrictions
+
+Lifecycle
+
+---------------------------------------
+
+3. Bhishi Types
+
+Fixed Order
+
+Lucky Draw
+
+Auction
+
+Hybrid
+
+Women Group
+
+Festival Bhishi
+
+Gold Bhishi
+
+Business Bhishi
+
+Salary Bhishi
+
+Corporate Bhishi
+
+Explain every type with examples.
+
+---------------------------------------
+
+4. Group Lifecycle
+
+Group Creation
+
+Member Invitation
+
+Member Approval
+
+Monthly Collection
+
+Monthly Draw
+
+Auction
+
+Winner Selection
+
+Receipt Generation
+
+Cycle Completion
+
+Group Closure
+
+Archiving
+
+---------------------------------------
+
+5. Monthly Collection Rules
+
+Collection Date
+
+Grace Period
+
+Penalty
+
+Advance Payment
+
+Partial Payment
+
+Late Payment
+
+Missed Payment
+
+Duplicate Payment
+
+Receipt Rules
+
+Refund Rules
+
+---------------------------------------
+
+6. Draw Rules
+
+Eligibility
+
+Winner Selection
+
+Lucky Draw Rules
+
+Fixed Order Rules
+
+Auction Winner Rules
+
+Tie Breaking Rules
+
+Re-draw Rules
+
+Cancelled Draw Rules
+
+---------------------------------------
+
+7. Auction Rules
+
+Who can bid
+
+Maximum Bid
+
+Minimum Bid
+
+Discount Calculation
+
+Winner Calculation
+
+Bid Closing
+
+Auction Validation
+
+Settlement Rules
+
+---------------------------------------
+
+8. Member Rules
+
+Join
+
+Leave
+
+Transfer
+
+Replacement
+
+Blacklisting
+
+Rejoining
+
+Multiple Membership
+
+Family Membership
+
+---------------------------------------
+
+9. Organizer Rules
+
+Create Group
+
+Modify Group
+
+Delete Group
+
+Close Group
+
+Collect Money
+
+Generate Receipts
+
+Declare Draw
+
+Manage Defaulters
+
+Notifications
+
+---------------------------------------
+
+10. Financial Rules
+
+Installments
+
+Receipts
+
+Ledger
+
+Penalty
+
+Cash Collection
+
+UPI
+
+Bank Transfer
+
+Wallet
+
+Refund
+
+Settlement
+
+---------------------------------------
+
+11. Default Rules
+
+Late Payment
+
+Missed Installment
+
+Repeated Default
+
+Blacklist
+
+Recovery Process
+
+Manual Recovery
+
+Property Hold (real-world scenario)
+
+Legal Notes
+
+---------------------------------------
+
+12. Notification Rules
+
+SMS
+
+WhatsApp
+
+Push Notification
+
+Email
+
+Reminder
+
+Penalty Reminder
+
+Draw Reminder
+
+Receipt Generated
+
+---------------------------------------
+
+13. Reporting Rules
+
+Organizer Dashboard
+
+Member Dashboard
+
+Collection Reports
+
+Pending Reports
+
+Auction Reports
+
+Penalty Reports
+
+Financial Reports
+
+---------------------------------------
+
+14. Audit Rules
+
+Every action must be auditable.
+
+No financial record should be deleted.
+
+Immutable payment history.
+
+---------------------------------------
+
+15. Business Constraints
+
+Maximum members
+
+Minimum members
+
+Maximum active groups
+
+Maximum installment
+
+Currency
+
+Time Zone
+
+---------------------------------------
+
+16. Future Expansion
+
+Multi-language
+
+Multi-state
+
+Multi-tenant
+
+GST
+
+Payment Gateway
+
+AI Assistant
+
+Voice Assistant
+
+Flutter Mobile App
+
+---------------------------------------
+
+17. Glossary
+
+Explain every business term.
+
+---------------------------------------
+
+Requirements
+
+Do NOT write technical implementation.
+
+Do NOT write Java code.
+
+Do NOT write database schema.
+
+Do NOT generate APIs.
+
+Focus only on business rules.
+
+Use real-world examples wherever possible.
+
+This document must become the single source of truth for the BachatSetu business domain.
+
+The document should be detailed enough that any AI assistant can understand how Bhishi works before generating code.

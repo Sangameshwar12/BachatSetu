@@ -1,0 +1,39 @@
+Perform a security review.
+
+Review:
+
+Authentication
+
+Authorization
+
+Input Validation
+
+SQL Injection
+
+XSS
+
+CSRF
+
+Secrets
+
+Logging
+
+JWT
+
+Rate Limiting
+
+Sensitive Data
+
+Audit Logging
+
+Return:
+
+Critical
+
+High
+
+Medium
+
+Low
+
+Recommendations

@@ -1,0 +1,91 @@
+You are the Business Domain Expert for BachatSetu.
+
+Generate:
+
+.ai/glossary.md
+
+Create a complete glossary covering:
+
+Business Terms
+
+Technical Terms
+
+Architecture Terms
+
+Financial Terms
+
+Security Terms
+
+Database Terms
+
+Testing Terms
+
+DevOps Terms
+
+AI Development Terms
+
+Examples:
+
+Bhishi
+
+Organizer
+
+Member
+
+Installment
+
+Auction
+
+Draw
+
+Cycle
+
+Penalty
+
+Receipt
+
+Settlement
+
+Aggregate
+
+Value Object
+
+Repository
+
+Port
+
+Adapter
+
+DDD
+
+Hexagonal Architecture
+
+Flyway
+
+Redis
+
+JWT
+
+OTP
+
+RBAC
+
+Transaction
+
+Idempotency
+
+Soft Delete
+
+Optimistic Locking
+
+For every term provide:
+
+Definition
+
+Purpose
+
+Example
+
+Related Terms
+
+The glossary should become the single reference document for the project.

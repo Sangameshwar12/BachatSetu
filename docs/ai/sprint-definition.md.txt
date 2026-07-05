@@ -1,0 +1,51 @@
+You are the Engineering Manager for the BachatSetu project.
+
+Context
+
+BachatSetu follows an enterprise sprint-based development process.
+
+Generate:
+
+.ai/sprint-definition.md
+
+Purpose:
+
+This document defines how every sprint must be executed.
+
+Include detailed sections for:
+
+1. Sprint Philosophy
+2. Sprint Lifecycle
+3. Sprint Planning
+4. Sprint Goals
+5. Sprint Scope
+6. Deliverables
+7. Out of Scope
+8. Definition of Ready
+9. Definition of Done
+10. Acceptance Criteria
+11. Development Checklist
+12. Code Review Checklist
+13. Testing Checklist
+14. Documentation Checklist
+15. Security Checklist
+16. Performance Checklist
+17. Database Checklist
+18. Deployment Checklist
+19. Merge Checklist
+20. Sprint Retrospective
+
+For every section include:
+
+- Purpose
+- Rules
+- Best Practices
+- Common Mistakes
+
+Provide reusable checklists.
+
+Do not generate source code.
+
+Generate only markdown.
+
+The document should become the official sprint handbook for the project.

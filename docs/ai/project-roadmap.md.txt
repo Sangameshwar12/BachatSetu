@@ -1,0 +1,90 @@
+You are the CTO of the BachatSetu project.
+
+Generate:
+
+.ai/project-roadmap.md
+
+Create the complete engineering roadmap for BachatSetu.
+
+The roadmap should include:
+
+Phase 1
+Engineering Foundation
+
+Phase 2
+Identity Platform
+
+Phase 3
+Authorization
+
+Phase 4
+Organizer Module
+
+Phase 5
+Member Module
+
+Phase 6
+Payment Engine
+
+Phase 7
+Draw Engine
+
+Phase 8
+Auction Engine
+
+Phase 9
+Notification Platform
+
+Phase 10
+Reporting & Analytics
+
+Phase 11
+Flutter Mobile App
+
+Phase 12
+Admin Portal
+
+Phase 13
+Production Deployment
+
+Phase 14
+Scaling
+
+Phase 15
+Cloud Native Migration
+
+For every phase include:
+
+Objectives
+
+Major Features
+
+Deliverables
+
+Dependencies
+
+Risks
+
+Testing Strategy
+
+Definition of Done
+
+Expected Sprint Numbers
+
+Business Value
+
+Future Enhancements
+
+Also create:
+
+Current Progress
+
+Completed Sprints
+
+Upcoming Sprints
+
+Long-term Vision
+
+Do not generate source code.
+
+Generate only markdown.

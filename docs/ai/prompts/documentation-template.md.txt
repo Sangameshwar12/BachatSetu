@@ -1,0 +1,23 @@
+Generate documentation only.
+
+Use existing project standards.
+
+Maintain consistency.
+
+Include:
+
+Overview
+
+Purpose
+
+Architecture
+
+Examples
+
+Best Practices
+
+Common Mistakes
+
+References
+
+Do not generate source code.

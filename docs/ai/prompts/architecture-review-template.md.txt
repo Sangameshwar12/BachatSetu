@@ -1,0 +1,29 @@
+Review the architecture.
+
+Verify:
+
+DDD
+
+Hexagonal
+
+Dependency Rules
+
+Package Boundaries
+
+Repository Pattern
+
+Aggregate Design
+
+Layer Isolation
+
+Architecture Violations
+
+Return:
+
+Architecture Score
+
+Violations
+
+Suggestions
+
+Approval

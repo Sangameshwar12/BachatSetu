@@ -1,0 +1,31 @@
+Perform release readiness review.
+
+Check:
+
+Build
+
+Tests
+
+Coverage
+
+Security
+
+Flyway
+
+Documentation
+
+Performance
+
+Architecture
+
+CI/CD
+
+Return:
+
+Release Score
+
+Go / No-Go
+
+Blockers
+
+Recommendations

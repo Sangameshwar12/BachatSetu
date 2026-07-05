@@ -1,0 +1,75 @@
+You are a Principal Staff Software Engineer responsible for defining enterprise engineering standards for the BachatSetu project.
+
+Context:
+BachatSetu is a production-grade fintech platform that digitizes India's traditional Bhishi (ROSCA) system.
+
+The backend uses:
+
+- Java 21
+- Spring Boot 3
+- Maven
+- PostgreSQL
+- Flyway
+- Redis
+- Docker
+- Testcontainers
+- MapStruct
+- Hibernate
+- JUnit 5
+- Mockito
+- ArchUnit
+- Micrometer
+
+Architecture:
+
+- Domain Driven Design
+- Hexagonal Architecture
+- Clean Architecture
+- Modular Monolith
+- SOLID
+
+Task:
+
+Generate a complete markdown document named
+
+.ai/engineering-rules.md
+
+The document should become the permanent engineering constitution of the project.
+
+Include detailed sections for:
+
+1. General Engineering Rules
+2. Java Standards
+3. Spring Boot Standards
+4. Architecture Rules
+5. Dependency Rules
+6. Persistence Rules
+7. Repository Rules
+8. API Standards
+9. Validation Rules
+10. Exception Handling Rules
+11. Logging Rules
+12. Security Rules
+13. Testing Rules
+14. Build Rules
+15. Performance Rules
+16. Documentation Rules
+17. Git Workflow
+18. CI/CD Rules
+19. AI Code Generation Rules
+20. Review Checklist
+
+Requirements:
+
+- Enterprise quality
+- No placeholders
+- No TODOs
+- Production standards only
+- Use markdown headings
+- Add practical examples
+- Add best practices
+- Add anti-patterns
+- Add definition of done
+- Add checklists wherever appropriate
+
+The document must be reusable by Codex, ChatGPT, Claude Code, Cursor and GitHub Copilot.
