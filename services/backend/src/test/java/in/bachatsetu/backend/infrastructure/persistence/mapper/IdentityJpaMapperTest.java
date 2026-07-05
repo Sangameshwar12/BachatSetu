@@ -14,9 +14,11 @@ import in.bachatsetu.backend.auth.domain.model.Permission;
 import in.bachatsetu.backend.auth.domain.model.PermissionId;
 import in.bachatsetu.backend.auth.domain.model.RefreshToken;
 import in.bachatsetu.backend.auth.domain.model.RefreshTokenId;
+import in.bachatsetu.backend.auth.domain.model.RefreshTokenHash;
 import in.bachatsetu.backend.auth.domain.model.Role;
 import in.bachatsetu.backend.auth.domain.model.RoleId;
 import in.bachatsetu.backend.auth.domain.model.TokenStatus;
+import in.bachatsetu.backend.auth.domain.model.TokenSessionId;
 import in.bachatsetu.backend.auth.domain.model.User;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.auth.domain.model.UserStatus;
@@ -97,9 +99,13 @@ class IdentityJpaMapperTest {
         RefreshToken token = RefreshToken.rehydrate(
                 RefreshTokenId.newId(),
                 userId,
+                AggregateId.newId(),
+                TokenSessionId.newId(),
+                RefreshTokenHash.encoded("H".repeat(60)),
                 NOW,
                 NOW.plusSeconds(3600),
                 TokenStatus.REVOKED,
+                null,
                 AuditInfo.createdBy(actorId, NOW),
                 4);
         OtpVerification otp = OtpVerification.rehydrate(
@@ -120,6 +126,7 @@ class IdentityJpaMapperTest {
 
         assertThat(tokenEntity.getUser()).isSameAs(userReference);
         assertThat(tokenEntity.getStatus()).isEqualTo(TokenStatus.REVOKED);
+        assertThat(tokenEntity.getTokenHash()).isEqualTo("H".repeat(60));
         assertThat(otpEntity.getUser()).isSameAs(userReference);
         assertThat(otpEntity.getHash()).isEqualTo("C".repeat(64));
         assertThat(otpEntity.getPurpose()).isEqualTo(OtpPurpose.SIGN_IN);

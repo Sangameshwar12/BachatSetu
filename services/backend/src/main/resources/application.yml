@@ -82,3 +82,13 @@ bachatsetu:
     hash-strength: ${AUTH_OTP_BCRYPT_STRENGTH:12}
     rest:
       enabled: ${AUTH_REST_ENABLED:true}
+    token:
+      enabled: ${AUTH_TOKEN_ENABLED:false}
+      access-token-expiry: ${AUTH_ACCESS_TOKEN_EXPIRY:15m}
+      refresh-token-expiry: ${AUTH_REFRESH_TOKEN_EXPIRY:30d}
+      issuer: ${AUTH_JWT_ISSUER:bachatsetu}
+      audience: ${AUTH_JWT_AUDIENCE:bachatsetu-api}
+      signing-secret: ${AUTH_JWT_SIGNING_SECRET:}
+      clock-skew: ${AUTH_JWT_CLOCK_SKEW:30s}
+      hash-strength: ${AUTH_REFRESH_HASH_STRENGTH:12}
+      jwt-version: 1

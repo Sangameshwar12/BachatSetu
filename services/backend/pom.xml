@@ -25,6 +25,7 @@
         <testcontainers.version>1.20.4</testcontainers.version>
         <archunit.version>1.3.0</archunit.version>
         <springdoc.version>2.6.0</springdoc.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <checkstyle.version>10.17.0</checkstyle.version>
         <maven-checkstyle-plugin.version>3.5.0</maven-checkstyle-plugin.version>
         <maven-pmd-plugin.version>3.26.0</maven-pmd-plugin.version>
@@ -77,6 +78,23 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -277,6 +295,7 @@
                         <include>in/bachatsetu/backend/auth/application/**</include>
                         <include>in/bachatsetu/backend/infrastructure/auth/**</include>
                         <include>in/bachatsetu/backend/auth/interfaces/**</include>
+                        <include>in/bachatsetu/backend/configuration/auth/**</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -318,6 +337,7 @@
                                         <include>in.bachatsetu.backend.auth.application.*</include>
                                         <include>in.bachatsetu.backend.infrastructure.auth.*</include>
                                         <include>in.bachatsetu.backend.auth.interfaces.*</include>
+                                        <include>in.bachatsetu.backend.configuration.auth.*</include>
                                     </includes>
                                     <limits>
                                         <limit>

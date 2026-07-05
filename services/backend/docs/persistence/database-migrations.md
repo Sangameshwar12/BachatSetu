@@ -10,6 +10,9 @@ Flyway is the only production schema owner. Hibernate uses `ddl-auto=validate` a
 | --- | --- |
 | `V1__initial_schema.sql` | Creates five schemas, thirteen mapped tables, foreign keys, unique constraints, check constraints, and indexes. |
 | `V2__seed_roles_permissions.sql` | Seeds deterministic platform roles and atomic permissions with stable UUIDs. |
+| `V3__identity_persistence.sql` | Extends canonical identity records and adds role, permission, refresh-token, and OTP persistence. |
+| `V4__secure_otp_authentication.sql` | Removes plaintext OTP storage and enforces retry, resend, status, and active-challenge constraints. |
+| `V5__refresh_token_security.sql` | Adds hash-only refresh credentials, tenant/session ownership, rotation/reuse linkage, and active-session uniqueness. |
 
 ## Design Rules
 

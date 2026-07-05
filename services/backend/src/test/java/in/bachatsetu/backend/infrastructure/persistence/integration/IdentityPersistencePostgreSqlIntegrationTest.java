@@ -10,6 +10,8 @@ import in.bachatsetu.backend.auth.domain.model.OtpVerification;
 import in.bachatsetu.backend.auth.domain.model.PasswordHash;
 import in.bachatsetu.backend.auth.domain.model.RefreshToken;
 import in.bachatsetu.backend.auth.domain.model.RefreshTokenId;
+import in.bachatsetu.backend.auth.domain.model.RefreshTokenHash;
+import in.bachatsetu.backend.auth.domain.model.TokenSessionId;
 import in.bachatsetu.backend.auth.domain.model.Role;
 import in.bachatsetu.backend.auth.domain.model.User;
 import in.bachatsetu.backend.auth.domain.model.UserId;
@@ -108,11 +110,35 @@ class IdentityPersistencePostgreSqlIntegrationTest extends PostgreSqlIntegration
         RefreshToken token = RefreshToken.issue(
                 RefreshTokenId.newId(),
                 userId,
+                new AggregateId(TENANT_ID),
+                TokenSessionId.newId(),
+                RefreshTokenHash.encoded("H".repeat(60)),
                 NOW,
                 NOW.plusSeconds(3600),
                 new AggregateId(ACTOR_ID));
         refreshTokenRepository.save(token);
         assertThat(refreshTokenRepository.findById(token.refreshTokenId())).isPresent();
+
+        RefreshToken replacementToken = RefreshToken.issue(
+                RefreshTokenId.newId(),
+                userId,
+                new AggregateId(TENANT_ID),
+                token.sessionId(),
+                RefreshTokenHash.encoded("I".repeat(60)),
+                NOW.plusSeconds(10),
+                NOW.plusSeconds(3610),
+                new AggregateId(ACTOR_ID));
+        token.rotate(replacementToken.refreshTokenId(), new AggregateId(ACTOR_ID), NOW.plusSeconds(10));
+        refreshTokenRepository.replace(token, replacementToken);
+        assertThat(refreshTokenRepository.findActive(userId, token.sessionId()))
+                .get()
+                .extracting(RefreshToken::refreshTokenId)
+                .isEqualTo(replacementToken.refreshTokenId());
+
+        token.markReused(new AggregateId(ACTOR_ID), NOW.plusSeconds(20));
+        replacementToken.revoke(new AggregateId(ACTOR_ID), NOW.plusSeconds(20));
+        refreshTokenRepository.recordReuse(token, Optional.of(replacementToken));
+        assertThat(refreshTokenRepository.findActive(userId, token.sessionId())).isEmpty();
 
         OtpVerification otp = OtpVerification.generate(
                 AggregateId.newId(),

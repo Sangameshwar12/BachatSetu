@@ -1,7 +1,7 @@
 # Authentication Infrastructure
 
-Version: 1.1
-Sprint: 8.4, composition amendment by Sprint 8.5
+Version: 1.2
+Sprint: 8.4, amended by Sprints 8.5 and 8.6
 Status: Implemented
 
 ## Purpose
@@ -24,7 +24,7 @@ flowchart LR
     Ports --> DomainTypes["OTP Domain Value Objects"]
 ```
 
-The executable architecture rule permits `infrastructure.auth` to implement only `auth.application.port` contracts. It may use authentication domain value objects required by those signatures, Java, SLF4J, and Spring. Commands, queries, events, application services, use cases, interfaces, and controllers remain forbidden dependencies.
+The executable architecture rule permits `infrastructure.auth` to implement only authentication-owned application ports, including the token ports added by Sprint 8.6. It may use domain value objects required by those signatures, approved security libraries, Java, SLF4J, and Spring. Commands, queries, events, application services, use cases, interfaces, and controllers remain forbidden dependencies.
 
 ## Adapter Responsibilities
 
@@ -73,7 +73,7 @@ The first three properties are strongly typed operational declarations and are v
 
 ```text
 infrastructure.auth.adapter
-  -> auth.application.port
+  -> auth.application.port / auth.application.token.port
   -> auth.domain.model (port signature values only)
   -> Java / SLF4J / Spring Security Crypto
 
@@ -82,7 +82,7 @@ infrastructure.auth.config
   -> Spring configuration and typed property binding
 ```
 
-There is no dependency on controllers, interfaces, JPA entities, repositories, JWT, or delivery-provider SDKs.
+There is no dependency on controllers, interfaces, JPA entities, repositories, or delivery-provider SDKs. Sprint 8.6's approved JJWT dependency is isolated in `JwtProviderAdapter`; details are owned by [JWT Authentication](jwt-authentication.md).
 
 ## Testing
 

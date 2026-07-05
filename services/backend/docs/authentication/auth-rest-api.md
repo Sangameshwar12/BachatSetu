@@ -1,7 +1,7 @@
 # Authentication REST API
 
-Version: 1.0
-Sprint: 8.5
+Version: 1.1
+Sprint: 8.5, status amendment by Sprint 8.6
 Status: Implemented
 
 ## Purpose
@@ -159,7 +159,7 @@ Swagger annotations define summaries, response codes, schemas, and representativ
 
 ## Known Limitations
 
-- No JWT, Spring Security filter chain, login endpoint, refresh-token endpoint, or authorization policy is introduced.
+- This API exposes no JWT, login, refresh-token, logout, or authorization endpoint; Sprint 8.6 implements the engine behind application ports only.
 - No distributed IP/device rate limiter exists; aggregate attempt and resend limits remain enforced by the OTP engine.
 - Dev and production require an approved `OtpSenderPort` implementation before the application-service composition activates.
 - The existing tenant-aware user repository requires a deployment-provided `TenantScopeProvider`; this sprint does not infer tenancy from untrusted request fields.

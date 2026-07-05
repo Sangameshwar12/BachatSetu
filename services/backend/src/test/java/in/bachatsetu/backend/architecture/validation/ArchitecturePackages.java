@@ -12,6 +12,7 @@ final class ArchitecturePackages {
     static final String PERSISTENCE_ENTITY = "..infrastructure.persistence.entity..";
     static final String AUTH_INFRASTRUCTURE = "..infrastructure.auth..";
     static final String AUTH_APPLICATION_PORT = "..auth.application.port..";
+    static final String AUTH_TOKEN_APPLICATION_PORT = "..auth.application.token.port..";
 
     private ArchitecturePackages() {
     }

@@ -13,14 +13,15 @@ class MigrationContractTest {
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
 
     @Test
-    void containsOnlyTheFourOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheFiveOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
                     .containsExactly(
                             "V1__initial_schema.sql",
                             "V2__seed_roles_permissions.sql",
                             "V3__identity_persistence.sql",
-                            "V4__secure_otp_authentication.sql");
+                            "V4__secure_otp_authentication.sql",
+                            "V5__refresh_token_security.sql");
         }
     }
 
@@ -61,7 +62,8 @@ class MigrationContractTest {
         String migrations = Files.readString(MIGRATION_DIRECTORY.resolve("V1__initial_schema.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V2__seed_roles_permissions.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V3__identity_persistence.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V4__secure_otp_authentication.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V4__secure_otp_authentication.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V5__refresh_token_security.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -113,6 +115,21 @@ class MigrationContractTest {
                 .contains("resend_count BETWEEN 0 AND 3")
                 .contains("CREATE UNIQUE INDEX uk_otp_active_user_purpose")
                 .contains("'INVALIDATED'");
+    }
+
+    @Test
+    void refreshTokenSecurityMigrationHashesAndScopesCredentials() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V5__refresh_token_security.sql"));
+
+        assertThat(sql)
+                .contains("ADD COLUMN token_hash VARCHAR(255)")
+                .contains("ADD COLUMN session_id UUID")
+                .contains("ADD COLUMN tenant_id UUID")
+                .contains("'ROTATED', 'REUSED'")
+                .contains("CREATE UNIQUE INDEX uk_refresh_tokens_active_session")
+                .contains("fk_refresh_tokens_replacement")
+                .doesNotContain("token_value")
+                .doesNotContain("plain_token");
     }
 
     private int count(String source, String token) {

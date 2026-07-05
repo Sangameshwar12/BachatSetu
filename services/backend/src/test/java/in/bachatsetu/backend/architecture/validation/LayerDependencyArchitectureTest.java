@@ -48,9 +48,12 @@ class LayerDependencyArchitectureTest {
             .should().onlyDependOnClassesThat().resideInAnyPackage(
                     ArchitecturePackages.AUTH_INFRASTRUCTURE,
                     ArchitecturePackages.AUTH_APPLICATION_PORT,
+                    ArchitecturePackages.AUTH_TOKEN_APPLICATION_PORT,
                     "..auth.domain..",
                     "..shared..",
                     "java..",
+                    "javax.crypto..",
+                    "io.jsonwebtoken..",
                     "org.slf4j..",
                     "org.springframework..")
             .because("authentication adapters implement only their owned outbound ports");

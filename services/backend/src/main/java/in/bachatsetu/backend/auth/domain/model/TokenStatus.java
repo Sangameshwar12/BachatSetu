@@ -4,5 +4,7 @@ package in.bachatsetu.backend.auth.domain.model;
 public enum TokenStatus {
     ACTIVE,
     REVOKED,
-    EXPIRED
+    EXPIRED,
+    ROTATED,
+    REUSED
 }

@@ -2,6 +2,8 @@ package in.bachatsetu.backend.auth.domain.factory;
 
 import in.bachatsetu.backend.auth.domain.model.RefreshToken;
 import in.bachatsetu.backend.auth.domain.model.RefreshTokenId;
+import in.bachatsetu.backend.auth.domain.model.RefreshTokenHash;
+import in.bachatsetu.backend.auth.domain.model.TokenSessionId;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.time.Clock;
@@ -20,10 +22,22 @@ public final class RefreshTokenFactory {
         this.lifetime = requirePositive(lifetime);
     }
 
-    public RefreshToken issue(UserId userId, AggregateId actorId) {
+    public RefreshToken issue(
+            UserId userId,
+            AggregateId tenantId,
+            TokenSessionId sessionId,
+            RefreshTokenHash tokenHash,
+            AggregateId actorId) {
         Instant issuedAt = clock.instant();
         return RefreshToken.issue(
-                RefreshTokenId.newId(), userId, issuedAt, issuedAt.plus(lifetime), actorId);
+                RefreshTokenId.newId(),
+                userId,
+                tenantId,
+                sessionId,
+                tokenHash,
+                issuedAt,
+                issuedAt.plus(lifetime),
+                actorId);
     }
 
     private static Duration requirePositive(Duration value) {

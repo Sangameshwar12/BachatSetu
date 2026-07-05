@@ -22,6 +22,7 @@ import java.util.UUID;
         schema = "identity",
         indexes = {
             @Index(name = "idx_refresh_tokens_user_status", columnList = "user_id,status"),
+            @Index(name = "idx_refresh_tokens_user_session", columnList = "user_id,session_id,status"),
             @Index(name = "idx_refresh_tokens_expires_at", columnList = "expires_at")
         })
 public class RefreshTokenJpaEntity extends BaseJpaEntity {
@@ -36,6 +37,18 @@ public class RefreshTokenJpaEntity extends BaseJpaEntity {
     private UserJpaEntity user;
 
     @NotNull
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    @NotNull
+    @Column(name = "session_id", nullable = false, updatable = false)
+    private UUID sessionId;
+
+    @NotNull
+    @Column(name = "token_hash", nullable = false, updatable = false, length = 255)
+    private String tokenHash;
+
+    @NotNull
     @Column(name = "issued_at", nullable = false, updatable = false)
     private Instant issuedAt;
 
@@ -48,29 +61,45 @@ public class RefreshTokenJpaEntity extends BaseJpaEntity {
     @Column(name = "status", nullable = false, length = 20)
     private TokenStatus status;
 
+    @Column(name = "replaced_by_token_id")
+    private UUID replacedByTokenId;
+
     protected RefreshTokenJpaEntity() {
     }
 
     public RefreshTokenJpaEntity(
             UUID id,
             UserJpaEntity user,
+            UUID tenantId,
+            UUID sessionId,
+            String tokenHash,
             Instant issuedAt,
             Instant expiresAt,
-            TokenStatus status) {
+            TokenStatus status,
+            UUID replacedByTokenId) {
         super(id);
         this.user = user;
+        this.tenantId = tenantId;
+        this.sessionId = sessionId;
+        this.tokenHash = tokenHash;
         this.issuedAt = issuedAt;
         this.expiresAt = expiresAt;
         this.status = status;
+        this.replacedByTokenId = replacedByTokenId;
     }
 
     public UserJpaEntity getUser() { return user; }
+    public UUID getTenantId() { return tenantId; }
+    public UUID getSessionId() { return sessionId; }
+    public String getTokenHash() { return tokenHash; }
     public Instant getIssuedAt() { return issuedAt; }
     public Instant getExpiresAt() { return expiresAt; }
     public TokenStatus getStatus() { return status; }
+    public UUID getReplacedByTokenId() { return replacedByTokenId; }
 
-    public void updateLifecycle(Instant expiry, TokenStatus tokenStatus) {
+    public void updateLifecycle(Instant expiry, TokenStatus tokenStatus, UUID replacementId) {
         expiresAt = expiry;
         status = tokenStatus;
+        replacedByTokenId = replacementId;
     }
 }

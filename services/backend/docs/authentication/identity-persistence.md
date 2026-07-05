@@ -1,7 +1,7 @@
 # Identity Persistence
 
-Version: 1.1
-Sprint: 8.2, security amendment by Sprint 8.3
+Version: 1.2
+Sprint: 8.2, security amendments by Sprints 8.3 and 8.6
 Status: Implemented
 
 ## Purpose
@@ -23,7 +23,7 @@ No duplicate user, role, or permission entity, repository, or table is introduce
 
 ## New Components
 
-- `RefreshTokenJpaEntity` persists lifecycle identity, owner, issue/expiry times, and status. It never stores token credential material.
+- `RefreshTokenJpaEntity` persists owner, tenant, device session, one-way credential hash, issue/expiry times, rotation linkage, and status. It never stores plaintext credential material.
 - `OtpVerificationJpaEntity` persists only an opaque OTP hash plus verification attempts, resend count, purpose, owner, expiry, and status.
 - Five authentication repository adapters implement ports owned by `auth.domain.port`.
 - Authentication-specific MapStruct mappers reconstruct aggregates through event-free `rehydrate(...)` methods.
@@ -74,11 +74,13 @@ Migration V3 is append-only and leaves V1/V2 unchanged. It:
 
 Sprint 8.3 adds append-only V4. It uses PostgreSQL `pgcrypto` to hash any pre-existing six-digit V3 values before dropping the plaintext column, adds attempt/resend counters and checks, adds `INVALIDATED`, and creates a unique partial index enforcing one pending OTP per user and purpose.
 
+Sprint 8.6 adds append-only V5. Existing lifecycle-only rows are made unusable, then receive migration-safe hash/session metadata. V5 adds tenant ownership, refresh-token hash, session identity, self-referencing replacement linkage, `ROTATED`/`REUSED` states, and a unique partial index enforcing one active token per user/session.
+
 ## Persistence Rules
 
 - JPA entities never cross the persistence boundary.
 - Domain models remain free of Spring, Hibernate, Jakarta Persistence, and MapStruct.
-- Raw passwords and refresh-token credentials are never persisted.
+- Raw passwords, JWTs, and plaintext refresh-token credentials are never persisted.
 - Plain OTP values are never persisted after V4; only the opaque `otp_hash` representation is mapped by JPA.
 - Existing profile ownership and tenancy fields cannot be changed through authentication mappers.
 - Every aggregate load excludes soft-deleted root records.
@@ -94,4 +96,4 @@ Sprint 8.3 adds append-only V4. It uses PostgreSQL `pgcrypto` to hash any pre-ex
 
 ## Provider Boundary
 
-Sprint 8.4 supplies a configurable BCrypt adapter for Sprint 8.3's `HashingPort`; persistence remains algorithm-agnostic and stores only the encoded result. No JWT, SecurityFilterChain, SMS provider, or REST behavior is introduced by persistence.
+Sprint 8.6 supplies algorithm-independent token ports plus JJWT and BCrypt adapters. Persistence remains algorithm-agnostic and stores only encoded refresh-token hashes. No SecurityFilterChain or token REST endpoint is introduced by persistence.

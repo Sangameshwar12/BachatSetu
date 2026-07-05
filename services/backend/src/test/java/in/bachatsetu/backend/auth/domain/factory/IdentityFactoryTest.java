@@ -12,6 +12,8 @@ import in.bachatsetu.backend.auth.domain.model.OtpStatus;
 import in.bachatsetu.backend.auth.domain.model.PasswordHash;
 import in.bachatsetu.backend.auth.domain.model.Permission;
 import in.bachatsetu.backend.auth.domain.model.Role;
+import in.bachatsetu.backend.auth.domain.model.RefreshTokenHash;
+import in.bachatsetu.backend.auth.domain.model.TokenSessionId;
 import in.bachatsetu.backend.auth.domain.model.TokenStatus;
 import in.bachatsetu.backend.auth.domain.model.User;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -41,7 +43,12 @@ class IdentityFactoryTest {
         Permission permission = new PermissionFactory(CLOCK)
                 .createUnique("group:read", List.of(), actorId);
         var token = new RefreshTokenFactory(CLOCK, Duration.ofDays(30))
-                .issue(user.userId(), actorId);
+                .issue(
+                        user.userId(),
+                        AggregateId.newId(),
+                        TokenSessionId.newId(),
+                        RefreshTokenHash.encoded("H".repeat(60)),
+                        actorId);
         var otp = new OtpVerificationFactory(CLOCK)
                 .generate(user.userId(), OtpHash.encoded("C".repeat(64)), OtpPurpose.REGISTRATION, actorId);
 

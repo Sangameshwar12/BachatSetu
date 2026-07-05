@@ -1,7 +1,7 @@
 # Identity Domain
 
-Version: 1.2
-Sprint: 8.1, amended by Sprints 8.2 and 8.3
+Version: 1.3
+Sprint: 8.1, amended by Sprints 8.2, 8.3, and 8.6
 Status: Implemented
 
 ## Purpose
@@ -17,7 +17,7 @@ Broader architecture boundaries remain defined by [Architecture Protection](../.
 | `User` | `UserId` | Authentication contact identifiers, encoded password hash, status, and unique role assignments |
 | `Role` | `RoleId` | Canonical role name and unique permission-ID assignments |
 | `Permission` | `PermissionId` | Canonical permission name |
-| `RefreshToken` | `RefreshTokenId` | Expiry, usability, revocation, and expiration state without token credential material |
+| `RefreshToken` | `RefreshTokenId` | Hashed credential ownership, session uniqueness, rotation, reuse, revocation, and expiry |
 | `OtpVerification` | `AggregateId` | OTP purpose, verification result, and expiry lifecycle |
 
 Aggregates expose immutable snapshots of collections. State changes occur only through invariant-preserving methods and update shared audit/version metadata. Equality and hash codes use aggregate identity rather than mutable attributes.
@@ -31,7 +31,8 @@ Sprint 8.2 adds event-free `rehydrate(...)` constructors and domain-owned reposi
 - `MobileNumber` accepts only canonical Indian mobile numbers in `+91XXXXXXXXXX` form, with subscriber numbers beginning from 6 through 9.
 - `PasswordHash` accepts recognized bcrypt or Argon2 encodings and cannot represent ordinary plain text. Its string representation is redacted.
 - `OtpCode` accepts exactly six digits and redacts its string representation. It is ephemeral and never belongs to persisted aggregate state.
-- `OtpHash` accepts only opaque encoded values between 32 and 255 characters and redacts its string representation.
+- `OtpHash` and `RefreshTokenHash` accept opaque encoded values between 32 and 255 characters and redact string rendering.
+- `TokenSessionId` identifies one device/session independently of a rotating credential identifier.
 
 No raw password or refresh-token credential is modeled. The domain stores only an encoded password hash and refresh-token lifecycle identity.
 
@@ -68,10 +69,13 @@ No raw password or refresh-token credential is modeled. The domain stores only a
 ### Refresh Token
 
 - Expiry must follow issue time.
-- A token is usable only while `ACTIVE` and before expiry.
+- Only a one-way `RefreshTokenHash` is retained; plaintext credential material never enters the aggregate.
+- A token is usable only while `ACTIVE` and before expiry, with one active token per user/session enforced by persistence.
 - Only an active, unexpired token can be revoked.
 - Evaluation at or after expiry moves an active token to `EXPIRED`.
-- Token credential generation, signing, parsing, and JWT behavior are outside this domain sprint.
+- Rotation moves the old token to `ROTATED`, links its replacement, and makes it immediately unusable.
+- Presentation of a rotated token moves it to `REUSED`; the application layer revokes the active replacement for that session.
+- Token credential generation, hashing, signing, and parsing remain outside the domain and are documented in [JWT Authentication](jwt-authentication.md).
 
 ## Domain Events
 
@@ -107,7 +111,7 @@ Unit tests cover successful behavior, invalid formats, duplicate assignments, im
 ## Explicitly Out Of Scope
 
 - Spring Security and security configuration
-- JWT or refresh-token credential generation
+- JWT and refresh-token credential implementation, which remains behind domain-independent application ports
 - Password encoding and comparison adapters
 - OTP transport, hashing, clock, and secure-random provider implementations
 - Controllers, DTOs, APIs, application services, and workflows

@@ -42,8 +42,9 @@ class ForbiddenApiArchitectureTest {
 
     @ArchTest
     static final ArchRule JAVA_UTIL_DATE_MUST_NOT_BE_USED = noClasses()
+            .that().doNotHaveSimpleName("JwtProviderAdapter")
             .should().dependOnClassesThat().haveFullyQualifiedName("java.util.Date")
-            .because("production time values use the java.time API");
+            .because("production time values use java.time except at the isolated JJWT API boundary");
 
     @ArchTest
     static final ArchRule JAVA_SQL_DATE_MUST_NOT_BE_USED = noClasses()
