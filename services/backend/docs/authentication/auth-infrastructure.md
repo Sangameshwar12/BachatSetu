@@ -1,7 +1,7 @@
 # Authentication Infrastructure
 
-Version: 1.0
-Sprint: 8.4
+Version: 1.1
+Sprint: 8.4, composition amendment by Sprint 8.5
 Status: Implemented
 
 ## Purpose
@@ -97,4 +97,4 @@ There is no dependency on controllers, interfaces, JPA entities, repositories, J
 - `LoggingOtpSenderAdapter` confirms local generation only; it does not deliver an OTP.
 - No SMS, Twilio, Firebase, AWS SNS, email, queue, broker, or scheduled task is included.
 - Dev and production intentionally have no `OtpSenderPort` implementation until an approved delivery-provider sprint.
-- Application-service Spring bean composition is outside this adapter sprint.
+- Application-service composition is provided by the outer REST configuration described in [Authentication REST API](auth-rest-api.md); it activates only when every required outbound port exists.

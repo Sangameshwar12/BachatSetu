@@ -80,3 +80,5 @@ bachatsetu:
     resend-limit: 3
     verify-limit: 5
     hash-strength: ${AUTH_OTP_BCRYPT_STRENGTH:12}
+    rest:
+      enabled: ${AUTH_REST_ENABLED:true}

@@ -1,7 +1,7 @@
 # OTP Authentication Engine
 
-Version: 1.1
-Sprint: 8.3, infrastructure amendment by Sprint 8.4
+Version: 1.2
+Sprint: 8.3, amended by Sprints 8.4 and 8.5
 Status: Implemented
 
 ## Purpose
@@ -119,4 +119,5 @@ Unit tests cover generation, duplicate-active rejection, expiration boundaries, 
 - No SMS, email, or push delivery provider is included.
 - Delivery is synchronous after persistence. A later infrastructure sprint should add transactional outbox delivery and provider failure recovery.
 - Expiration is enforced whenever an OTP command is handled; no background cleanup scheduler is introduced.
-- No REST API, Spring Security, JWT, rate limiter, or runtime dependency wiring is included.
+- The REST delivery adapter and application-service composition are documented in [Authentication REST API](auth-rest-api.md).
+- Spring Security, JWT, and distributed rate limiting remain outside this engine.
