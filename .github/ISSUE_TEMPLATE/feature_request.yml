@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose a product capability for evaluation
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: business-problem
+    attributes:
+      label: Business problem
+      description: Who has the problem, what outcome is blocked, and why does it matter?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: Describe the desired capability without prescribing unnecessary implementation details.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or simpler alternatives.
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List observable, testable outcomes.
+      placeholder: |
+        - [ ] Given..., when..., then...
+        - [ ] Given..., when..., then...
+    validations:
+      required: true
+  - type: textarea
+    id: impacts
+    attributes:
+      label: Risk and impact
+      description: Note financial, security, privacy, compliance, operational, performance, or migration implications.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Requester checklist
+      options:
+        - label: I searched existing issues and roadmap documents.
+          required: true
+        - label: I described the business outcome independently of a preferred implementation.
+          required: true

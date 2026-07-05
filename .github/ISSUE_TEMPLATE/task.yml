@@ -1,0 +1,47 @@
+name: Engineering task
+description: Track approved technical, operational, or documentation work
+title: "[Task]: "
+labels:
+  - task
+body:
+  - type: textarea
+    id: technical-description
+    attributes:
+      label: Technical description
+      description: Define the objective, boundaries, and expected engineering outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: List prerequisite issues, decisions, environments, vendors, or teams. Write "None" when independent.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Completion criteria
+      description: List verifiable technical outcomes and required evidence.
+      placeholder: |
+        - [ ] Implementation or document is complete
+        - [ ] Verification passes
+        - [ ] Required review is approved
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and rollback
+      description: Identify architecture, security, data, performance, release, and rollback considerations.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Task checklist
+      options:
+        - label: Scope belongs to the active sprint or has explicit approval.
+          required: true
+        - label: Required documentation and test impact are identified.
+          required: true
+        - label: No secret or personal data is included.
+          required: true

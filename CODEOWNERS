@@ -1,0 +1,15 @@
+# Default repository owner
+* @Sangameshwar12
+
+# Backend and backend-specific configuration
+/services/backend/ @Sangameshwar12
+/services/backend/config/ @Sangameshwar12
+
+# Documentation and AI context
+/docs/ @Sangameshwar12
+/docs/ai/ @Sangameshwar12
+
+# Repository automation and shared configuration
+/.github/ @Sangameshwar12
+/.editorconfig @Sangameshwar12
+/.gitignore @Sangameshwar12
