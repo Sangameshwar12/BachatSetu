@@ -9,6 +9,7 @@ import in.bachatsetu.backend.auth.domain.exception.IdentityDomainException;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.Email;
 import java.time.Instant;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class UserTest {
@@ -69,6 +70,30 @@ class UserTest {
 
         assertThat(first).isEqualTo(first).isEqualTo(sameIdentity).hasSameHashCodeAs(sameIdentity);
         assertThat(first).isNotEqualTo(different).isNotEqualTo(null).isNotEqualTo("user");
+    }
+
+    @Test
+    void rehydratesCompleteStateWithoutEvents() {
+        UserId userId = UserId.newId();
+        RoleId roleId = RoleId.newId();
+        AggregateId actorId = AggregateId.newId();
+        var auditInfo = in.bachatsetu.backend.shared.domain.AuditInfo.createdBy(actorId, NOW);
+
+        User user = User.rehydrate(
+                userId,
+                new Email("member@example.com"),
+                MobileNumber.of("+919876543210"),
+                PasswordHash.encoded(FIRST_HASH),
+                UserStatus.ACTIVE,
+                Set.of(roleId),
+                auditInfo,
+                7);
+
+        assertThat(user.status()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(user.roleIds()).containsExactly(roleId);
+        assertThat(user.auditInfo()).isEqualTo(auditInfo);
+        assertThat(user.version()).isEqualTo(7);
+        assertThat(user.domainEvents()).isEmpty();
     }
 
     private User newUser(UserId userId, AggregateId actorId) {

@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface RoleSpringDataRepository extends BaseJpaRepository<RoleJpaEntity> {
 
     Optional<RoleJpaEntity> findByTenantIdAndCodeAndDeletedFalse(UUID tenantId, String code);
+
+    Optional<RoleJpaEntity> findByTenantIdIsNullAndCodeAndDeletedFalse(String code);
 }

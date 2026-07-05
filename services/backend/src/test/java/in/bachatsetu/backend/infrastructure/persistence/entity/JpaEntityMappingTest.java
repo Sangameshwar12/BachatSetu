@@ -12,6 +12,8 @@ import in.bachatsetu.backend.infrastructure.persistence.entity.community.Monthly
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.PaymentJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.ReceiptJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.PermissionJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.identity.OtpVerificationJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.identity.RefreshTokenJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.RoleJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.notification.NotificationJpaEntity;
@@ -31,6 +33,8 @@ class JpaEntityMappingTest {
             UserJpaEntity.class,
             RoleJpaEntity.class,
             PermissionJpaEntity.class,
+            RefreshTokenJpaEntity.class,
+            OtpVerificationJpaEntity.class,
             GroupJpaEntity.class,
             MemberJpaEntity.class,
             MonthlyCycleJpaEntity.class,
@@ -44,7 +48,7 @@ class JpaEntityMappingTest {
 
     @Test
     void declaresAllRequestedTypesAsJpaEntities() {
-        assertThat(ENTITY_TYPES).hasSize(13).allSatisfy(type -> {
+        assertThat(ENTITY_TYPES).hasSize(15).allSatisfy(type -> {
             assertThat(type).hasAnnotation(Entity.class);
             assertThat(BaseJpaEntity.class).isAssignableFrom(type);
         });

@@ -13,10 +13,13 @@ class MigrationContractTest {
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
 
     @Test
-    void containsOnlyTheTwoOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheThreeOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
-                    .containsExactly("V1__initial_schema.sql", "V2__seed_roles_permissions.sql");
+                    .containsExactly(
+                            "V1__initial_schema.sql",
+                            "V2__seed_roles_permissions.sql",
+                            "V3__identity_persistence.sql");
         }
     }
 
@@ -55,7 +58,8 @@ class MigrationContractTest {
     @Test
     void migrationsContainNoDestructiveOrNonTransactionalStatements() throws IOException {
         String migrations = Files.readString(MIGRATION_DIRECTORY.resolve("V1__initial_schema.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V2__seed_roles_permissions.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V2__seed_roles_permissions.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V3__identity_persistence.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -79,6 +83,21 @@ class MigrationContractTest {
                 .contains("ON CONFLICT (id) DO UPDATE")
                 .doesNotContain("gen_random_uuid()")
                 .doesNotContain("CURRENT_TIMESTAMP");
+    }
+
+    @Test
+    void identityMigrationExtendsCanonicalTablesWithoutDuplicates() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V3__identity_persistence.sql"));
+
+        assertThat(sql)
+                .contains("ALTER TABLE identity.users")
+                .contains("CREATE TABLE identity.user_roles")
+                .contains("CREATE TABLE identity.role_permissions")
+                .contains("CREATE TABLE identity.refresh_tokens")
+                .contains("CREATE TABLE identity.otp_verifications")
+                .doesNotContain("CREATE TABLE identity.users")
+                .doesNotContain("CREATE TABLE identity.roles")
+                .doesNotContain("CREATE TABLE identity.permissions");
     }
 
     private int count(String source, String token) {

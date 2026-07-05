@@ -12,6 +12,8 @@ import in.bachatsetu.backend.infrastructure.persistence.entity.community.Monthly
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.PaymentJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.ReceiptJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.PermissionJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.identity.OtpVerificationJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.identity.RefreshTokenJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.RoleJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.notification.NotificationJpaEntity;
@@ -25,6 +27,8 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.MonthlyCy
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.NotificationSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.PaymentSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.PermissionSpringDataRepository;
+import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.OtpVerificationSpringDataRepository;
+import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.RefreshTokenSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.ReceiptSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.RoleSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.UserSpringDataRepository;
@@ -41,6 +45,8 @@ class RepositoryQueryDerivationTest {
                 model(UserSpringDataRepository.class, UserJpaEntity.class),
                 model(RoleSpringDataRepository.class, RoleJpaEntity.class),
                 model(PermissionSpringDataRepository.class, PermissionJpaEntity.class),
+                model(RefreshTokenSpringDataRepository.class, RefreshTokenJpaEntity.class),
+                model(OtpVerificationSpringDataRepository.class, OtpVerificationJpaEntity.class),
                 model(GroupSpringDataRepository.class, GroupJpaEntity.class),
                 model(MemberSpringDataRepository.class, MemberJpaEntity.class),
                 model(MonthlyCycleSpringDataRepository.class, MonthlyCycleJpaEntity.class),

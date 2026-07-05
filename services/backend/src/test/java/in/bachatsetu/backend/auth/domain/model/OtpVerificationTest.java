@@ -30,6 +30,7 @@ class OtpVerificationTest {
                 actorId);
 
         assertThat(verification.userId()).isEqualTo(userId);
+        assertThat(verification.code()).isEqualTo(OtpCode.of("123456"));
         assertThat(verification.purpose()).isEqualTo(OtpPurpose.REGISTRATION);
         assertThat(verification.generatedAt()).isEqualTo(NOW);
         assertThat(verification.expiresAt()).isEqualTo(NOW.plusSeconds(300));
@@ -88,6 +89,27 @@ class OtpVerificationTest {
         assertThat(first).isNotEqualTo(different).isNotEqualTo(null).isNotEqualTo("OTP");
         assertThatIllegalArgumentException().isThrownBy(() -> OtpVerification.generate(
                 AggregateId.newId(), userId, OtpCode.of("123456"), OtpPurpose.SIGN_IN, NOW, NOW, actorId));
+    }
+
+    @Test
+    void rehydratesTerminalStateWithoutEvents() {
+        AggregateId actorId = AggregateId.newId();
+        var auditInfo = in.bachatsetu.backend.shared.domain.AuditInfo.createdBy(actorId, NOW);
+        OtpVerification verification = OtpVerification.rehydrate(
+                AggregateId.newId(),
+                UserId.newId(),
+                OtpCode.of("123456"),
+                OtpPurpose.PASSWORD_RESET,
+                NOW,
+                NOW.plusSeconds(300),
+                OtpStatus.VERIFIED,
+                auditInfo,
+                2);
+
+        assertThat(verification.status()).isEqualTo(OtpStatus.VERIFIED);
+        assertThat(verification.auditInfo()).isEqualTo(auditInfo);
+        assertThat(verification.version()).isEqualTo(2);
+        assertThat(verification.domainEvents()).isEmpty();
     }
 
     private OtpVerification newVerification(AggregateId actorId) {

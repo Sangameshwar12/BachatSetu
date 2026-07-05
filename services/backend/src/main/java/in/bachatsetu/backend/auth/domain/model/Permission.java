@@ -13,8 +13,8 @@ public final class Permission extends BaseAggregateRoot {
     private final PermissionId permissionId;
     private final String name;
 
-    private Permission(PermissionId permissionId, String name, AuditInfo auditInfo) {
-        super(permissionId.toAggregateId(), auditInfo, 0);
+    private Permission(PermissionId permissionId, String name, AuditInfo auditInfo, long version) {
+        super(permissionId.toAggregateId(), auditInfo, version);
         this.permissionId = Objects.requireNonNull(permissionId, "permission id must not be null");
         this.name = normalizeName(name);
     }
@@ -24,7 +24,16 @@ public final class Permission extends BaseAggregateRoot {
             String name,
             AggregateId actorId,
             Instant createdAt) {
-        return new Permission(permissionId, name, AuditInfo.createdBy(actorId, createdAt));
+        return new Permission(permissionId, name, AuditInfo.createdBy(actorId, createdAt), 0);
+    }
+
+    /** Reconstructs persisted permission state without emitting domain events. */
+    public static Permission rehydrate(
+            PermissionId permissionId,
+            String name,
+            AuditInfo auditInfo,
+            long version) {
+        return new Permission(permissionId, name, auditInfo, version);
     }
 
     private static String normalizeName(String value) {

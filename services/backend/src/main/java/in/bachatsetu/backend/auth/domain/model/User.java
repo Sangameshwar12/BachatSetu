@@ -65,6 +65,31 @@ public final class User extends BaseAggregateRoot {
         return user;
     }
 
+    /**
+     * Reconstructs persisted state without emitting domain events.
+     *
+     * @param userId persisted user identifier
+     * @param email persisted email address
+     * @param mobileNumber persisted mobile number
+     * @param passwordHash persisted encoded password hash
+     * @param status persisted lifecycle status
+     * @param roleIds persisted role associations
+     * @param auditInfo persisted audit metadata
+     * @param version persisted optimistic-lock version
+     * @return reconstructed aggregate
+     */
+    public static User rehydrate(
+            UserId userId,
+            Email email,
+            MobileNumber mobileNumber,
+            PasswordHash passwordHash,
+            UserStatus status,
+            Set<RoleId> roleIds,
+            AuditInfo auditInfo,
+            long version) {
+        return new User(userId, email, mobileNumber, passwordHash, status, roleIds, auditInfo, version);
+    }
+
     /** Assigns a role once. */
     public void assignRole(RoleId roleId, AggregateId actorId, Instant assignedAt) {
         Objects.requireNonNull(roleId, "role id must not be null");

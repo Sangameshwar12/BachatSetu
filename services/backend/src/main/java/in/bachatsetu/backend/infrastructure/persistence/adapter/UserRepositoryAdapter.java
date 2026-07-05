@@ -39,12 +39,16 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     public Optional<UserProfile> findByEmail(Email email) {
-        return repository.findByEmailIgnoreCaseAndDeletedFalse(email.value()).map(mapper::toDomain);
+        return repository.findByTenantIdAndEmailIgnoreCaseAndDeletedFalse(
+                        tenantScopeProvider.currentTenantId().value(), email.value())
+                .map(mapper::toDomain);
     }
 
     @Override
     public Optional<UserProfile> findByPhoneNumber(PhoneNumber phoneNumber) {
-        return repository.findByPhoneNumberAndDeletedFalse(phoneNumber.value()).map(mapper::toDomain);
+        return repository.findByTenantIdAndPhoneNumberAndDeletedFalse(
+                        tenantScopeProvider.currentTenantId().value(), phoneNumber.value())
+                .map(mapper::toDomain);
     }
 
     @Override

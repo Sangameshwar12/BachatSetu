@@ -6,11 +6,17 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -48,6 +54,14 @@ public class RoleJpaEntity extends BaseJpaEntity {
     @Column(name = "status", nullable = false, length = 20)
     private PersistenceRecordStatus status;
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "role_permissions",
+            schema = "identity",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id"))
+    private Set<PermissionJpaEntity> permissions = new LinkedHashSet<>();
+
     protected RoleJpaEntity() {
     }
 
@@ -74,4 +88,10 @@ public class RoleJpaEntity extends BaseJpaEntity {
     public String getScope() { return scope; }
     public String getDescription() { return description; }
     public PersistenceRecordStatus getStatus() { return status; }
+    public Set<PermissionJpaEntity> getPermissions() { return Set.copyOf(permissions); }
+
+    public void replacePermissions(Set<PermissionJpaEntity> assignedPermissions) {
+        permissions.clear();
+        permissions.addAll(assignedPermissions);
+    }
 }

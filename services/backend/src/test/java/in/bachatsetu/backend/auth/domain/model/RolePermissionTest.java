@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import in.bachatsetu.backend.auth.domain.exception.IdentityDomainException;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.time.Instant;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class RolePermissionTest {
@@ -59,5 +60,23 @@ class RolePermissionTest {
 
         assertThat(first).isEqualTo(first).isEqualTo(sameIdentity).hasSameHashCodeAs(sameIdentity);
         assertThat(first).isNotEqualTo(different).isNotEqualTo(null).isNotEqualTo("role");
+    }
+
+    @Test
+    void rehydratesRolesAndPermissionsWithoutEvents() {
+        AggregateId actorId = AggregateId.newId();
+        var auditInfo = in.bachatsetu.backend.shared.domain.AuditInfo.createdBy(actorId, NOW);
+        PermissionId permissionId = PermissionId.newId();
+        Role role = Role.rehydrate(RoleId.newId(), "MEMBER", Set.of(permissionId), auditInfo, 4);
+        Permission permission = Permission.rehydrate(
+                permissionId, "group.read", auditInfo, 3);
+
+        assertThat(role.permissionIds()).containsExactly(permissionId);
+        assertThat(role.auditInfo()).isEqualTo(auditInfo);
+        assertThat(role.version()).isEqualTo(4);
+        assertThat(role.domainEvents()).isEmpty();
+        assertThat(permission.auditInfo()).isEqualTo(auditInfo);
+        assertThat(permission.version()).isEqualTo(3);
+        assertThat(permission.domainEvents()).isEmpty();
     }
 }

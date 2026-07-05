@@ -25,8 +25,9 @@ public final class RefreshToken extends BaseAggregateRoot {
             Instant issuedAt,
             Instant expiresAt,
             TokenStatus status,
-            AuditInfo auditInfo) {
-        super(refreshTokenId.toAggregateId(), auditInfo, 0);
+            AuditInfo auditInfo,
+            long version) {
+        super(refreshTokenId.toAggregateId(), auditInfo, version);
         this.refreshTokenId = Objects.requireNonNull(refreshTokenId, "refresh token id must not be null");
         this.userId = Objects.requireNonNull(userId, "user id must not be null");
         this.issuedAt = Objects.requireNonNull(issuedAt, "issuedAt must not be null");
@@ -49,10 +50,24 @@ public final class RefreshToken extends BaseAggregateRoot {
                 issuedAt,
                 expiresAt,
                 TokenStatus.ACTIVE,
-                AuditInfo.createdBy(actorId, issuedAt));
+                AuditInfo.createdBy(actorId, issuedAt),
+                0);
         token.registerEvent(new RefreshTokenCreated(
                 UUID.randomUUID(), refreshTokenId, userId, expiresAt, issuedAt));
         return token;
+    }
+
+    /** Reconstructs persisted refresh-token state without emitting domain events. */
+    public static RefreshToken rehydrate(
+            RefreshTokenId refreshTokenId,
+            UserId userId,
+            Instant issuedAt,
+            Instant expiresAt,
+            TokenStatus status,
+            AuditInfo auditInfo,
+            long version) {
+        return new RefreshToken(
+                refreshTokenId, userId, issuedAt, expiresAt, status, auditInfo, version);
     }
 
     public void revoke(AggregateId actorId, Instant revokedAt) {

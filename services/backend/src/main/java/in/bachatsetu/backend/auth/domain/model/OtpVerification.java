@@ -28,8 +28,9 @@ public final class OtpVerification extends BaseAggregateRoot {
             Instant generatedAt,
             Instant expiresAt,
             OtpStatus status,
-            AuditInfo auditInfo) {
-        super(id, auditInfo, 0);
+            AuditInfo auditInfo,
+            long version) {
+        super(id, auditInfo, version);
         this.userId = Objects.requireNonNull(userId, "user id must not be null");
         this.code = Objects.requireNonNull(code, "OTP code must not be null");
         this.purpose = Objects.requireNonNull(purpose, "OTP purpose must not be null");
@@ -57,10 +58,26 @@ public final class OtpVerification extends BaseAggregateRoot {
                 generatedAt,
                 expiresAt,
                 OtpStatus.PENDING,
-                AuditInfo.createdBy(actorId, generatedAt));
+                AuditInfo.createdBy(actorId, generatedAt),
+                0);
         verification.registerEvent(new OtpGenerated(
                 UUID.randomUUID(), id, userId, purpose, expiresAt, generatedAt));
         return verification;
+    }
+
+    /** Reconstructs persisted OTP state without emitting domain events. */
+    public static OtpVerification rehydrate(
+            AggregateId id,
+            UserId userId,
+            OtpCode code,
+            OtpPurpose purpose,
+            Instant generatedAt,
+            Instant expiresAt,
+            OtpStatus status,
+            AuditInfo auditInfo,
+            long version) {
+        return new OtpVerification(
+                id, userId, code, purpose, generatedAt, expiresAt, status, auditInfo, version);
     }
 
     public void verify(OtpCode candidate, AggregateId actorId, Instant verifiedAt) {
@@ -94,6 +111,11 @@ public final class OtpVerification extends BaseAggregateRoot {
 
     public UserId userId() {
         return userId;
+    }
+
+    /** Returns the redacting OTP value object for credential persistence and verification. */
+    public OtpCode code() {
+        return code;
     }
 
     public OtpPurpose purpose() {

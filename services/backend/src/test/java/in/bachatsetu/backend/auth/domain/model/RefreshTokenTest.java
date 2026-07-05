@@ -73,4 +73,23 @@ class RefreshTokenTest {
         assertThatIllegalArgumentException().isThrownBy(() -> RefreshToken.issue(
                 RefreshTokenId.newId(), userId, NOW, NOW, actorId));
     }
+
+    @Test
+    void rehydratesTerminalStateWithoutEvents() {
+        AggregateId actorId = AggregateId.newId();
+        var auditInfo = in.bachatsetu.backend.shared.domain.AuditInfo.createdBy(actorId, NOW);
+        RefreshToken token = RefreshToken.rehydrate(
+                RefreshTokenId.newId(),
+                UserId.newId(),
+                NOW,
+                NOW.plusSeconds(60),
+                TokenStatus.REVOKED,
+                auditInfo,
+                5);
+
+        assertThat(token.status()).isEqualTo(TokenStatus.REVOKED);
+        assertThat(token.auditInfo()).isEqualTo(auditInfo);
+        assertThat(token.version()).isEqualTo(5);
+        assertThat(token.domainEvents()).isEmpty();
+    }
 }

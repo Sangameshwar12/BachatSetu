@@ -67,4 +67,10 @@ public class PermissionJpaEntity extends BaseJpaEntity {
     public String getActionCode() { return actionCode; }
     public String getDescription() { return description; }
     public PersistenceRecordStatus getStatus() { return status; }
+
+    public void rename(String permissionCode, String module, String action) {
+        code = permissionCode;
+        moduleCode = module;
+        actionCode = action;
+    }
 }

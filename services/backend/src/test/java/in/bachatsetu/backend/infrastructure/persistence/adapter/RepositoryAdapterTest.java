@@ -21,6 +21,16 @@ class RepositoryAdapterTest {
 
     @Test
     void adaptersImplementTheirDomainPorts() {
+        assertThat(in.bachatsetu.backend.auth.domain.port.UserRepository.class)
+                .isAssignableFrom(AuthUserRepositoryAdapter.class);
+        assertThat(in.bachatsetu.backend.auth.domain.port.RoleRepository.class)
+                .isAssignableFrom(RoleRepositoryAdapter.class);
+        assertThat(in.bachatsetu.backend.auth.domain.port.PermissionRepository.class)
+                .isAssignableFrom(PermissionRepositoryAdapter.class);
+        assertThat(in.bachatsetu.backend.auth.domain.port.RefreshTokenRepository.class)
+                .isAssignableFrom(RefreshTokenRepositoryAdapter.class);
+        assertThat(in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository.class)
+                .isAssignableFrom(OtpVerificationRepositoryAdapter.class);
         assertThat(UserRepository.class).isAssignableFrom(UserRepositoryAdapter.class);
         assertThat(GroupRepository.class).isAssignableFrom(GroupRepositoryAdapter.class);
         assertThat(MemberRepository.class).isAssignableFrom(MemberRepositoryAdapter.class);
@@ -33,6 +43,11 @@ class RepositoryAdapterTest {
     @Test
     void adaptersDeclareReadOnlyDefaultsAndWriteSaveBoundaries() throws NoSuchMethodException {
         List<Class<?>> adapters = List.of(
+                AuthUserRepositoryAdapter.class,
+                RoleRepositoryAdapter.class,
+                PermissionRepositoryAdapter.class,
+                RefreshTokenRepositoryAdapter.class,
+                OtpVerificationRepositoryAdapter.class,
                 UserRepositoryAdapter.class,
                 GroupRepositoryAdapter.class,
                 MemberRepositoryAdapter.class,
@@ -64,6 +79,11 @@ class RepositoryAdapterTest {
 
     private Class<?> saveParameter(Class<?> adapter) {
         return switch (adapter.getSimpleName()) {
+            case "AuthUserRepositoryAdapter" -> in.bachatsetu.backend.auth.domain.model.User.class;
+            case "RoleRepositoryAdapter" -> in.bachatsetu.backend.auth.domain.model.Role.class;
+            case "PermissionRepositoryAdapter" -> in.bachatsetu.backend.auth.domain.model.Permission.class;
+            case "RefreshTokenRepositoryAdapter" -> in.bachatsetu.backend.auth.domain.model.RefreshToken.class;
+            case "OtpVerificationRepositoryAdapter" -> in.bachatsetu.backend.auth.domain.model.OtpVerification.class;
             case "UserRepositoryAdapter" -> in.bachatsetu.backend.user.domain.model.UserProfile.class;
             case "GroupRepositoryAdapter" -> in.bachatsetu.backend.group.domain.model.SavingsGroup.class;
             case "MemberRepositoryAdapter" -> in.bachatsetu.backend.member.domain.model.MemberProfile.class;

@@ -17,15 +17,31 @@ public final class Role extends BaseAggregateRoot {
     private final String name;
     private final Set<PermissionId> permissionIds;
 
-    private Role(RoleId roleId, String name, AuditInfo auditInfo) {
-        super(roleId.toAggregateId(), auditInfo, 0);
+    private Role(
+            RoleId roleId,
+            String name,
+            Set<PermissionId> permissionIds,
+            AuditInfo auditInfo,
+            long version) {
+        super(roleId.toAggregateId(), auditInfo, version);
         this.roleId = Objects.requireNonNull(roleId, "role id must not be null");
         this.name = normalizeName(name);
-        this.permissionIds = new LinkedHashSet<>();
+        this.permissionIds = new LinkedHashSet<>(
+                Objects.requireNonNull(permissionIds, "permission ids must not be null"));
     }
 
     public static Role create(RoleId roleId, String name, AggregateId actorId, Instant createdAt) {
-        return new Role(roleId, name, AuditInfo.createdBy(actorId, createdAt));
+        return new Role(roleId, name, Set.of(), AuditInfo.createdBy(actorId, createdAt), 0);
+    }
+
+    /** Reconstructs persisted role state without emitting domain events. */
+    public static Role rehydrate(
+            RoleId roleId,
+            String name,
+            Set<PermissionId> permissionIds,
+            AuditInfo auditInfo,
+            long version) {
+        return new Role(roleId, name, permissionIds, auditInfo, version);
     }
 
     public void grantPermission(PermissionId permissionId, AggregateId actorId, Instant grantedAt) {

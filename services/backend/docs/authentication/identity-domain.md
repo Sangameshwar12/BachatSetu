@@ -1,7 +1,7 @@
 # Identity Domain
 
-Version: 1.0
-Sprint: 8.1
+Version: 1.1
+Sprint: 8.1, amended by Sprint 8.2
 Status: Implemented
 
 ## Purpose
@@ -21,6 +21,8 @@ Broader architecture boundaries remain defined by [Architecture Protection](../.
 | `OtpVerification` | `AggregateId` | OTP purpose, verification result, and expiry lifecycle |
 
 Aggregates expose immutable snapshots of collections. State changes occur only through invariant-preserving methods and update shared audit/version metadata. Equality and hash codes use aggregate identity rather than mutable attributes.
+
+Sprint 8.2 adds event-free `rehydrate(...)` constructors and domain-owned repository ports. Rehydration applies the same constructor invariants, restores audit metadata and optimistic-lock versions, and never replays or emits domain events. Persistence implementation details are documented in [Identity Persistence](identity-persistence.md).
 
 ## Value Objects
 
@@ -48,7 +50,7 @@ No raw password or refresh-token credential is modeled. The domain stores only a
 - Permission names are trimmed, lowercase, and use canonical segmented names such as `group:read`.
 - A role cannot contain the same permission ID twice.
 - `PermissionFactory` rejects a canonical name already present in the authoritative permission collection supplied by its caller.
-- Cross-transaction permission-name uniqueness must also be protected by the future application and persistence boundary; no repository is introduced in this sprint.
+- Cross-transaction permission-name uniqueness is protected by the persistence boundary's database constraint.
 
 ### OTP
 
@@ -105,5 +107,4 @@ Unit tests cover successful behavior, invalid formats, duplicate assignments, im
 - Password encoding and comparison adapters
 - OTP transport or secure random generation
 - Controllers, DTOs, APIs, application services, and workflows
-- Repository ports and implementations
 - JPA entities, Flyway migrations, and database constraints

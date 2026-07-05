@@ -7,6 +7,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Email;
@@ -14,6 +18,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -59,6 +65,22 @@ public class UserJpaEntity extends BaseJpaEntity {
     @Column(name = "language_code", nullable = false, length = 20)
     private PreferredLanguage preferredLanguage;
 
+    @Size(max = 255)
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_status", length = 30)
+    private in.bachatsetu.backend.auth.domain.model.UserStatus authenticationStatus;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "user_roles",
+            schema = "identity",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private Set<RoleJpaEntity> roles = new LinkedHashSet<>();
+
     protected UserJpaEntity() {
     }
 
@@ -88,4 +110,19 @@ public class UserJpaEntity extends BaseJpaEntity {
     public String getPhoneNumber() { return phoneNumber; }
     public UserStatus getStatus() { return status; }
     public PreferredLanguage getPreferredLanguage() { return preferredLanguage; }
+    public String getPasswordHash() { return passwordHash; }
+    public in.bachatsetu.backend.auth.domain.model.UserStatus getAuthenticationStatus() {
+        return authenticationStatus;
+    }
+    public Set<RoleJpaEntity> getRoles() { return Set.copyOf(roles); }
+
+    public void updateAuthentication(
+            String encodedPasswordHash,
+            in.bachatsetu.backend.auth.domain.model.UserStatus authStatus,
+            Set<RoleJpaEntity> assignedRoles) {
+        passwordHash = encodedPasswordHash;
+        authenticationStatus = authStatus;
+        roles.clear();
+        roles.addAll(assignedRoles);
+    }
 }
