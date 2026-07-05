@@ -1,6 +1,9 @@
 package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
 import in.bachatsetu.backend.auth.domain.model.OtpVerification;
+import in.bachatsetu.backend.auth.domain.model.OtpPurpose;
+import in.bachatsetu.backend.auth.domain.model.OtpStatus;
+import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.OtpVerificationJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvider;
@@ -35,12 +38,33 @@ public class OtpVerificationRepositoryAdapter implements OtpVerificationReposito
     }
 
     @Override
+    public Optional<OtpVerification> findActive(UserId userId, OtpPurpose purpose) {
+        return repository.findByUser_IdAndPurposeAndStatusAndDeletedFalse(
+                        userId.value(), purpose, OtpStatus.PENDING)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     @Transactional
     public void save(OtpVerification verification) {
         RepositoryOperations.execute(() -> {
             Optional<OtpVerificationJpaEntity> existing = repository.findById(verification.id().value());
             OtpVerificationJpaEntity candidate = mapper.toEntity(verification, references);
             repository.save(RepositoryOperations.preserveState(candidate, existing));
+            return null;
+        });
+    }
+
+    @Override
+    @Transactional
+    public void replace(OtpVerification current, OtpVerification replacement) {
+        RepositoryOperations.execute(() -> {
+            OtpVerificationJpaEntity currentEntity = mapper.toEntity(current, references);
+            repository.saveAndFlush(RepositoryOperations.preserveState(
+                    currentEntity, repository.findById(current.id().value())));
+            OtpVerificationJpaEntity replacementEntity = mapper.toEntity(replacement, references);
+            repository.save(RepositoryOperations.preserveState(
+                    replacementEntity, repository.findById(replacement.id().value())));
             return null;
         });
     }

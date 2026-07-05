@@ -37,7 +37,7 @@ class FlywayMigrationPostgreSqlIntegrationTest extends PostgreSqlIntegrationTest
         var firstMigration = flyway.migrate();
         var secondMigration = flyway.migrate();
 
-        assertThat(firstMigration.migrationsExecuted).isEqualTo(3);
+        assertThat(firstMigration.migrationsExecuted).isEqualTo(4);
         assertThat(secondMigration.migrationsExecuted).isZero();
         assertThat(countMappedTables()).isEqualTo(17);
         assertThat(count("identity.roles")).isEqualTo(5);

@@ -13,13 +13,14 @@ class MigrationContractTest {
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
 
     @Test
-    void containsOnlyTheThreeOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheFourOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
                     .containsExactly(
                             "V1__initial_schema.sql",
                             "V2__seed_roles_permissions.sql",
-                            "V3__identity_persistence.sql");
+                            "V3__identity_persistence.sql",
+                            "V4__secure_otp_authentication.sql");
         }
     }
 
@@ -59,7 +60,8 @@ class MigrationContractTest {
     void migrationsContainNoDestructiveOrNonTransactionalStatements() throws IOException {
         String migrations = Files.readString(MIGRATION_DIRECTORY.resolve("V1__initial_schema.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V2__seed_roles_permissions.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V3__identity_persistence.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V3__identity_persistence.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V4__secure_otp_authentication.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -98,6 +100,19 @@ class MigrationContractTest {
                 .doesNotContain("CREATE TABLE identity.users")
                 .doesNotContain("CREATE TABLE identity.roles")
                 .doesNotContain("CREATE TABLE identity.permissions");
+    }
+
+    @Test
+    void secureOtpMigrationRemovesPlaintextAndEnforcesPolicyLimits() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V4__secure_otp_authentication.sql"));
+
+        assertThat(sql)
+                .contains("SET otp_hash = crypt(otp_code, gen_salt('bf', 12))")
+                .contains("DROP COLUMN otp_code")
+                .contains("verification_attempts BETWEEN 0 AND 5")
+                .contains("resend_count BETWEEN 0 AND 3")
+                .contains("CREATE UNIQUE INDEX uk_otp_active_user_purpose")
+                .contains("'INVALIDATED'");
     }
 
     private int count(String source, String token) {

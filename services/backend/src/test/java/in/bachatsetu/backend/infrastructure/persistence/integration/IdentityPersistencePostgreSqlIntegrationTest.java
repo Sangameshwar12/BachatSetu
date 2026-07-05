@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import in.bachatsetu.backend.BachatSetuBackendApplication;
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
-import in.bachatsetu.backend.auth.domain.model.OtpCode;
+import in.bachatsetu.backend.auth.domain.model.OtpHash;
 import in.bachatsetu.backend.auth.domain.model.OtpPurpose;
 import in.bachatsetu.backend.auth.domain.model.OtpVerification;
 import in.bachatsetu.backend.auth.domain.model.PasswordHash;
@@ -17,6 +17,7 @@ import in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository;
 import in.bachatsetu.backend.auth.domain.port.PermissionRepository;
 import in.bachatsetu.backend.auth.domain.port.RefreshTokenRepository;
 import in.bachatsetu.backend.auth.domain.port.RoleRepository;
+import in.bachatsetu.backend.auth.domain.service.OtpPolicyService;
 import in.bachatsetu.backend.infrastructure.persistence.adapter.TenantScopeProvider;
 import in.bachatsetu.backend.infrastructure.persistence.audit.CurrentAuditorProvider;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
@@ -116,13 +117,25 @@ class IdentityPersistencePostgreSqlIntegrationTest extends PostgreSqlIntegration
         OtpVerification otp = OtpVerification.generate(
                 AggregateId.newId(),
                 userId,
-                OtpCode.of("123456"),
+                OtpHash.encoded("C".repeat(64)),
                 OtpPurpose.SIGN_IN,
                 NOW,
                 NOW.plusSeconds(300),
                 new AggregateId(ACTOR_ID));
         otpVerificationRepository.save(otp);
         assertThat(otpVerificationRepository.findById(otp.id())).isPresent();
+
+        OtpVerification replacement = new OtpPolicyService().resend(
+                otp,
+                AggregateId.newId(),
+                OtpHash.encoded("D".repeat(64)),
+                new AggregateId(ACTOR_ID),
+                NOW.plusSeconds(30));
+        otpVerificationRepository.replace(otp, replacement);
+        assertThat(otpVerificationRepository.findActive(userId, OtpPurpose.SIGN_IN))
+                .get()
+                .extracting(OtpVerification::id)
+                .isEqualTo(replacement.id());
     }
 
     @TestConfiguration(proxyBeanMethods = false)

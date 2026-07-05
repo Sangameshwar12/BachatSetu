@@ -264,6 +264,7 @@
                         <include>in/bachatsetu/backend/draw/domain/model/Draw*</include>
                         <include>in/bachatsetu/backend/draw/domain/model/AuctionBid*</include>
                         <include>in/bachatsetu/backend/auth/domain/**</include>
+                        <include>in/bachatsetu/backend/auth/application/**</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -302,6 +303,7 @@
                                     <element>CLASS</element>
                                     <includes>
                                         <include>in.bachatsetu.backend.auth.domain.*</include>
+                                        <include>in.bachatsetu.backend.auth.application.*</include>
                                     </includes>
                                     <limits>
                                         <limit>

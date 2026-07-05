@@ -2,6 +2,7 @@ package in.bachatsetu.backend.infrastructure.persistence.entity.identity;
 
 import in.bachatsetu.backend.auth.domain.model.OtpPurpose;
 import in.bachatsetu.backend.auth.domain.model.OtpStatus;
+import in.bachatsetu.backend.auth.domain.model.OtpVerification;
 import in.bachatsetu.backend.infrastructure.persistence.entity.BaseJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,7 +16,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -39,9 +42,9 @@ public class OtpVerificationJpaEntity extends BaseJpaEntity {
     private UserJpaEntity user;
 
     @NotBlank
-    @Pattern(regexp = "^\\d{6}$")
-    @Column(name = "otp_code", nullable = false, updatable = false, length = 6)
-    private String code;
+    @Size(min = 32, max = 255)
+    @Column(name = "otp_hash", nullable = false, updatable = false, length = 255)
+    private String hash;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -61,35 +64,52 @@ public class OtpVerificationJpaEntity extends BaseJpaEntity {
     @Column(name = "status", nullable = false, length = 20)
     private OtpStatus status;
 
+    @Min(0)
+    @Max(OtpVerification.MAXIMUM_VERIFICATION_ATTEMPTS)
+    @Column(name = "verification_attempts", nullable = false)
+    private int verificationAttempts;
+
+    @Min(0)
+    @Max(OtpVerification.MAXIMUM_RESENDS)
+    @Column(name = "resend_count", nullable = false, updatable = false)
+    private int resendCount;
+
     protected OtpVerificationJpaEntity() {
     }
 
     public OtpVerificationJpaEntity(
             UUID id,
             UserJpaEntity user,
-            String code,
+            String hash,
             OtpPurpose purpose,
             Instant generatedAt,
             Instant expiresAt,
-            OtpStatus status) {
+            OtpStatus status,
+            int verificationAttempts,
+            int resendCount) {
         super(id);
         this.user = user;
-        this.code = code;
+        this.hash = hash;
         this.purpose = purpose;
         this.generatedAt = generatedAt;
         this.expiresAt = expiresAt;
         this.status = status;
+        this.verificationAttempts = verificationAttempts;
+        this.resendCount = resendCount;
     }
 
     public UserJpaEntity getUser() { return user; }
-    public String getCode() { return code; }
+    public String getHash() { return hash; }
     public OtpPurpose getPurpose() { return purpose; }
     public Instant getGeneratedAt() { return generatedAt; }
     public Instant getExpiresAt() { return expiresAt; }
     public OtpStatus getStatus() { return status; }
+    public int getVerificationAttempts() { return verificationAttempts; }
+    public int getResendCount() { return resendCount; }
 
-    public void updateLifecycle(Instant expiry, OtpStatus otpStatus) {
+    public void updateLifecycle(Instant expiry, OtpStatus otpStatus, int attempts) {
         expiresAt = expiry;
         status = otpStatus;
+        verificationAttempts = attempts;
     }
 }

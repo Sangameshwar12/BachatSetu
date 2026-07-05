@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import in.bachatsetu.backend.auth.domain.exception.IdentityDomainException;
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
-import in.bachatsetu.backend.auth.domain.model.OtpCode;
+import in.bachatsetu.backend.auth.domain.model.OtpHash;
 import in.bachatsetu.backend.auth.domain.model.OtpPurpose;
 import in.bachatsetu.backend.auth.domain.model.OtpStatus;
 import in.bachatsetu.backend.auth.domain.model.PasswordHash;
@@ -42,8 +42,8 @@ class IdentityFactoryTest {
                 .createUnique("group:read", List.of(), actorId);
         var token = new RefreshTokenFactory(CLOCK, Duration.ofDays(30))
                 .issue(user.userId(), actorId);
-        var otp = new OtpVerificationFactory(CLOCK, Duration.ofMinutes(5))
-                .generate(user.userId(), OtpCode.of("123456"), OtpPurpose.REGISTRATION, actorId);
+        var otp = new OtpVerificationFactory(CLOCK)
+                .generate(user.userId(), OtpHash.encoded("C".repeat(64)), OtpPurpose.REGISTRATION, actorId);
 
         assertThat(user.auditInfo().createdAt()).isEqualTo(NOW);
         assertThat(role.auditInfo().createdAt()).isEqualTo(NOW);
@@ -69,7 +69,5 @@ class IdentityFactoryTest {
     void rejectsNonPositiveFactoryLifetimes() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new RefreshTokenFactory(CLOCK, Duration.ZERO));
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new OtpVerificationFactory(CLOCK, Duration.ofSeconds(-1)));
     }
 }

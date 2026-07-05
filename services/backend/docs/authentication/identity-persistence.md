@@ -1,7 +1,7 @@
 # Identity Persistence
 
-Version: 1.0  
-Sprint: 8.2  
+Version: 1.1
+Sprint: 8.2, security amendment by Sprint 8.3
 Status: Implemented
 
 ## Purpose
@@ -24,7 +24,7 @@ No duplicate user, role, or permission entity, repository, or table is introduce
 ## New Components
 
 - `RefreshTokenJpaEntity` persists lifecycle identity, owner, issue/expiry times, and status. It never stores token credential material.
-- `OtpVerificationJpaEntity` persists OTP verification state, purpose, owner, expiry, and status.
+- `OtpVerificationJpaEntity` persists only an opaque OTP hash plus verification attempts, resend count, purpose, owner, expiry, and status.
 - Five authentication repository adapters implement ports owned by `auth.domain.port`.
 - Authentication-specific MapStruct mappers reconstruct aggregates through event-free `rehydrate(...)` methods.
 - `V3__identity_persistence.sql` adds authentication columns, two join tables, and the missing refresh-token and OTP tables.
@@ -48,7 +48,7 @@ All associations are lazy. Cascaded removal and orphan removal are intentionally
 - User lookups and writes are tenant-scoped through `TenantScopeProvider`, preventing cross-tenant access by contact value or UUID.
 - Role lookup prefers the current tenant and falls back to a platform role; assigned role identifiers are rejected when they belong to another tenant. Role codes map directly to uppercase domain names, while permission codes map case-insensitively to lowercase domain names.
 - Role and permission references are resolved before association writes. Missing or soft-deleted references fail with `PersistenceResourceNotFoundException`.
-- Refresh-token and OTP adapters preserve JPA audit, soft-delete, and optimistic-lock state on updates.
+- Refresh-token and OTP adapters preserve JPA audit, soft-delete, and optimistic-lock state on updates. OTP replacement is a single adapter transaction.
 - Rehydration restores persisted status, associations, audit metadata, and version with an empty domain-event queue.
 
 ## Repository Adapters
@@ -72,11 +72,14 @@ Migration V3 is append-only and leaves V1/V2 unchanged. It:
 - Creates lifecycle tables with UUID keys, audit columns, versions, soft-delete checks, expiry checks, enum checks, restrictive foreign keys, and partial operational indexes.
 - Does not seed associations or credentials.
 
+Sprint 8.3 adds append-only V4. It uses PostgreSQL `pgcrypto` to hash any pre-existing six-digit V3 values before dropping the plaintext column, adds attempt/resend counters and checks, adds `INVALIDATED`, and creates a unique partial index enforcing one pending OTP per user and purpose.
+
 ## Persistence Rules
 
 - JPA entities never cross the persistence boundary.
 - Domain models remain free of Spring, Hibernate, Jakarta Persistence, and MapStruct.
 - Raw passwords and refresh-token credentials are never persisted.
+- Plain OTP values are never persisted after V4; only the opaque `otp_hash` representation is mapped by JPA.
 - Existing profile ownership and tenancy fields cannot be changed through authentication mappers.
 - Every aggregate load excludes soft-deleted root records.
 - Optimistic locking is provided by the inherited `@Version` field.
@@ -89,6 +92,6 @@ Migration V3 is append-only and leaves V1/V2 unchanged. It:
 - Migration contract tests verify the append-only V3 shape and absence of duplicate canonical identity tables.
 - `IdentityPersistencePostgreSqlIntegrationTest` exercises the ports against Flyway-managed PostgreSQL through Testcontainers. It skips when Docker is unavailable, matching the repository's established integration-test policy.
 
-## Known Limitation
+## Provider Boundary
 
-The Sprint 8.1 domain must rehydrate an `OtpCode` to perform its constant-time comparison, so V3 stores the six-digit value in the OTP record. Before production credential traffic, the authentication application/infrastructure sprint must introduce a protected OTP representation or transparent encryption with managed key rotation; logging and events already exclude the value. No JWT, Spring Security, credential generation, OTP delivery, or authentication workflow is introduced here.
+Hash algorithm configuration and key/cost policy belong to a future infrastructure adapter implementing Sprint 8.3's `HashingPort`. No JWT, Spring Security, SMS provider, or REST behavior is introduced by persistence.

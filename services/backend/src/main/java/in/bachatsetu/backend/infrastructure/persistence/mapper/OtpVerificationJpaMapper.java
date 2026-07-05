@@ -1,6 +1,6 @@
 package in.bachatsetu.backend.infrastructure.persistence.mapper;
 
-import in.bachatsetu.backend.auth.domain.model.OtpCode;
+import in.bachatsetu.backend.auth.domain.model.OtpHash;
 import in.bachatsetu.backend.auth.domain.model.OtpVerification;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.OtpVerificationJpaEntity;
@@ -17,11 +17,13 @@ public interface OtpVerificationJpaMapper {
         return OtpVerification.rehydrate(
                 JpaMappingSupport.id(entity.getId()),
                 new UserId(entity.getUser().getId()),
-                OtpCode.of(entity.getCode()),
+                OtpHash.encoded(entity.getHash()),
                 entity.getPurpose(),
                 entity.getGeneratedAt(),
                 entity.getExpiresAt(),
                 entity.getStatus(),
+                entity.getVerificationAttempts(),
+                entity.getResendCount(),
                 JpaMappingSupport.auditInfo(entity),
                 entity.getVersion());
     }
@@ -35,10 +37,12 @@ public interface OtpVerificationJpaMapper {
         return new OtpVerificationJpaEntity(
                 domain.id().value(),
                 references.user(domain.userId().toAggregateId()),
-                domain.code().value(),
+                domain.hash().value(),
                 domain.purpose(),
                 domain.generatedAt(),
                 domain.expiresAt(),
-                domain.status());
+                domain.status(),
+                domain.verificationAttempts(),
+                domain.resendCount());
     }
 }

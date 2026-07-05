@@ -5,7 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
-import in.bachatsetu.backend.auth.domain.model.OtpCode;
+import in.bachatsetu.backend.auth.domain.model.OtpHash;
 import in.bachatsetu.backend.auth.domain.model.OtpPurpose;
 import in.bachatsetu.backend.auth.domain.model.OtpStatus;
 import in.bachatsetu.backend.auth.domain.model.OtpVerification;
@@ -105,11 +105,13 @@ class IdentityJpaMapperTest {
         OtpVerification otp = OtpVerification.rehydrate(
                 AggregateId.newId(),
                 userId,
-                OtpCode.of("123456"),
+                OtpHash.encoded("C".repeat(64)),
                 OtpPurpose.SIGN_IN,
                 NOW,
                 NOW.plusSeconds(300),
                 OtpStatus.PENDING,
+                2,
+                1,
                 AuditInfo.createdBy(actorId, NOW),
                 1);
 
@@ -119,8 +121,10 @@ class IdentityJpaMapperTest {
         assertThat(tokenEntity.getUser()).isSameAs(userReference);
         assertThat(tokenEntity.getStatus()).isEqualTo(TokenStatus.REVOKED);
         assertThat(otpEntity.getUser()).isSameAs(userReference);
-        assertThat(otpEntity.getCode()).isEqualTo("123456");
+        assertThat(otpEntity.getHash()).isEqualTo("C".repeat(64));
         assertThat(otpEntity.getPurpose()).isEqualTo(OtpPurpose.SIGN_IN);
+        assertThat(otpEntity.getVerificationAttempts()).isEqualTo(2);
+        assertThat(otpEntity.getResendCount()).isOne();
     }
 
     @Test

@@ -1,7 +1,7 @@
 # Identity Domain
 
-Version: 1.1
-Sprint: 8.1, amended by Sprint 8.2
+Version: 1.2
+Sprint: 8.1, amended by Sprints 8.2 and 8.3
 Status: Implemented
 
 ## Purpose
@@ -30,7 +30,8 @@ Sprint 8.2 adds event-free `rehydrate(...)` constructors and domain-owned reposi
 - `Email` reuses the canonical shared-kernel value object and normalizes valid addresses to lowercase.
 - `MobileNumber` accepts only canonical Indian mobile numbers in `+91XXXXXXXXXX` form, with subscriber numbers beginning from 6 through 9.
 - `PasswordHash` accepts recognized bcrypt or Argon2 encodings and cannot represent ordinary plain text. Its string representation is redacted.
-- `OtpCode` accepts exactly six digits, uses constant-time content comparison, and redacts its string representation.
+- `OtpCode` accepts exactly six digits and redacts its string representation. It is ephemeral and never belongs to persisted aggregate state.
+- `OtpHash` accepts only opaque encoded values between 32 and 255 characters and redacts its string representation.
 
 No raw password or refresh-token credential is modeled. The domain stores only an encoded password hash and refresh-token lifecycle identity.
 
@@ -55,10 +56,13 @@ No raw password or refresh-token credential is modeled. The domain stores only a
 ### OTP
 
 - Generation and expiry times are explicit, and expiry must follow generation.
-- Verification succeeds only while status is `PENDING`, before expiry, and for a matching code.
-- A mismatched code moves the verification to `FAILED`.
+- The aggregate stores only `OtpHash`; hash generation and comparison are delegated through the application boundary.
+- Verification succeeds only while status is `PENDING`, before expiry, and for a matching hash result.
+- Each unsuccessful comparison increments the verification-attempt count. The fifth failure moves the verification to `FAILED`.
 - Verification at or after expiry moves it to `EXPIRED`.
 - Terminal OTP states cannot be verified again.
+- Explicit invalidation moves a pending OTP to `INVALIDATED`.
+- Replacement invalidates the previous OTP immediately and carries a resend count capped at three.
 - OTP values are excluded from domain events.
 
 ### Refresh Token
@@ -92,7 +96,7 @@ Factories generate identifiers and obtain time through an injected `Clock`, keep
 - `RefreshTokenFactory`
 - `OtpVerificationFactory`
 
-OTP factories accept an externally generated `OtpCode`; secure random generation and delivery belong to a later application/infrastructure sprint.
+OTP factories accept an externally generated `OtpHash`; secure code generation, hashing, and delivery are application ports defined by Sprint 8.3.
 
 ## Validation And Testing
 
@@ -105,6 +109,6 @@ Unit tests cover successful behavior, invalid formats, duplicate assignments, im
 - Spring Security and security configuration
 - JWT or refresh-token credential generation
 - Password encoding and comparison adapters
-- OTP transport or secure random generation
+- OTP transport, hashing, clock, and secure-random provider implementations
 - Controllers, DTOs, APIs, application services, and workflows
 - JPA entities, Flyway migrations, and database constraints

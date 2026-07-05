@@ -76,4 +76,18 @@ class IdentityValueObjectTest {
         assertThatIllegalArgumentException().isThrownBy(() -> OtpCode.of("12345"));
         assertThatNullPointerException().isThrownBy(() -> code.matches(null));
     }
+
+    @Test
+    void acceptsOpaqueOtpHashesAndRejectsUnsafeRepresentations() {
+        OtpHash hash = OtpHash.encoded("A".repeat(64));
+        OtpHash sameHash = OtpHash.encoded("A".repeat(64));
+
+        assertThat(hash.value()).hasSize(64);
+        assertThat(hash).isEqualTo(sameHash).hasSameHashCodeAs(sameHash);
+        assertThat(hash).isNotEqualTo(OtpHash.encoded("B".repeat(64))).isNotEqualTo("hash");
+        assertThat(hash.toString()).isEqualTo("OtpHash[REDACTED]");
+        assertThatIllegalArgumentException().isThrownBy(() -> OtpHash.encoded("123456"));
+        assertThatIllegalArgumentException().isThrownBy(() -> OtpHash.encoded(" " + "A".repeat(64)));
+        assertThatIllegalArgumentException().isThrownBy(() -> OtpHash.encoded("A".repeat(256)));
+    }
 }
