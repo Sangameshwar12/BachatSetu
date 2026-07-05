@@ -1,7 +1,7 @@
 # Architecture Protection
 
-Version: 1.0  
-Sprint: 7.5B  
+Version: 1.1
+Sprint: 7.5B, amended by Sprint 8.4
 Status: Enforced
 
 ## Purpose
@@ -22,7 +22,9 @@ Rules are intentionally independent of feature completeness. Application and int
 flowchart LR
     Interfaces["Interfaces / Controllers"] --> Application["Application / Use Cases"]
     Application --> Domain["Domain / Ports"]
-    Infrastructure["Infrastructure / Adapters"] --> Domain
+    Infrastructure["Infrastructure / Domain Adapters"] --> Domain
+    AuthInfrastructure["Authentication Infrastructure"] --> AppPorts["Authentication Application Ports"]
+    AppPorts --> Domain
     Persistence["Persistence"] --> Infrastructure
     Persistence --> Domain
 
@@ -41,7 +43,7 @@ Framework and Java library dependencies are omitted from the diagram. They do no
 | Domain | No dependency on application, interfaces, infrastructure, configuration, Spring, Hibernate, or JPA. |
 | Application | No dependency on interfaces, infrastructure, configuration, or persistence entities. Empty until application use cases are introduced. |
 | Interfaces | A class named `*Controller` cannot depend on domain, infrastructure, or repositories. |
-| Infrastructure | No dependency on application or interfaces; adapters point inward to domain ports. |
+| Infrastructure | General adapters point to domain ports. Authentication infrastructure may implement only `auth.application.port` contracts and may not access use cases, commands, queries, events, services, interfaces, or controllers. |
 | Persistence | `@Entity` classes reside under `infrastructure.persistence.entity`; entity types cannot escape the persistence package. |
 | Repositories | Every concrete `*RepositoryAdapter` implements an interface named `*Repository` in a `domain.port` package. |
 | Modules | Top-level backend package slices must remain free of dependency cycles. |
@@ -53,7 +55,7 @@ Framework and Java library dependencies are omitted from the diagram. They do no
 - Domain packages may use their own domain types, the shared domain kernel, and the Java standard library.
 - Application packages may coordinate domain aggregates and ports through explicit use-case boundaries.
 - Interfaces packages may use application contracts and delivery-framework types.
-- Infrastructure packages may use domain ports, persistence components, Spring, Hibernate, MapStruct, and provider SDKs required by an adapter.
+- Infrastructure packages may use domain ports, persistence components, Spring, Hibernate, MapStruct, and provider SDKs required by an adapter. Authentication adapters may additionally implement their narrowly owned application outbound ports.
 - Persistence mappers and adapters may translate between domain models and private JPA entities.
 
 ## Forbidden Dependencies
@@ -62,7 +64,7 @@ Framework and Java library dependencies are omitted from the diagram. They do no
 - Application to JPA entities, Spring Data repositories, adapters, or controllers.
 - Controller to aggregates, domain repository ports, Spring Data repositories, JPA entities, or adapters.
 - Any package outside persistence to a persistence entity.
-- Infrastructure to application use cases or interfaces.
+- Infrastructure to application use cases, commands, queries, events, services, or interfaces. Only authentication application-port contracts are allowed for `infrastructure.auth`.
 - Cyclic top-level module dependencies.
 
 ## Examples
@@ -71,6 +73,7 @@ Allowed:
 
 ```text
 PaymentRepositoryAdapter -> PaymentRepository -> Payment
+BCryptHashingAdapter -> HashingPort -> OtpHash
 Controller -> Application use case -> Domain port
 Persistence mapper -> JPA entity + Domain aggregate
 ```

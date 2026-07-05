@@ -73,3 +73,10 @@ logging:
   level:
     root: INFO
     in.bachatsetu.backend: INFO
+
+bachatsetu:
+  authentication:
+    otp-validity: 5m
+    resend-limit: 3
+    verify-limit: 5
+    hash-strength: ${AUTH_OTP_BCRYPT_STRENGTH:12}

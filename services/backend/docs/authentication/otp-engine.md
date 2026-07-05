@@ -1,7 +1,7 @@
 # OTP Authentication Engine
 
-Version: 1.0
-Sprint: 8.3
+Version: 1.1
+Sprint: 8.3, infrastructure amendment by Sprint 8.4
 Status: Implemented
 
 ## Purpose
@@ -19,7 +19,7 @@ Caller
       -> ClockPort / RandomGeneratorPort / HashingPort / OtpSenderPort
 ```
 
-Commands enter through `GenerateOtpUseCase`, `VerifyOtpUseCase`, `ResendOtpUseCase`, and `InvalidateOtpUseCase`. Safe `OtpActionResult` projections return lifecycle state and application events, never codes or hashes. No service is a Spring bean; composition belongs to a later configuration sprint.
+Commands enter through `GenerateOtpUseCase`, `VerifyOtpUseCase`, `ResendOtpUseCase`, and `InvalidateOtpUseCase`. Safe `OtpActionResult` projections return lifecycle state and application events, never codes or hashes. Application services remain plain Java; Sprint 8.4 configures their outbound adapter dependencies without annotating the use cases.
 
 ## Flow
 
@@ -115,7 +115,8 @@ Unit tests cover generation, duplicate-active rejection, expiration boundaries, 
 
 ## Known Limitations
 
-- No hashing, clock, random generator, SMS, email, or push provider implementation is included by design.
+- System-clock, secure-random, BCrypt, and local metadata-only sender adapters are documented in [Authentication Infrastructure](auth-infrastructure.md).
+- No SMS, email, or push delivery provider is included.
 - Delivery is synchronous after persistence. A later infrastructure sprint should add transactional outbox delivery and provider failure recovery.
 - Expiration is enforced whenever an OTP command is handled; no background cleanup scheduler is introduced.
 - No REST API, Spring Security, JWT, rate limiter, or runtime dependency wiring is included.

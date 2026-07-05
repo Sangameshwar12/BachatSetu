@@ -34,12 +34,26 @@ class LayerDependencyArchitectureTest {
             .because("application code may coordinate domain ports but must not know adapters");
 
     @ArchTest
-    static final ArchRule INFRASTRUCTURE_MUST_NOT_DEPEND_ON_APPLICATION_OR_INTERFACES = noClasses()
+    static final ArchRule GENERAL_INFRASTRUCTURE_MUST_NOT_DEPEND_ON_APPLICATION_OR_INTERFACES = noClasses()
             .that().resideInAnyPackage(ArchitecturePackages.INFRASTRUCTURE)
+            .and().resideOutsideOfPackage(ArchitecturePackages.AUTH_INFRASTRUCTURE)
             .should().dependOnClassesThat().resideInAnyPackage(
                     ArchitecturePackages.APPLICATION,
                     ArchitecturePackages.INTERFACES)
             .because("outbound adapters implement domain ports and are not use-case or delivery code");
+
+    @ArchTest
+    static final ArchRule AUTH_INFRASTRUCTURE_MAY_DEPEND_ONLY_ON_OWNED_PORTS_AND_DOMAIN = classes()
+            .that().resideInAnyPackage(ArchitecturePackages.AUTH_INFRASTRUCTURE)
+            .should().onlyDependOnClassesThat().resideInAnyPackage(
+                    ArchitecturePackages.AUTH_INFRASTRUCTURE,
+                    ArchitecturePackages.AUTH_APPLICATION_PORT,
+                    "..auth.domain..",
+                    "..shared..",
+                    "java..",
+                    "org.slf4j..",
+                    "org.springframework..")
+            .because("authentication adapters implement only their owned outbound ports");
 
     @ArchTest
     static final ArchRule CONTROLLERS_MUST_NOT_DEPEND_ON_DOMAIN_OR_INFRASTRUCTURE = noClasses()

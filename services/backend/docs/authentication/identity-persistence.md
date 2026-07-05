@@ -94,4 +94,4 @@ Sprint 8.3 adds append-only V4. It uses PostgreSQL `pgcrypto` to hash any pre-ex
 
 ## Provider Boundary
 
-Hash algorithm configuration and key/cost policy belong to a future infrastructure adapter implementing Sprint 8.3's `HashingPort`. No JWT, Spring Security, SMS provider, or REST behavior is introduced by persistence.
+Sprint 8.4 supplies a configurable BCrypt adapter for Sprint 8.3's `HashingPort`; persistence remains algorithm-agnostic and stores only the encoded result. No JWT, SecurityFilterChain, SMS provider, or REST behavior is introduced by persistence.

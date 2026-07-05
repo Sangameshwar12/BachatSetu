@@ -69,6 +69,10 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
@@ -265,6 +269,7 @@
                         <include>in/bachatsetu/backend/draw/domain/model/AuctionBid*</include>
                         <include>in/bachatsetu/backend/auth/domain/**</include>
                         <include>in/bachatsetu/backend/auth/application/**</include>
+                        <include>in/bachatsetu/backend/infrastructure/auth/**</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -304,6 +309,7 @@
                                     <includes>
                                         <include>in.bachatsetu.backend.auth.domain.*</include>
                                         <include>in.bachatsetu.backend.auth.application.*</include>
+                                        <include>in.bachatsetu.backend.infrastructure.auth.*</include>
                                     </includes>
                                     <limits>
                                         <limit>
