@@ -2,8 +2,11 @@ package in.bachatsetu.backend.group.interfaces.rest.exception;
 
 import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableException;
 import in.bachatsetu.backend.group.application.exception.DuplicateGroupCodeException;
+import in.bachatsetu.backend.group.application.exception.SavingsGroupNotFoundException;
+import in.bachatsetu.backend.group.domain.exception.DuplicateMemberException;
 import in.bachatsetu.backend.shared.domain.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
@@ -53,6 +56,24 @@ public class SavingsGroupExceptionHandler {
                 request);
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<ProblemDetail> handleParameterValidation(
+            ConstraintViolationException exception,
+            HttpServletRequest request) {
+        List<Violation> violations = exception.getConstraintViolations().stream()
+                .map(violation -> new Violation(violation.getPropertyPath().toString(), violation.getMessage()))
+                .sorted(Comparator.comparing(Violation::field).thenComparing(Violation::message))
+                .toList();
+        ProblemDetail detail = problem(
+                HttpStatus.BAD_REQUEST,
+                "validation-error",
+                "Request validation failed",
+                "One or more request parameters are invalid.",
+                request);
+        detail.setProperty("violations", violations);
+        return ResponseEntity.badRequest().body(detail);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ProblemDetail> handleIllegalArgument(
             IllegalArgumentException exception,
@@ -68,6 +89,30 @@ public class SavingsGroupExceptionHandler {
                 HttpStatus.CONFLICT,
                 "group-code-conflict",
                 "Group code already exists",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(SavingsGroupNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleGroupNotFound(
+            SavingsGroupNotFoundException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.NOT_FOUND,
+                "group-not-found",
+                "Savings group not found",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(DuplicateMemberException.class)
+    ResponseEntity<ProblemDetail> handleDuplicateMember(
+            DuplicateMemberException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.CONFLICT,
+                "member-already-joined",
+                "Member has already joined the group",
                 exception.getMessage(),
                 request);
     }

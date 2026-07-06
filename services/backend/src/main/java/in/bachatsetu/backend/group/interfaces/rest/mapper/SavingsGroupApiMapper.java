@@ -1,24 +1,39 @@
 package in.bachatsetu.backend.group.interfaces.rest.mapper;
 
 import in.bachatsetu.backend.auth.application.security.AuthenticatedUser;
+import in.bachatsetu.backend.group.application.command.ActivateGroupCommand;
+import in.bachatsetu.backend.group.application.command.CloseGroupCommand;
 import in.bachatsetu.backend.group.application.command.CreateSavingsGroupCommand;
+import in.bachatsetu.backend.group.application.command.JoinGroupCommand;
+import in.bachatsetu.backend.group.application.command.RemoveMemberCommand;
+import in.bachatsetu.backend.group.application.command.SuspendGroupCommand;
+import in.bachatsetu.backend.group.application.query.GroupMemberResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
+import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
+import in.bachatsetu.backend.group.application.usecase.GetSavingsGroupUseCase;
+import in.bachatsetu.backend.group.application.usecase.ListSavingsGroupsUseCase;
 import in.bachatsetu.backend.group.domain.model.ContributionFrequency;
 import in.bachatsetu.backend.group.domain.model.ContributionSchedule;
 import in.bachatsetu.backend.group.domain.model.GroupDescription;
+import in.bachatsetu.backend.group.domain.model.GroupId;
 import in.bachatsetu.backend.group.domain.model.GroupName;
 import in.bachatsetu.backend.group.domain.model.GroupRule;
 import in.bachatsetu.backend.group.domain.model.GroupType;
 import in.bachatsetu.backend.group.domain.model.MemberCapacity;
 import in.bachatsetu.backend.group.domain.model.OwnerId;
 import in.bachatsetu.backend.group.domain.model.PayoutMethod;
+import in.bachatsetu.backend.group.interfaces.rest.dto.AddGroupMemberRequest;
 import in.bachatsetu.backend.group.interfaces.rest.dto.ContributionScheduleRequest;
 import in.bachatsetu.backend.group.interfaces.rest.dto.CreateSavingsGroupRequest;
+import in.bachatsetu.backend.group.interfaces.rest.dto.GroupMemberResponse;
 import in.bachatsetu.backend.group.interfaces.rest.dto.GroupRuleRequest;
 import in.bachatsetu.backend.group.interfaces.rest.dto.MemberCapacityRequest;
+import in.bachatsetu.backend.group.interfaces.rest.dto.PageResponse;
 import in.bachatsetu.backend.group.interfaces.rest.dto.SavingsGroupResponse;
+import in.bachatsetu.backend.group.interfaces.rest.dto.SavingsGroupSummaryResponse;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.Money;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -60,6 +75,112 @@ public class SavingsGroupApiMapper {
                 result.createdAt(),
                 result.updatedAt(),
                 result.version());
+    }
+
+    public SavingsGroupResult getGroup(GetSavingsGroupUseCase useCase, AuthenticatedUser currentUser, String groupId) {
+        Objects.requireNonNull(useCase, "use case must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        Objects.requireNonNull(groupId, "group id must not be null");
+        return useCase.execute(currentUser.tenantId(), GroupId.from(groupId));
+    }
+
+    public List<SavingsGroupSummary> listGroups(ListSavingsGroupsUseCase useCase, AuthenticatedUser currentUser) {
+        Objects.requireNonNull(useCase, "use case must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        return useCase.execute(currentUser.tenantId());
+    }
+
+    public ActivateGroupCommand toActivateCommand(String groupId, AuthenticatedUser currentUser) {
+        Objects.requireNonNull(groupId, "group id must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        return new ActivateGroupCommand(
+                currentUser.tenantId(), GroupId.from(groupId), currentUser.userId().toAggregateId());
+    }
+
+    public SuspendGroupCommand toSuspendCommand(String groupId, AuthenticatedUser currentUser) {
+        Objects.requireNonNull(groupId, "group id must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        return new SuspendGroupCommand(
+                currentUser.tenantId(), GroupId.from(groupId), currentUser.userId().toAggregateId());
+    }
+
+    public CloseGroupCommand toCloseCommand(String groupId, AuthenticatedUser currentUser) {
+        Objects.requireNonNull(groupId, "group id must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        return new CloseGroupCommand(
+                currentUser.tenantId(), GroupId.from(groupId), currentUser.userId().toAggregateId());
+    }
+
+    public JoinGroupCommand toJoinCommand(
+            String groupId,
+            AddGroupMemberRequest request,
+            AuthenticatedUser currentUser) {
+        Objects.requireNonNull(groupId, "group id must not be null");
+        Objects.requireNonNull(request, "request must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        return new JoinGroupCommand(
+                currentUser.tenantId(),
+                GroupId.from(groupId),
+                AggregateId.from(request.memberId()),
+                currentUser.userId().toAggregateId());
+    }
+
+    public RemoveMemberCommand toRemoveMemberCommand(
+            String groupId,
+            String memberId,
+            AuthenticatedUser currentUser) {
+        Objects.requireNonNull(groupId, "group id must not be null");
+        Objects.requireNonNull(memberId, "member id must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        return new RemoveMemberCommand(
+                currentUser.tenantId(),
+                GroupId.from(groupId),
+                AggregateId.from(memberId),
+                currentUser.userId().toAggregateId());
+    }
+
+    public GroupMemberResponse toMemberResponse(SavingsGroupResult result, String memberId) {
+        Objects.requireNonNull(result, "result must not be null");
+        Objects.requireNonNull(memberId, "member id must not be null");
+        return result.members().stream()
+                .filter(member -> member.memberId().toString().equals(memberId))
+                .findFirst()
+                .map(this::toMemberResponse)
+                .orElseThrow(() -> new IllegalStateException("member is missing from the returned group result"));
+    }
+
+    public GroupMemberResponse toMemberResponse(GroupMemberResult member) {
+        Objects.requireNonNull(member, "member must not be null");
+        return new GroupMemberResponse(
+                member.memberId().toString(), member.joinedAt(), member.removedAt(), member.active());
+    }
+
+    public SavingsGroupSummaryResponse toSummaryResponse(SavingsGroupSummary summary) {
+        Objects.requireNonNull(summary, "summary must not be null");
+        return new SavingsGroupSummaryResponse(
+                summary.groupId().toString(),
+                summary.groupCode(),
+                summary.name(),
+                summary.status(),
+                summary.contributionAmountPaise(),
+                summary.currencyCode(),
+                summary.maximumMembers(),
+                summary.activeMemberCount());
+    }
+
+    public PageResponse<SavingsGroupSummaryResponse> toSummaryPage(
+            List<SavingsGroupSummary> summaries,
+            int page,
+            int size) {
+        Objects.requireNonNull(summaries, "summaries must not be null");
+        int totalElements = summaries.size();
+        int totalPages = totalElements == 0 ? 0 : (totalElements + size - 1) / size;
+        int fromIndex = Math.min(page * size, totalElements);
+        int toIndex = Math.min(fromIndex + size, totalElements);
+        List<SavingsGroupSummaryResponse> content = summaries.subList(fromIndex, toIndex).stream()
+                .map(this::toSummaryResponse)
+                .toList();
+        return new PageResponse<>(content, page, size, totalElements, totalPages, toIndex < totalElements);
     }
 
     private GroupRule toRule(GroupRuleRequest request) {
