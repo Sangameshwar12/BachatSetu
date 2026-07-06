@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+/** Signals that a savings group entered the active state. */
 public record GroupActivated(
         UUID eventId,
         AggregateId aggregateId,

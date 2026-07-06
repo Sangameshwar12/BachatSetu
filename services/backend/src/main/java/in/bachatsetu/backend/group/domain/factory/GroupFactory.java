@@ -9,6 +9,7 @@ import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.time.Clock;
 import java.util.Objects;
 
+/** Legacy explicit-code factory retained for callers that already supply group identifiers. */
 public final class GroupFactory {
 
     private final Clock clock;
