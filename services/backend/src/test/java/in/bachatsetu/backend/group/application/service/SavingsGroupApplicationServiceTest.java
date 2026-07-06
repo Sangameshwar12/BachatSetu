@@ -20,6 +20,7 @@ import in.bachatsetu.backend.group.application.command.JoinGroupCommand;
 import in.bachatsetu.backend.group.application.command.RemoveMemberCommand;
 import in.bachatsetu.backend.group.application.command.SuspendGroupCommand;
 import in.bachatsetu.backend.group.application.exception.DuplicateGroupCodeException;
+import in.bachatsetu.backend.group.application.exception.GroupAccessDeniedException;
 import in.bachatsetu.backend.group.application.exception.SavingsGroupNotFoundException;
 import in.bachatsetu.backend.group.application.mapper.SavingsGroupApplicationMapper;
 import in.bachatsetu.backend.group.application.port.ClockPort;
@@ -29,6 +30,7 @@ import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import in.bachatsetu.backend.group.application.port.TransactionPort;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
+import in.bachatsetu.backend.group.application.security.GroupAuthorizationService;
 import in.bachatsetu.backend.group.application.usecase.ActivateGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.CloseGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.CreateSavingsGroupUseCase;
@@ -63,6 +65,7 @@ class SavingsGroupApplicationServiceTest {
     private ClockPort clock;
     private TransactionPort transaction;
     private SavingsGroupApplicationMapper mapper;
+    private GroupAuthorizationService authorization;
 
     @BeforeEach
     void setUp() {
@@ -71,6 +74,7 @@ class SavingsGroupApplicationServiceTest {
         clock = () -> NOW.plusSeconds(10);
         transaction = directTransaction();
         mapper = new SavingsGroupApplicationMapper();
+        authorization = new GroupAuthorizationService();
     }
 
     @Test
@@ -144,7 +148,7 @@ class SavingsGroupApplicationServiceTest {
         AggregateId actorId = group.organizerId();
         when(repository.findById(tenantId, group.groupId())).thenReturn(Optional.of(group));
         JoinGroupUseCase joinService = new JoinGroupApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, authorization);
 
         SavingsGroupResult joined = joinService.execute(
                 new JoinGroupCommand(tenantId, group.groupId(), memberId, actorId));
@@ -153,7 +157,7 @@ class SavingsGroupApplicationServiceTest {
         assertPublishedEvent(MemberJoined.class);
 
         RemoveMemberUseCase removeService = new RemoveMemberApplicationService(
-                repository, publisher, () -> NOW.plusSeconds(11), transaction, mapper);
+                repository, publisher, () -> NOW.plusSeconds(11), transaction, mapper, authorization);
         SavingsGroupResult removed = removeService.execute(
                 new RemoveMemberCommand(tenantId, group.groupId(), memberId, actorId));
 
@@ -171,14 +175,14 @@ class SavingsGroupApplicationServiceTest {
         when(repository.findById(group.tenantId(), group.groupId())).thenReturn(Optional.of(group));
 
         ActivateGroupUseCase activate = new ActivateGroupApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, authorization);
         SavingsGroupResult activated = activate.execute(
                 new ActivateGroupCommand(group.tenantId(), group.groupId(), group.organizerId()));
         assertThat(activated.status()).isEqualTo(GroupStatus.ACTIVE.name());
         assertPublishedEvent(GroupActivated.class);
 
         SuspendGroupUseCase suspend = new SuspendGroupApplicationService(
-                repository, publisher, () -> NOW.plusSeconds(11), transaction, mapper);
+                repository, publisher, () -> NOW.plusSeconds(11), transaction, mapper, authorization);
         SavingsGroupResult suspended = suspend.execute(
                 new SuspendGroupCommand(group.tenantId(), group.groupId(), group.organizerId()));
         assertThat(suspended.status()).isEqualTo(GroupStatus.SUSPENDED.name());
@@ -188,11 +192,52 @@ class SavingsGroupApplicationServiceTest {
         closable.pullDomainEvents();
         when(repository.findById(closable.tenantId(), closable.groupId())).thenReturn(Optional.of(closable));
         CloseGroupUseCase close = new CloseGroupApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, authorization);
         SavingsGroupResult closed = close.execute(
                 new CloseGroupCommand(closable.tenantId(), closable.groupId(), closable.organizerId()));
         assertThat(closed.status()).isEqualTo(GroupStatus.CLOSED.name());
         assertPublishedEvent(GroupClosed.class);
+    }
+
+    @Test
+    void deniesNonOwnerActorAcrossLifecycleAndMembershipUseCases() {
+        SavingsGroup group = newGroup(5);
+        group.pullDomainEvents();
+        AggregateId nonOwner = AggregateId.newId();
+        when(repository.findById(group.tenantId(), group.groupId())).thenReturn(Optional.of(group));
+
+        ActivateGroupUseCase activate = new ActivateGroupApplicationService(
+                repository, publisher, clock, transaction, mapper, authorization);
+        assertThatThrownBy(() -> activate.execute(
+                        new ActivateGroupCommand(group.tenantId(), group.groupId(), nonOwner)))
+                .isInstanceOf(GroupAccessDeniedException.class);
+
+        SuspendGroupUseCase suspend = new SuspendGroupApplicationService(
+                repository, publisher, clock, transaction, mapper, authorization);
+        assertThatThrownBy(() -> suspend.execute(
+                        new SuspendGroupCommand(group.tenantId(), group.groupId(), nonOwner)))
+                .isInstanceOf(GroupAccessDeniedException.class);
+
+        CloseGroupUseCase close = new CloseGroupApplicationService(
+                repository, publisher, clock, transaction, mapper, authorization);
+        assertThatThrownBy(() -> close.execute(
+                        new CloseGroupCommand(group.tenantId(), group.groupId(), nonOwner)))
+                .isInstanceOf(GroupAccessDeniedException.class);
+
+        JoinGroupUseCase join = new JoinGroupApplicationService(
+                repository, publisher, clock, transaction, mapper, authorization);
+        assertThatThrownBy(() -> join.execute(
+                        new JoinGroupCommand(group.tenantId(), group.groupId(), AggregateId.newId(), nonOwner)))
+                .isInstanceOf(GroupAccessDeniedException.class);
+
+        RemoveMemberUseCase remove = new RemoveMemberApplicationService(
+                repository, publisher, clock, transaction, mapper, authorization);
+        assertThatThrownBy(() -> remove.execute(
+                        new RemoveMemberCommand(group.tenantId(), group.groupId(), group.organizerId(), nonOwner)))
+                .isInstanceOf(GroupAccessDeniedException.class);
+
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
     }
 
     @Test
@@ -216,11 +261,22 @@ class SavingsGroupApplicationServiceTest {
     }
 
     @Test
+    void tenantScopedLookupHidesGroupsFromOtherTenants() {
+        SavingsGroup group = newGroup(5);
+        AggregateId otherTenantId = AggregateId.newId();
+        when(repository.findById(otherTenantId, group.groupId())).thenReturn(Optional.empty());
+        GetSavingsGroupUseCase getService = new GetSavingsGroupApplicationService(repository, transaction, mapper);
+
+        assertThatThrownBy(() -> getService.execute(otherTenantId, group.groupId()))
+                .isInstanceOf(SavingsGroupNotFoundException.class);
+    }
+
+    @Test
     void reportsMissingGroupsWithoutSavingOrPublishing() {
         AggregateId tenantId = AggregateId.newId();
         GroupId groupId = GroupId.newId();
         JoinGroupApplicationService join = new JoinGroupApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, authorization);
         GetSavingsGroupApplicationService get = new GetSavingsGroupApplicationService(
                 repository, transaction, mapper);
 
@@ -245,23 +301,23 @@ class SavingsGroupApplicationServiceTest {
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupApplicationService(
-                        repository, publisher, clock, transaction, mapper)
+                        repository, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new RemoveMemberApplicationService(
-                        repository, publisher, clock, transaction, mapper)
+                        repository, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new ActivateGroupApplicationService(
-                        repository, publisher, clock, transaction, mapper)
+                        repository, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new SuspendGroupApplicationService(
-                        repository, publisher, clock, transaction, mapper)
+                        repository, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseGroupApplicationService(
-                        repository, publisher, clock, transaction, mapper)
+                        repository, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, mapper)
@@ -284,19 +340,22 @@ class SavingsGroupApplicationServiceTest {
                         repository, null, publisher, clock, transaction, mapper))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupApplicationService(
-                        repository, publisher, null, transaction, mapper))
+                        repository, publisher, null, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupApplicationService(
-                        repository, publisher, clock, null, mapper))
+                        repository, publisher, clock, null, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupApplicationService(
-                        null, publisher, clock, transaction, mapper))
+                        null, publisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupApplicationService(
-                        repository, null, clock, transaction, mapper))
+                        repository, null, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupApplicationService(
-                        repository, publisher, clock, transaction, null))
+                        repository, publisher, clock, transaction, null, authorization))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new JoinGroupApplicationService(
+                        repository, publisher, clock, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetSavingsGroupApplicationService(null, transaction, mapper))
                 .isInstanceOf(NullPointerException.class);

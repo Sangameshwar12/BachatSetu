@@ -6,6 +6,7 @@ import in.bachatsetu.backend.group.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.group.application.port.GroupCodeGeneratorPort;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import in.bachatsetu.backend.group.application.port.TransactionPort;
+import in.bachatsetu.backend.group.application.security.GroupAuthorizationService;
 import in.bachatsetu.backend.group.application.service.ActivateGroupApplicationService;
 import in.bachatsetu.backend.group.application.service.CloseGroupApplicationService;
 import in.bachatsetu.backend.group.application.service.CreateSavingsGroupApplicationService;
@@ -43,6 +44,11 @@ public class SavingsGroupApplicationConfig {
     }
 
     @Bean
+    public GroupAuthorizationService groupAuthorizationService() {
+        return new GroupAuthorizationService();
+    }
+
+    @Bean
     public CreateSavingsGroupUseCase createSavingsGroupUseCase(
             SavingsGroupRepository repository,
             GroupCodeGeneratorPort codeGenerator,
@@ -76,8 +82,10 @@ public class SavingsGroupApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            SavingsGroupApplicationMapper mapper) {
-        return new ActivateGroupApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            SavingsGroupApplicationMapper mapper,
+            GroupAuthorizationService authorization) {
+        return new ActivateGroupApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, authorization);
     }
 
     @Bean
@@ -86,8 +94,10 @@ public class SavingsGroupApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            SavingsGroupApplicationMapper mapper) {
-        return new SuspendGroupApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            SavingsGroupApplicationMapper mapper,
+            GroupAuthorizationService authorization) {
+        return new SuspendGroupApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, authorization);
     }
 
     @Bean
@@ -96,8 +106,10 @@ public class SavingsGroupApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            SavingsGroupApplicationMapper mapper) {
-        return new CloseGroupApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            SavingsGroupApplicationMapper mapper,
+            GroupAuthorizationService authorization) {
+        return new CloseGroupApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, authorization);
     }
 
     @Bean
@@ -106,8 +118,10 @@ public class SavingsGroupApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            SavingsGroupApplicationMapper mapper) {
-        return new JoinGroupApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            SavingsGroupApplicationMapper mapper,
+            GroupAuthorizationService authorization) {
+        return new JoinGroupApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, authorization);
     }
 
     @Bean
@@ -116,7 +130,9 @@ public class SavingsGroupApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            SavingsGroupApplicationMapper mapper) {
-        return new RemoveMemberApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            SavingsGroupApplicationMapper mapper,
+            GroupAuthorizationService authorization) {
+        return new RemoveMemberApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, authorization);
     }
 }

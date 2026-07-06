@@ -19,6 +19,7 @@ import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableExc
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.group.application.exception.DuplicateGroupCodeException;
+import in.bachatsetu.backend.group.application.exception.GroupAccessDeniedException;
 import in.bachatsetu.backend.group.application.exception.SavingsGroupNotFoundException;
 import in.bachatsetu.backend.group.application.query.GroupMemberResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
@@ -268,6 +269,50 @@ class SavingsGroupControllerTest {
     }
 
     @Test
+    void reportsNonOwnerActivationAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(activateGroup.execute(any()))
+                .thenThrow(new GroupAccessDeniedException("only the group owner may perform this operation"));
+
+        mockMvc.perform(patch("/api/v1/groups/" + UUID.randomUUID() + "/activate"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
+    void reportsNonOwnerSuspensionAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(suspendGroup.execute(any()))
+                .thenThrow(new GroupAccessDeniedException("only the group owner may perform this operation"));
+
+        mockMvc.perform(patch("/api/v1/groups/" + UUID.randomUUID() + "/suspend"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
+    void reportsNonOwnerClosureAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(closeGroup.execute(any()))
+                .thenThrow(new GroupAccessDeniedException("only the group owner may perform this operation"));
+
+        mockMvc.perform(patch("/api/v1/groups/" + UUID.randomUUID() + "/close"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
+    void reportsCrossTenantActivationAsNotFound() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(activateGroup.execute(any()))
+                .thenThrow(new SavingsGroupNotFoundException("savings group does not exist"));
+
+        mockMvc.perform(patch("/api/v1/groups/" + UUID.randomUUID() + "/activate"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("group-not-found"));
+    }
+
+    @Test
     void addsGroupMember() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
         UUID groupId = UUID.randomUUID();
@@ -334,6 +379,45 @@ class SavingsGroupControllerTest {
         mockMvc.perform(delete("/api/v1/groups/" + UUID.randomUUID() + "/members/" + UUID.randomUUID()))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("group-validation-failed"));
+    }
+
+    @Test
+    void reportsNonOwnerAddMemberAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(joinGroup.execute(any()))
+                .thenThrow(new GroupAccessDeniedException("only the group owner may perform this operation"));
+
+        mockMvc.perform(post("/api/v1/groups/" + UUID.randomUUID() + "/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"memberId\": \"" + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
+    void reportsNonOwnerRemoveMemberAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        doThrow(new GroupAccessDeniedException("only the group owner may perform this operation"))
+                .when(removeMember).execute(any());
+
+        mockMvc.perform(delete("/api/v1/groups/" + UUID.randomUUID() + "/members/" + UUID.randomUUID()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
+    void rejectsUnauthenticatedMembershipRequests() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenThrow(new CurrentUserUnavailableException());
+
+        mockMvc.perform(post("/api/v1/groups/" + UUID.randomUUID() + "/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"memberId\": \"" + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("authentication-required"));
+
+        mockMvc.perform(delete("/api/v1/groups/" + UUID.randomUUID() + "/members/" + UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("authentication-required"));
     }
 
     private AuthenticatedUser authenticatedUser() {

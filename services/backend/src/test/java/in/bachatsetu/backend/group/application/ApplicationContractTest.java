@@ -13,6 +13,7 @@ import in.bachatsetu.backend.group.application.command.JoinGroupCommand;
 import in.bachatsetu.backend.group.application.command.RemoveMemberCommand;
 import in.bachatsetu.backend.group.application.command.SuspendGroupCommand;
 import in.bachatsetu.backend.group.application.exception.DuplicateGroupCodeException;
+import in.bachatsetu.backend.group.application.exception.GroupAccessDeniedException;
 import in.bachatsetu.backend.group.application.exception.SavingsGroupApplicationException;
 import in.bachatsetu.backend.group.application.exception.SavingsGroupNotFoundException;
 import in.bachatsetu.backend.group.application.port.ClockPort;
@@ -155,5 +156,6 @@ class ApplicationContractTest {
         assertThat(new SavingsGroupApplicationException("application failure")).hasMessage("application failure");
         assertThat(new SavingsGroupNotFoundException("missing")).isInstanceOf(SavingsGroupApplicationException.class);
         assertThat(new DuplicateGroupCodeException("duplicate")).isInstanceOf(SavingsGroupApplicationException.class);
+        assertThat(new GroupAccessDeniedException("denied")).isInstanceOf(SavingsGroupApplicationException.class);
     }
 }

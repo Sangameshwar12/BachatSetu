@@ -2,6 +2,7 @@ package in.bachatsetu.backend.group.interfaces.rest.exception;
 
 import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableException;
 import in.bachatsetu.backend.group.application.exception.DuplicateGroupCodeException;
+import in.bachatsetu.backend.group.application.exception.GroupAccessDeniedException;
 import in.bachatsetu.backend.group.application.exception.SavingsGroupNotFoundException;
 import in.bachatsetu.backend.group.domain.exception.DuplicateMemberException;
 import in.bachatsetu.backend.shared.domain.DomainException;
@@ -113,6 +114,18 @@ public class SavingsGroupExceptionHandler {
                 HttpStatus.CONFLICT,
                 "member-already-joined",
                 "Member has already joined the group",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(GroupAccessDeniedException.class)
+    ResponseEntity<ProblemDetail> handleAccessDenied(
+            GroupAccessDeniedException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.FORBIDDEN,
+                "access-denied",
+                "Access denied",
                 exception.getMessage(),
                 request);
     }

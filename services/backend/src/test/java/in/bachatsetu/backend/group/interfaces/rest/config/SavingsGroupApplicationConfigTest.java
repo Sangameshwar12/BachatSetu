@@ -9,6 +9,7 @@ import in.bachatsetu.backend.group.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.group.application.port.GroupCodeGeneratorPort;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import in.bachatsetu.backend.group.application.port.TransactionPort;
+import in.bachatsetu.backend.group.application.security.GroupAuthorizationService;
 import in.bachatsetu.backend.group.application.service.ActivateGroupApplicationService;
 import in.bachatsetu.backend.group.application.service.CloseGroupApplicationService;
 import in.bachatsetu.backend.group.application.service.CreateSavingsGroupApplicationService;
@@ -44,20 +45,29 @@ class SavingsGroupApplicationConfigTest {
     }
 
     @Test
+    void composesGroupAuthorizationService() {
+        assertThat(config.groupAuthorizationService()).isInstanceOf(GroupAuthorizationService.class);
+    }
+
+    @Test
     void composesLifecycleUseCases() {
-        assertThat(config.activateGroupUseCase(repository, eventPublisher, clock, transaction, mapper))
+        GroupAuthorizationService authorization = config.groupAuthorizationService();
+
+        assertThat(config.activateGroupUseCase(repository, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(ActivateGroupApplicationService.class);
-        assertThat(config.suspendGroupUseCase(repository, eventPublisher, clock, transaction, mapper))
+        assertThat(config.suspendGroupUseCase(repository, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(SuspendGroupApplicationService.class);
-        assertThat(config.closeGroupUseCase(repository, eventPublisher, clock, transaction, mapper))
+        assertThat(config.closeGroupUseCase(repository, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(CloseGroupApplicationService.class);
     }
 
     @Test
     void composesMembershipUseCases() {
-        assertThat(config.joinGroupUseCase(repository, eventPublisher, clock, transaction, mapper))
+        GroupAuthorizationService authorization = config.groupAuthorizationService();
+
+        assertThat(config.joinGroupUseCase(repository, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(JoinGroupApplicationService.class);
-        assertThat(config.removeMemberUseCase(repository, eventPublisher, clock, transaction, mapper))
+        assertThat(config.removeMemberUseCase(repository, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(RemoveMemberApplicationService.class);
     }
 }
