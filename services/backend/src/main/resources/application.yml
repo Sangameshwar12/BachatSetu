@@ -110,3 +110,6 @@ bachatsetu:
         exposed-headers: ${AUTH_CORS_EXPOSED_HEADERS:X-Request-ID}
         allow-credentials: ${AUTH_CORS_ALLOW_CREDENTIALS:false}
         max-age: ${AUTH_CORS_MAX_AGE:1h}
+  group:
+    rest:
+      enabled: ${GROUP_REST_ENABLED:true}

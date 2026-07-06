@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(properties = {
     "bachatsetu.persistence.auditing.enabled=false",
     "bachatsetu.persistence.repositories.enabled=false",
+    "bachatsetu.group.rest.enabled=false",
     "spring.autoconfigure.exclude="
             + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
             + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"

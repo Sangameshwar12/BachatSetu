@@ -14,6 +14,7 @@ final class ArchitecturePackages {
     static final String AUTH_APPLICATION_PORT = "..auth.application.port..";
     static final String AUTH_TOKEN_APPLICATION_PORT = "..auth.application.token.port..";
     static final String GROUP_APPLICATION_PORT = "..group.application.port..";
+    static final String GROUP_INFRASTRUCTURE = "..infrastructure.group..";
 
     private ArchitecturePackages() {
     }
