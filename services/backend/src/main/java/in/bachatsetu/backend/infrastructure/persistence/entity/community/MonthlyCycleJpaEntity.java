@@ -39,7 +39,7 @@ public class MonthlyCycleJpaEntity extends BaseJpaEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_id", nullable = false)
-    private GroupJpaEntity group;
+    private SavingsGroupJpaEntity group;
 
     @Min(1)
     @Column(name = "cycle_number", nullable = false)
@@ -72,7 +72,7 @@ public class MonthlyCycleJpaEntity extends BaseJpaEntity {
     }
 
     public MonthlyCycleJpaEntity(
-            UUID id, UUID tenantId, GroupJpaEntity group, int cycleNumber,
+            UUID id, UUID tenantId, SavingsGroupJpaEntity group, int cycleNumber,
             LocalDate cycleMonth, LocalDate dueDate, CycleStatus status,
             Instant openedAt, Instant closedAt) {
         super(id);
@@ -87,7 +87,7 @@ public class MonthlyCycleJpaEntity extends BaseJpaEntity {
     }
 
     public UUID getTenantId() { return tenantId; }
-    public GroupJpaEntity getGroup() { return group; }
+    public SavingsGroupJpaEntity getGroup() { return group; }
     public int getCycleNumber() { return cycleNumber; }
     public LocalDate getCycleMonth() { return cycleMonth; }
     public LocalDate getDueDate() { return dueDate; }

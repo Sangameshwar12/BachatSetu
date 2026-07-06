@@ -1,6 +1,6 @@
 package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.MemberJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupMemberJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.exception.PersistenceMappingException;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvider;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.MemberJpaMapper;
@@ -40,7 +40,7 @@ public class MemberRepositoryAdapter implements MemberRepository {
 
     @Override
     public Optional<MemberProfile> findByUserId(AggregateId tenantId, AggregateId userId) {
-        List<MemberJpaEntity> rows = repository
+        List<GroupMemberJpaEntity> rows = repository
                 .findAllByTenantIdAndUser_IdAndDeletedFalseOrderByJoinedAtAsc(tenantId.value(), userId.value());
         return rows.isEmpty() ? Optional.empty() : Optional.of(assemble(rows));
     }
@@ -61,15 +61,15 @@ public class MemberRepositoryAdapter implements MemberRepository {
         }
         RepositoryOperations.execute(() -> {
             for (GroupParticipation participation : member.participations()) {
-                Optional<MemberJpaEntity> existing = repository.findById(participation.id().value());
-                MemberJpaEntity candidate = mapper.toEntity(member, participation, references);
+                Optional<GroupMemberJpaEntity> existing = repository.findById(participation.id().value());
+                GroupMemberJpaEntity candidate = mapper.toEntity(member, participation, references);
                 repository.save(RepositoryOperations.preserveState(candidate, existing));
             }
             return null;
         });
     }
 
-    private MemberProfile assemble(List<MemberJpaEntity> rows) {
+    private MemberProfile assemble(List<GroupMemberJpaEntity> rows) {
         MemberProfile first = mapper.toDomain(rows.getFirst());
         List<GroupParticipation> participations = rows.stream()
                 .map(mapper::toDomain)

@@ -5,10 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import in.bachatsetu.backend.infrastructure.persistence.entity.audit.AuditLogJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.AuctionBidJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.DrawJpaEntity;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupMemberJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.InstallmentJpaEntity;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.MemberJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.MembershipHistoryJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.MonthlyCycleJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.SavingsGroupJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.PaymentJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.ReceiptJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.PermissionJpaEntity;
@@ -35,8 +36,9 @@ class JpaEntityMappingTest {
             PermissionJpaEntity.class,
             RefreshTokenJpaEntity.class,
             OtpVerificationJpaEntity.class,
-            GroupJpaEntity.class,
-            MemberJpaEntity.class,
+            SavingsGroupJpaEntity.class,
+            GroupMemberJpaEntity.class,
+            MembershipHistoryJpaEntity.class,
             MonthlyCycleJpaEntity.class,
             InstallmentJpaEntity.class,
             PaymentJpaEntity.class,
@@ -48,7 +50,7 @@ class JpaEntityMappingTest {
 
     @Test
     void declaresAllRequestedTypesAsJpaEntities() {
-        assertThat(ENTITY_TYPES).hasSize(15).allSatisfy(type -> {
+        assertThat(ENTITY_TYPES).hasSize(16).allSatisfy(type -> {
             assertThat(type).hasAnnotation(Entity.class);
             assertThat(BaseJpaEntity.class).isAssignableFrom(type);
         });

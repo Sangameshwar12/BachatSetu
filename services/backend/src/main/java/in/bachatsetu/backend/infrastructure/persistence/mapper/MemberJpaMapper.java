@@ -1,6 +1,6 @@
 package in.bachatsetu.backend.infrastructure.persistence.mapper;
 
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.MemberJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupMemberJpaEntity;
 import in.bachatsetu.backend.member.domain.model.GroupParticipation;
 import in.bachatsetu.backend.member.domain.model.MemberNumber;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
@@ -12,7 +12,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = PersistenceMapperConfiguration.class)
 public interface MemberJpaMapper {
 
-    default MemberProfile toDomain(MemberJpaEntity entity) {
+    default MemberProfile toDomain(GroupMemberJpaEntity entity) {
         if (entity == null) {
             return null;
         }
@@ -35,14 +35,14 @@ public interface MemberJpaMapper {
                 entity.getVersion());
     }
 
-    default MemberJpaEntity toEntity(
+    default GroupMemberJpaEntity toEntity(
             MemberProfile domain,
             GroupParticipation participation,
             @Context JpaReferenceProvider references) {
         if (domain == null || participation == null) {
             return null;
         }
-        return new MemberJpaEntity(
+        return new GroupMemberJpaEntity(
                 participation.id().value(),
                 domain.tenantId().value(),
                 references.group(participation.groupId()),

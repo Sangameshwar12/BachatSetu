@@ -41,7 +41,7 @@ public class DrawJpaEntity extends BaseJpaEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_id", nullable = false)
-    private GroupJpaEntity group;
+    private SavingsGroupJpaEntity group;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -50,7 +50,7 @@ public class DrawJpaEntity extends BaseJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "selected_group_member_id")
-    private MemberJpaEntity selectedMember;
+    private GroupMemberJpaEntity selectedMember;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -86,8 +86,8 @@ public class DrawJpaEntity extends BaseJpaEntity {
     }
 
     public DrawJpaEntity(
-            UUID id, UUID tenantId, GroupJpaEntity group, MonthlyCycleJpaEntity cycle,
-            MemberJpaEntity selectedMember, DrawType type, DrawStatus status,
+            UUID id, UUID tenantId, SavingsGroupJpaEntity group, MonthlyCycleJpaEntity cycle,
+            GroupMemberJpaEntity selectedMember, DrawType type, DrawStatus status,
             Instant scheduledAt, Instant completedAt, long payoutAmountPaise,
             String currencyCode) {
         super(id);
@@ -104,9 +104,9 @@ public class DrawJpaEntity extends BaseJpaEntity {
     }
 
     public UUID getTenantId() { return tenantId; }
-    public GroupJpaEntity getGroup() { return group; }
+    public SavingsGroupJpaEntity getGroup() { return group; }
     public MonthlyCycleJpaEntity getCycle() { return cycle; }
-    public MemberJpaEntity getSelectedMember() { return selectedMember; }
+    public GroupMemberJpaEntity getSelectedMember() { return selectedMember; }
     public DrawType getType() { return type; }
     public DrawStatus getStatus() { return status; }
     public Instant getScheduledAt() { return scheduledAt; }

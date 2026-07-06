@@ -37,10 +37,23 @@ class LayerDependencyArchitectureTest {
     static final ArchRule GENERAL_INFRASTRUCTURE_MUST_NOT_DEPEND_ON_APPLICATION_OR_INTERFACES = noClasses()
             .that().resideInAnyPackage(ArchitecturePackages.INFRASTRUCTURE)
             .and().resideOutsideOfPackage(ArchitecturePackages.AUTH_INFRASTRUCTURE)
+            .and().doNotHaveSimpleName("SavingsGroupRepositoryAdapter")
             .should().dependOnClassesThat().resideInAnyPackage(
                     ArchitecturePackages.APPLICATION,
                     ArchitecturePackages.INTERFACES)
             .because("outbound adapters implement domain ports and are not use-case or delivery code");
+
+    @ArchTest
+    static final ArchRule SAVINGS_GROUP_ADAPTER_MAY_DEPEND_ONLY_ON_ITS_OWNED_PORT = classes()
+            .that().haveSimpleName("SavingsGroupRepositoryAdapter")
+            .should().onlyDependOnClassesThat().resideInAnyPackage(
+                    ArchitecturePackages.PERSISTENCE,
+                    ArchitecturePackages.GROUP_APPLICATION_PORT,
+                    "..group.domain..",
+                    "..shared..",
+                    "java..",
+                    "org.springframework..")
+            .because("the Savings Group persistence adapter implements its owned application output port");
 
     @ArchTest
     static final ArchRule AUTH_INFRASTRUCTURE_MAY_DEPEND_ONLY_ON_OWNED_PORTS_AND_DOMAIN = classes()

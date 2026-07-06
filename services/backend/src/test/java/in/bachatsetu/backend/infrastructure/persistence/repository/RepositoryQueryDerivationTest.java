@@ -5,10 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import in.bachatsetu.backend.infrastructure.persistence.entity.audit.AuditLogJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.AuctionBidJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.DrawJpaEntity;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupMemberJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.InstallmentJpaEntity;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.MemberJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.MonthlyCycleJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.SavingsGroupJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.PaymentJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.ReceiptJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.PermissionJpaEntity;
@@ -20,7 +20,6 @@ import in.bachatsetu.backend.infrastructure.persistence.entity.notification.Noti
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.AuctionBidSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.AuditLogSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.DrawSpringDataRepository;
-import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.GroupSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.InstallmentSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.MemberSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.MonthlyCycleSpringDataRepository;
@@ -31,6 +30,7 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.OtpVerifi
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.RefreshTokenSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.ReceiptSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.RoleSpringDataRepository;
+import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.SavingsGroupSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.UserSpringDataRepository;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -47,8 +47,8 @@ class RepositoryQueryDerivationTest {
                 model(PermissionSpringDataRepository.class, PermissionJpaEntity.class),
                 model(RefreshTokenSpringDataRepository.class, RefreshTokenJpaEntity.class),
                 model(OtpVerificationSpringDataRepository.class, OtpVerificationJpaEntity.class),
-                model(GroupSpringDataRepository.class, GroupJpaEntity.class),
-                model(MemberSpringDataRepository.class, MemberJpaEntity.class),
+                model(SavingsGroupSpringDataRepository.class, SavingsGroupJpaEntity.class),
+                model(MemberSpringDataRepository.class, GroupMemberJpaEntity.class),
                 model(MonthlyCycleSpringDataRepository.class, MonthlyCycleJpaEntity.class),
                 model(InstallmentSpringDataRepository.class, InstallmentJpaEntity.class),
                 model(PaymentSpringDataRepository.class, PaymentJpaEntity.class),
@@ -60,6 +60,9 @@ class RepositoryQueryDerivationTest {
 
         for (RepositoryModel repository : repositories) {
             for (Method method : repository.repositoryType().getDeclaredMethods()) {
+                if (method.isAnnotationPresent(org.springframework.data.jpa.repository.Query.class)) {
+                    continue;
+                }
                 assertThatCode(() -> new PartTree(method.getName(), repository.entityType()))
                         .as("%s.%s", repository.repositoryType().getSimpleName(), method.getName())
                         .doesNotThrowAnyException();

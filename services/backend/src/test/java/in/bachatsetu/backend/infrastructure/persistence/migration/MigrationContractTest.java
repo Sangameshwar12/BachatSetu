@@ -13,7 +13,7 @@ class MigrationContractTest {
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
 
     @Test
-    void containsOnlyTheFiveOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheSixOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
                     .containsExactly(
@@ -21,7 +21,8 @@ class MigrationContractTest {
                             "V2__seed_roles_permissions.sql",
                             "V3__identity_persistence.sql",
                             "V4__secure_otp_authentication.sql",
-                            "V5__refresh_token_security.sql");
+                            "V5__refresh_token_security.sql",
+                            "V6__savings_group_schema.sql");
         }
     }
 
@@ -63,7 +64,8 @@ class MigrationContractTest {
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V2__seed_roles_permissions.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V3__identity_persistence.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V4__secure_otp_authentication.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V5__refresh_token_security.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V5__refresh_token_security.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V6__savings_group_schema.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -130,6 +132,25 @@ class MigrationContractTest {
                 .contains("fk_refresh_tokens_replacement")
                 .doesNotContain("token_value")
                 .doesNotContain("plain_token");
+    }
+
+    @Test
+    void savingsGroupMigrationEvolvesCanonicalTablesAndAddsHistory() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V6__savings_group_schema.sql"));
+
+        assertThat(sql)
+                .contains("ALTER TABLE community.groups")
+                .contains("ADD COLUMN description TEXT")
+                .contains("CREATE TABLE community.membership_history")
+                .contains("status IN ('ACTIVE', 'INACTIVE', 'CLOSED', 'SUSPENDED')")
+                .contains("maximum_members BETWEEN minimum_members AND 500")
+                .contains("CREATE UNIQUE INDEX uk_groups_tenant_code")
+                .contains("WHERE is_deleted = FALSE")
+                .contains("ON DELETE RESTRICT")
+                .contains("version BIGINT NOT NULL DEFAULT 0")
+                .contains("ON CONFLICT (group_member_id, event_type) DO NOTHING")
+                .doesNotContain("CREATE TABLE community.groups")
+                .doesNotContain("CREATE TABLE community.group_members");
     }
 
     private int count(String source, String token) {

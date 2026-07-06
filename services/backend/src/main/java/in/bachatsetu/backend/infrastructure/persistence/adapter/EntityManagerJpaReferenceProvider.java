@@ -1,9 +1,9 @@
 package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.DrawJpaEntity;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupJpaEntity;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.MemberJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupMemberJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.MonthlyCycleJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.SavingsGroupJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.PaymentJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvider;
@@ -27,13 +27,13 @@ public class EntityManagerJpaReferenceProvider implements JpaReferenceProvider {
     }
 
     @Override
-    public GroupJpaEntity group(AggregateId id) {
-        return entityManager.getReference(GroupJpaEntity.class, id.value());
+    public SavingsGroupJpaEntity group(AggregateId id) {
+        return entityManager.getReference(SavingsGroupJpaEntity.class, id.value());
     }
 
     @Override
-    public MemberJpaEntity member(AggregateId id) {
-        return entityManager.getReference(MemberJpaEntity.class, id.value());
+    public GroupMemberJpaEntity member(AggregateId id) {
+        return entityManager.getReference(GroupMemberJpaEntity.class, id.value());
     }
 
     @Override

@@ -37,7 +37,7 @@ public class AuctionBidJpaEntity extends BaseJpaEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_id", nullable = false)
-    private GroupJpaEntity group;
+    private SavingsGroupJpaEntity group;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -47,7 +47,7 @@ public class AuctionBidJpaEntity extends BaseJpaEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_member_id", nullable = false)
-    private MemberJpaEntity member;
+    private GroupMemberJpaEntity member;
 
     @Positive
     @Column(name = "bid_amount_paise", nullable = false)
@@ -79,8 +79,8 @@ public class AuctionBidJpaEntity extends BaseJpaEntity {
     }
 
     public AuctionBidJpaEntity(
-            UUID id, UUID tenantId, GroupJpaEntity group, DrawJpaEntity draw,
-            MemberJpaEntity member, long bidAmountPaise, long discountAmountPaise,
+            UUID id, UUID tenantId, SavingsGroupJpaEntity group, DrawJpaEntity draw,
+            GroupMemberJpaEntity member, long bidAmountPaise, long discountAmountPaise,
             String currencyCode, Integer rank, BidStatus status, Instant submittedAt) {
         super(id);
         this.tenantId = tenantId;
@@ -96,9 +96,9 @@ public class AuctionBidJpaEntity extends BaseJpaEntity {
     }
 
     public UUID getTenantId() { return tenantId; }
-    public GroupJpaEntity getGroup() { return group; }
+    public SavingsGroupJpaEntity getGroup() { return group; }
     public DrawJpaEntity getDraw() { return draw; }
-    public MemberJpaEntity getMember() { return member; }
+    public GroupMemberJpaEntity getMember() { return member; }
     public long getBidAmountPaise() { return bidAmountPaise; }
     public long getDiscountAmountPaise() { return discountAmountPaise; }
     public String getCurrencyCode() { return currencyCode; }

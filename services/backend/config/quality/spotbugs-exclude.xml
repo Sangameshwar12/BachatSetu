@@ -13,6 +13,16 @@
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
     <Match>
+        <!-- Bidirectional JPA associations intentionally retain and expose managed entity references. -->
+        <Or>
+            <Class name="in.bachatsetu.backend.infrastructure.persistence.entity.community.AuctionBidJpaEntity"/>
+            <Class name="in.bachatsetu.backend.infrastructure.persistence.entity.community.DrawJpaEntity"/>
+            <Class name="in.bachatsetu.backend.infrastructure.persistence.entity.community.InstallmentJpaEntity"/>
+            <Class name="in.bachatsetu.backend.infrastructure.persistence.entity.community.MembershipHistoryJpaEntity"/>
+        </Or>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
         <!-- Aggregate constructors enforce invariants; domain aggregates do not implement finalizers. -->
         <Class name="in.bachatsetu.backend.shared.domain.BaseAggregateRoot"/>
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>

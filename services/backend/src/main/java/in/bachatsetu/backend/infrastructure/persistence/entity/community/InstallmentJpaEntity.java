@@ -35,7 +35,7 @@ public class InstallmentJpaEntity extends BaseJpaEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_id", nullable = false)
-    private GroupJpaEntity group;
+    private SavingsGroupJpaEntity group;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -45,7 +45,7 @@ public class InstallmentJpaEntity extends BaseJpaEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_member_id", nullable = false)
-    private MemberJpaEntity member;
+    private GroupMemberJpaEntity member;
 
     @PositiveOrZero
     @Column(name = "expected_amount_paise", nullable = false)
@@ -80,8 +80,8 @@ public class InstallmentJpaEntity extends BaseJpaEntity {
     }
 
     public InstallmentJpaEntity(
-            UUID id, UUID tenantId, GroupJpaEntity group, MonthlyCycleJpaEntity cycle,
-            MemberJpaEntity member, long expectedAmountPaise, long paidAmountPaise,
+            UUID id, UUID tenantId, SavingsGroupJpaEntity group, MonthlyCycleJpaEntity cycle,
+            GroupMemberJpaEntity member, long expectedAmountPaise, long paidAmountPaise,
             long penaltyAmountPaise, String currencyCode, LocalDate dueDate,
             InstallmentStatus status, Instant paidAt) {
         super(id);
@@ -99,9 +99,9 @@ public class InstallmentJpaEntity extends BaseJpaEntity {
     }
 
     public UUID getTenantId() { return tenantId; }
-    public GroupJpaEntity getGroup() { return group; }
+    public SavingsGroupJpaEntity getGroup() { return group; }
     public MonthlyCycleJpaEntity getCycle() { return cycle; }
-    public MemberJpaEntity getMember() { return member; }
+    public GroupMemberJpaEntity getMember() { return member; }
     public long getExpectedAmountPaise() { return expectedAmountPaise; }
     public long getPaidAmountPaise() { return paidAmountPaise; }
     public long getPenaltyAmountPaise() { return penaltyAmountPaise; }

@@ -1,7 +1,7 @@
 package in.bachatsetu.backend.infrastructure.persistence.entity.finance;
 
 import in.bachatsetu.backend.infrastructure.persistence.entity.BaseJpaEntity;
-import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.community.SavingsGroupJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
 import in.bachatsetu.backend.payment.domain.model.PaymentMethod;
 import in.bachatsetu.backend.payment.domain.model.PaymentStatus;
@@ -47,7 +47,7 @@ public class PaymentJpaEntity extends BaseJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
-    private GroupJpaEntity group;
+    private SavingsGroupJpaEntity group;
 
     @NotBlank
     @Size(max = 40)
@@ -98,7 +98,7 @@ public class PaymentJpaEntity extends BaseJpaEntity {
     }
 
     public PaymentJpaEntity(
-            UUID id, UUID tenantId, UserJpaEntity payer, GroupJpaEntity group,
+            UUID id, UUID tenantId, UserJpaEntity payer, SavingsGroupJpaEntity group,
             String reference, long amountPaise, String currencyCode,
             PaymentMethod method, PaymentStatus status, String idempotencyKeyHash,
             String providerName, String providerPaymentReference,
@@ -120,7 +120,7 @@ public class PaymentJpaEntity extends BaseJpaEntity {
 
     public UUID getTenantId() { return tenantId; }
     public UserJpaEntity getPayer() { return payer; }
-    public GroupJpaEntity getGroup() { return group; }
+    public SavingsGroupJpaEntity getGroup() { return group; }
     public String getReference() { return reference; }
     public long getAmountPaise() { return amountPaise; }
     public String getCurrencyCode() { return currencyCode; }

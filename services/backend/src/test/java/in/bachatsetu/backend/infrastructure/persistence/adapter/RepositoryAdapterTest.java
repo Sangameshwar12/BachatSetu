@@ -32,7 +32,9 @@ class RepositoryAdapterTest {
         assertThat(in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository.class)
                 .isAssignableFrom(OtpVerificationRepositoryAdapter.class);
         assertThat(UserRepository.class).isAssignableFrom(UserRepositoryAdapter.class);
-        assertThat(GroupRepository.class).isAssignableFrom(GroupRepositoryAdapter.class);
+        assertThat(GroupRepository.class).isAssignableFrom(SavingsGroupRepositoryAdapter.class);
+        assertThat(in.bachatsetu.backend.group.application.port.SavingsGroupRepository.class)
+                .isAssignableFrom(SavingsGroupRepositoryAdapter.class);
         assertThat(MemberRepository.class).isAssignableFrom(MemberRepositoryAdapter.class);
         assertThat(PaymentRepository.class).isAssignableFrom(PaymentRepositoryAdapter.class);
         assertThat(ReceiptRepository.class).isAssignableFrom(ReceiptRepositoryAdapter.class);
@@ -49,7 +51,7 @@ class RepositoryAdapterTest {
                 RefreshTokenRepositoryAdapter.class,
                 OtpVerificationRepositoryAdapter.class,
                 UserRepositoryAdapter.class,
-                GroupRepositoryAdapter.class,
+                SavingsGroupRepositoryAdapter.class,
                 MemberRepositoryAdapter.class,
                 PaymentRepositoryAdapter.class,
                 ReceiptRepositoryAdapter.class,
@@ -85,7 +87,7 @@ class RepositoryAdapterTest {
             case "RefreshTokenRepositoryAdapter" -> in.bachatsetu.backend.auth.domain.model.RefreshToken.class;
             case "OtpVerificationRepositoryAdapter" -> in.bachatsetu.backend.auth.domain.model.OtpVerification.class;
             case "UserRepositoryAdapter" -> in.bachatsetu.backend.user.domain.model.UserProfile.class;
-            case "GroupRepositoryAdapter" -> in.bachatsetu.backend.group.domain.model.SavingsGroup.class;
+            case "SavingsGroupRepositoryAdapter" -> in.bachatsetu.backend.group.domain.model.SavingsGroup.class;
             case "MemberRepositoryAdapter" -> in.bachatsetu.backend.member.domain.model.MemberProfile.class;
             case "PaymentRepositoryAdapter" -> in.bachatsetu.backend.payment.domain.model.Payment.class;
             case "ReceiptRepositoryAdapter" -> in.bachatsetu.backend.receipt.domain.model.Receipt.class;
