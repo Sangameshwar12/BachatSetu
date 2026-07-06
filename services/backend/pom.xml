@@ -297,6 +297,7 @@
                         <include>in/bachatsetu/backend/shared/domain/BaseAggregateRoot*</include>
                         <include>in/bachatsetu/backend/shared/domain/Money*</include>
                         <include>in/bachatsetu/backend/group/domain/model/SavingsGroup*</include>
+                        <include>in/bachatsetu/backend/group/application/**</include>
                         <include>in/bachatsetu/backend/payment/domain/model/Payment*</include>
                         <include>in/bachatsetu/backend/draw/domain/model/Draw*</include>
                         <include>in/bachatsetu/backend/draw/domain/model/AuctionBid*</include>
@@ -349,6 +350,7 @@
                                         <include>in.bachatsetu.backend.auth.interfaces.*</include>
                                         <include>in.bachatsetu.backend.configuration.auth.*</include>
                                         <include>in.bachatsetu.backend.security.*</include>
+                                        <include>in.bachatsetu.backend.group.application.*</include>
                                     </includes>
                                     <limits>
                                         <limit>
