@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
             "bachatsetu.persistence.repositories.enabled=false",
             "bachatsetu.authentication.rest.enabled=false",
             "bachatsetu.group.rest.enabled=false",
+            "bachatsetu.member.rest.enabled=false",
             "spring.autoconfigure.exclude="
                     + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"

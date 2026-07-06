@@ -39,6 +39,12 @@ public class MemberRepositoryAdapter implements MemberRepository {
     }
 
     @Override
+    public Optional<MemberProfile> findById(AggregateId tenantId, AggregateId memberId) {
+        return repository.findByTenantIdAndIdAndDeletedFalse(tenantId.value(), memberId.value())
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<MemberProfile> findByUserId(AggregateId tenantId, AggregateId userId) {
         List<GroupMemberJpaEntity> rows = repository
                 .findAllByTenantIdAndUser_IdAndDeletedFalseOrderByJoinedAtAsc(tenantId.value(), userId.value());

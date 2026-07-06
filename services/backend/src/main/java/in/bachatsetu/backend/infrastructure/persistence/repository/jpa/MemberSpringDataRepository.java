@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public interface MemberSpringDataRepository extends BaseJpaRepository<GroupMemberJpaEntity> {
 
+    Optional<GroupMemberJpaEntity> findByTenantIdAndIdAndDeletedFalse(UUID tenantId, UUID id);
+
     List<GroupMemberJpaEntity> findAllByTenantIdAndUser_IdAndDeletedFalseOrderByJoinedAtAsc(
             UUID tenantId, UUID userId);
 

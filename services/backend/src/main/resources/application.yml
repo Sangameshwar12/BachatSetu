@@ -113,3 +113,6 @@ bachatsetu:
   group:
     rest:
       enabled: ${GROUP_REST_ENABLED:true}
+  member:
+    rest:
+      enabled: ${MEMBER_REST_ENABLED:true}
