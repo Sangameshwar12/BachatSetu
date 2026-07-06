@@ -22,8 +22,12 @@ import in.bachatsetu.backend.group.application.exception.DuplicateGroupCodeExcep
 import in.bachatsetu.backend.group.application.exception.GroupAccessDeniedException;
 import in.bachatsetu.backend.group.application.exception.SavingsGroupNotFoundException;
 import in.bachatsetu.backend.group.application.query.GroupMemberResult;
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
+import in.bachatsetu.backend.group.application.port.GroupSortField;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
+import in.bachatsetu.backend.group.application.port.SortDirection;
 import in.bachatsetu.backend.group.application.usecase.ActivateGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.CloseGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.CreateSavingsGroupUseCase;
@@ -35,6 +39,7 @@ import in.bachatsetu.backend.group.application.usecase.SuspendGroupUseCase;
 import in.bachatsetu.backend.group.domain.exception.DuplicateMemberException;
 import in.bachatsetu.backend.group.domain.exception.InvalidGroupStateException;
 import in.bachatsetu.backend.group.domain.exception.OwnerRemovalNotAllowedException;
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.group.interfaces.rest.exception.SavingsGroupExceptionHandler;
 import in.bachatsetu.backend.group.interfaces.rest.mapper.SavingsGroupApiMapper;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -177,7 +182,10 @@ class SavingsGroupControllerTest {
     @Test
     void listsSavingsGroupsWithDefaultPagination() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
-        when(listSavingsGroups.execute(TENANT_ID)).thenReturn(List.of(summary(), summary()));
+        GroupPageRequest expectedRequest = new GroupPageRequest(
+                0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
+        when(listSavingsGroups.execute(TENANT_ID, expectedRequest))
+                .thenReturn(new GroupPage<>(List.of(summary(), summary()), 0, 20, 2));
 
         mockMvc.perform(get("/api/v1/groups"))
                 .andExpect(status().isOk())
@@ -186,20 +194,58 @@ class SavingsGroupControllerTest {
                 .andExpect(jsonPath("$.size").value(20))
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.hasNext").value(false))
+                .andExpect(jsonPath("$.hasPrevious").value(false));
     }
 
     @Test
     void listsSavingsGroupsWithExplicitPagination() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
-        when(listSavingsGroups.execute(TENANT_ID)).thenReturn(List.of(summary(), summary(), summary()));
+        GroupPageRequest expectedRequest = new GroupPageRequest(
+                0, 2, GroupSortField.CREATED_AT, SortDirection.ASC, null);
+        when(listSavingsGroups.execute(TENANT_ID, expectedRequest))
+                .thenReturn(new GroupPage<>(List.of(summary(), summary()), 0, 2, 3));
 
         mockMvc.perform(get("/api/v1/groups").param("page", "0").param("size", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.totalElements").value(3))
                 .andExpect(jsonPath("$.totalPages").value(2))
-                .andExpect(jsonPath("$.hasNext").value(true));
+                .andExpect(jsonPath("$.hasNext").value(true))
+                .andExpect(jsonPath("$.hasPrevious").value(false));
+    }
+
+    @Test
+    void listsSavingsGroupsWithSortDirectionAndStatusFilter() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        GroupPageRequest expectedRequest = new GroupPageRequest(
+                0, 20, GroupSortField.NAME, SortDirection.DESC, GroupStatus.ACTIVE);
+        when(listSavingsGroups.execute(TENANT_ID, expectedRequest))
+                .thenReturn(new GroupPage<>(List.of(summary()), 0, 20, 1));
+
+        mockMvc.perform(get("/api/v1/groups")
+                        .param("sort", "name")
+                        .param("direction", "desc")
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
+    }
+
+    @Test
+    void rejectsInvalidSortAndStatusParameters() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+
+        mockMvc.perform(get("/api/v1/groups").param("sort", "unknown"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("validation-error"));
+
+        mockMvc.perform(get("/api/v1/groups").param("direction", "sideways"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("validation-error"));
+
+        mockMvc.perform(get("/api/v1/groups").param("status", "BOGUS"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("validation-error"));
     }
 
     @Test

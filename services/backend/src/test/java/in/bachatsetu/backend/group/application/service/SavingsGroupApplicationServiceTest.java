@@ -28,8 +28,12 @@ import in.bachatsetu.backend.group.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.group.application.port.GroupCodeGeneratorPort;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import in.bachatsetu.backend.group.application.port.TransactionPort;
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
+import in.bachatsetu.backend.group.application.port.GroupSortField;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
+import in.bachatsetu.backend.group.application.port.SortDirection;
 import in.bachatsetu.backend.group.application.security.GroupAuthorizationService;
 import in.bachatsetu.backend.group.application.usecase.ActivateGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.CloseGroupUseCase;
@@ -245,19 +249,37 @@ class SavingsGroupApplicationServiceTest {
         SavingsGroup first = newGroup(5);
         SavingsGroup second = newGroup(7);
         AggregateId tenantId = first.tenantId();
+        GroupPageRequest pageRequest = new GroupPageRequest(0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
         when(repository.findById(tenantId, first.groupId())).thenReturn(Optional.of(first));
-        when(repository.findAll(tenantId)).thenReturn(List.of(first, second));
+        when(repository.findPage(tenantId, pageRequest))
+                .thenReturn(new GroupPage<>(List.of(first, second), 0, 20, 2));
         GetSavingsGroupUseCase getService = new GetSavingsGroupApplicationService(repository, transaction, mapper);
         ListSavingsGroupsUseCase listService = new ListSavingsGroupsApplicationService(repository, transaction, mapper);
 
         SavingsGroupResult result = getService.execute(tenantId, first.groupId());
-        List<SavingsGroupSummary> summaries = listService.execute(tenantId);
+        GroupPage<SavingsGroupSummary> page = listService.execute(tenantId, pageRequest);
 
         assertThat(result.groupId()).isEqualTo(first.id().value());
-        assertThat(summaries).hasSize(2).extracting(SavingsGroupSummary::maximumMembers)
+        assertThat(page.content()).hasSize(2).extracting(SavingsGroupSummary::maximumMembers)
                 .containsExactly(5, 7);
-        assertThatThrownBy(() -> summaries.add(mapper.toSummary(first)))
+        assertThat(page.totalElements()).isEqualTo(2);
+        assertThatThrownBy(() -> page.content().add(mapper.toSummary(first)))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void listsGroupsFilteredByStatus() {
+        SavingsGroup active = activeGroup();
+        AggregateId tenantId = active.tenantId();
+        GroupPageRequest activeOnly = new GroupPageRequest(
+                0, 20, GroupSortField.NAME, SortDirection.DESC, GroupStatus.ACTIVE);
+        when(repository.findPage(tenantId, activeOnly)).thenReturn(new GroupPage<>(List.of(active), 0, 20, 1));
+        ListSavingsGroupsUseCase listService = new ListSavingsGroupsApplicationService(repository, transaction, mapper);
+
+        GroupPage<SavingsGroupSummary> page = listService.execute(tenantId, activeOnly);
+
+        assertThat(page.content()).singleElement()
+                .satisfies(summary -> assertThat(summary.status()).isEqualTo(GroupStatus.ACTIVE.name()));
     }
 
     @Test
@@ -326,8 +348,13 @@ class SavingsGroupApplicationServiceTest {
         assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, mapper)
                         .execute(AggregateId.newId(), null))
                 .isInstanceOf(NullPointerException.class);
+        GroupPageRequest defaultPageRequest = new GroupPageRequest(
+                0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
         assertThatThrownBy(() -> new ListSavingsGroupsApplicationService(repository, transaction, mapper)
-                        .execute(null))
+                        .execute(null, defaultPageRequest))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ListSavingsGroupsApplicationService(repository, transaction, mapper)
+                        .execute(AggregateId.newId(), null))
                 .isInstanceOf(NullPointerException.class);
     }
 

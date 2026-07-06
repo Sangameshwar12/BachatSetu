@@ -1,12 +1,13 @@
 package in.bachatsetu.backend.group.application.usecase;
 
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
 import in.bachatsetu.backend.shared.domain.AggregateId;
-import java.util.List;
 
-/** Lists compact savings group views within a tenant. */
+/** Lists compact savings group views within a tenant, paginated at the persistence boundary. */
 @FunctionalInterface
 public interface ListSavingsGroupsUseCase {
 
-    List<SavingsGroupSummary> execute(AggregateId tenantId);
+    GroupPage<SavingsGroupSummary> execute(AggregateId tenantId, GroupPageRequest pageRequest);
 }

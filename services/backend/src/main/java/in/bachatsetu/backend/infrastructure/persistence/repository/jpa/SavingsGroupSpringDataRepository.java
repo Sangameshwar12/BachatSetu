@@ -1,11 +1,13 @@
 package in.bachatsetu.backend.infrastructure.persistence.repository.jpa;
 
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.SavingsGroupJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.repository.BaseJpaRepository;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -27,7 +29,16 @@ public interface SavingsGroupSpringDataRepository extends BaseJpaRepository<Savi
     boolean existsByTenantIdAndCodeAndDeletedFalse(UUID tenantId, String code);
 
     @EntityGraph(attributePaths = {"organizer", "members", "members.user"})
-    List<SavingsGroupJpaEntity> findDistinctByTenantIdAndDeletedFalseOrderByCreatedAtAsc(UUID tenantId);
+    @Query("""
+            SELECT groupEntity FROM SavingsGroupJpaEntity groupEntity
+             WHERE groupEntity.tenantId = :tenantId
+               AND groupEntity.deleted = false
+               AND (:status IS NULL OR groupEntity.status = :status)
+            """)
+    Page<SavingsGroupJpaEntity> findPageByTenantIdAndOptionalStatus(
+            @Param("tenantId") UUID tenantId,
+            @Param("status") GroupStatus status,
+            Pageable pageable);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

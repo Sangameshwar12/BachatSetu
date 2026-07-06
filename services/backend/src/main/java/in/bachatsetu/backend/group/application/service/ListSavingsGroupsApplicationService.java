@@ -3,13 +3,16 @@ package in.bachatsetu.backend.group.application.service;
 import in.bachatsetu.backend.group.application.mapper.SavingsGroupApplicationMapper;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import in.bachatsetu.backend.group.application.port.TransactionPort;
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
 import in.bachatsetu.backend.group.application.usecase.ListSavingsGroupsUseCase;
+import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.util.List;
 import java.util.Objects;
 
-/** Lists tenant-scoped groups as compact immutable query models. */
+/** Lists tenant-scoped groups as compact immutable query models, paginated by the repository. */
 public final class ListSavingsGroupsApplicationService implements ListSavingsGroupsUseCase {
 
     private final SavingsGroupRepository repository;
@@ -26,10 +29,13 @@ public final class ListSavingsGroupsApplicationService implements ListSavingsGro
     }
 
     @Override
-    public List<SavingsGroupSummary> execute(AggregateId tenantId) {
+    public GroupPage<SavingsGroupSummary> execute(AggregateId tenantId, GroupPageRequest pageRequest) {
         Objects.requireNonNull(tenantId, "tenant id must not be null");
-        return transaction.execute(() -> repository.findAll(tenantId).stream()
-                .map(mapper::toSummary)
-                .toList());
+        Objects.requireNonNull(pageRequest, "page request must not be null");
+        return transaction.execute(() -> {
+            GroupPage<SavingsGroup> page = repository.findPage(tenantId, pageRequest);
+            List<SavingsGroupSummary> summaries = page.content().stream().map(mapper::toSummary).toList();
+            return new GroupPage<>(summaries, page.page(), page.size(), page.totalElements());
+        });
     }
 }

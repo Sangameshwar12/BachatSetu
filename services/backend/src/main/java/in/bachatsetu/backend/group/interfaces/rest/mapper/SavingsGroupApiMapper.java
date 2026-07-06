@@ -8,8 +8,12 @@ import in.bachatsetu.backend.group.application.command.JoinGroupCommand;
 import in.bachatsetu.backend.group.application.command.RemoveMemberCommand;
 import in.bachatsetu.backend.group.application.command.SuspendGroupCommand;
 import in.bachatsetu.backend.group.application.query.GroupMemberResult;
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
+import in.bachatsetu.backend.group.application.port.GroupSortField;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
+import in.bachatsetu.backend.group.application.port.SortDirection;
 import in.bachatsetu.backend.group.application.usecase.GetSavingsGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.ListSavingsGroupsUseCase;
 import in.bachatsetu.backend.group.domain.model.ContributionFrequency;
@@ -18,6 +22,7 @@ import in.bachatsetu.backend.group.domain.model.GroupDescription;
 import in.bachatsetu.backend.group.domain.model.GroupId;
 import in.bachatsetu.backend.group.domain.model.GroupName;
 import in.bachatsetu.backend.group.domain.model.GroupRule;
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.group.domain.model.GroupType;
 import in.bachatsetu.backend.group.domain.model.MemberCapacity;
 import in.bachatsetu.backend.group.domain.model.OwnerId;
@@ -84,10 +89,23 @@ public class SavingsGroupApiMapper {
         return useCase.execute(currentUser.tenantId(), GroupId.from(groupId));
     }
 
-    public List<SavingsGroupSummary> listGroups(ListSavingsGroupsUseCase useCase, AuthenticatedUser currentUser) {
+    public GroupPage<SavingsGroupSummary> listGroups(
+            ListSavingsGroupsUseCase useCase,
+            AuthenticatedUser currentUser,
+            GroupPageRequest pageRequest) {
         Objects.requireNonNull(useCase, "use case must not be null");
         Objects.requireNonNull(currentUser, "current user must not be null");
-        return useCase.execute(currentUser.tenantId());
+        Objects.requireNonNull(pageRequest, "page request must not be null");
+        return useCase.execute(currentUser.tenantId(), pageRequest);
+    }
+
+    public GroupPageRequest toPageRequest(int page, int size, String sort, String direction, String status) {
+        return new GroupPageRequest(
+                page,
+                size,
+                toSortField(sort),
+                toSortDirection(direction),
+                status == null ? null : GroupStatus.valueOf(status));
     }
 
     public ActivateGroupCommand toActivateCommand(String groupId, AuthenticatedUser currentUser) {
@@ -168,19 +186,30 @@ public class SavingsGroupApiMapper {
                 summary.activeMemberCount());
     }
 
-    public PageResponse<SavingsGroupSummaryResponse> toSummaryPage(
-            List<SavingsGroupSummary> summaries,
-            int page,
-            int size) {
-        Objects.requireNonNull(summaries, "summaries must not be null");
-        int totalElements = summaries.size();
-        int totalPages = totalElements == 0 ? 0 : (totalElements + size - 1) / size;
-        int fromIndex = Math.min(page * size, totalElements);
-        int toIndex = Math.min(fromIndex + size, totalElements);
-        List<SavingsGroupSummaryResponse> content = summaries.subList(fromIndex, toIndex).stream()
+    public PageResponse<SavingsGroupSummaryResponse> toSummaryPage(GroupPage<SavingsGroupSummary> page) {
+        Objects.requireNonNull(page, "page must not be null");
+        List<SavingsGroupSummaryResponse> content = page.content().stream()
                 .map(this::toSummaryResponse)
                 .toList();
-        return new PageResponse<>(content, page, size, totalElements, totalPages, toIndex < totalElements);
+        return new PageResponse<>(
+                content, page.page(), page.size(), page.totalElements(), page.totalPages(),
+                page.hasNext(), page.hasPrevious());
+    }
+
+    private GroupSortField toSortField(String sort) {
+        return switch (sort) {
+            case "name" -> GroupSortField.NAME;
+            case "createdAt" -> GroupSortField.CREATED_AT;
+            default -> throw new IllegalArgumentException("unsupported sort field: " + sort);
+        };
+    }
+
+    private SortDirection toSortDirection(String direction) {
+        return switch (direction) {
+            case "asc" -> SortDirection.ASC;
+            case "desc" -> SortDirection.DESC;
+            default -> throw new IllegalArgumentException("unsupported sort direction: " + direction);
+        };
     }
 
     private GroupRule toRule(GroupRuleRequest request) {

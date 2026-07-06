@@ -1,12 +1,25 @@
 package in.bachatsetu.backend.infrastructure.persistence.integration;
 
 import static in.bachatsetu.backend.group.domain.GroupDomainFixtures.NOW;
+import static in.bachatsetu.backend.group.domain.GroupDomainFixtures.monthlyRule;
 import static in.bachatsetu.backend.group.domain.GroupDomainFixtures.newGroup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import in.bachatsetu.backend.BachatSetuBackendApplication;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
+import in.bachatsetu.backend.group.application.port.GroupSortField;
+import in.bachatsetu.backend.group.application.port.SortDirection;
+import in.bachatsetu.backend.group.domain.model.CreatedAt;
+import in.bachatsetu.backend.group.domain.model.GroupCode;
+import in.bachatsetu.backend.group.domain.model.GroupDescription;
+import in.bachatsetu.backend.group.domain.model.GroupId;
+import in.bachatsetu.backend.group.domain.model.GroupName;
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
+import in.bachatsetu.backend.group.domain.model.GroupType;
+import in.bachatsetu.backend.group.domain.model.OwnerId;
 import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.infrastructure.persistence.audit.CurrentAuditorProvider;
 import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
@@ -15,6 +28,8 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.UserSprin
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.user.domain.model.PreferredLanguage;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -84,7 +99,9 @@ class SavingsGroupPersistencePostgreSqlIntegrationTest extends PostgreSqlIntegra
         SavingsGroup withMember = repository.findByGroupCode(group.tenantId(), group.code()).orElseThrow();
         assertThat(withMember.memberCount().value()).isEqualTo(2);
         assertThat(repository.existsByGroupCode(group.tenantId(), group.code())).isTrue();
-        assertThat(repository.findAll(group.tenantId())).extracting(SavingsGroup::groupId)
+        GroupPageRequest defaultPage = new GroupPageRequest(0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
+        assertThat(repository.findPage(group.tenantId(), defaultPage).content())
+                .extracting(SavingsGroup::groupId)
                 .contains(group.groupId());
         assertThat(historyCount(group.id().value())).isEqualTo(2);
 
@@ -125,6 +142,65 @@ class SavingsGroupPersistencePostgreSqlIntegrationTest extends PostgreSqlIntegra
         assertThatThrownBy(() -> repository.save(stale))
                 .isInstanceOf(PersistenceConflictException.class)
                 .hasMessageContaining("stale");
+    }
+
+    @Test
+    @Transactional
+    void paginatesSortsAndFiltersAtTheDatabase() {
+        AggregateId ownerId = AggregateId.newId();
+        AggregateId tenantId = AggregateId.newId();
+        persistUser(ownerId, tenantId, "sorted-owner@example.in");
+        SavingsGroup alpha = namedGroup(tenantId, ownerId, "Alpha Circle", NOW);
+        SavingsGroup beta = namedGroup(tenantId, ownerId, "Beta Circle", NOW.plusSeconds(1));
+        SavingsGroup gamma = namedGroup(tenantId, ownerId, "Gamma Circle", NOW.plusSeconds(2));
+        repository.save(alpha);
+        repository.save(beta);
+        repository.save(gamma);
+        flushAndClear();
+        SavingsGroup activeBeta = repository.findById(tenantId, beta.groupId()).orElseThrow();
+        activeBeta.activate(ownerId, NOW.plusSeconds(3));
+        repository.save(activeBeta);
+        flushAndClear();
+
+        GroupPage<SavingsGroup> byNameAscending = repository.findPage(
+                tenantId, new GroupPageRequest(0, 2, GroupSortField.NAME, SortDirection.ASC, null));
+        assertThat(byNameAscending.content()).extracting(group -> group.name().value())
+                .containsExactly("Alpha Circle", "Beta Circle");
+        assertThat(byNameAscending.totalElements()).isEqualTo(3);
+        assertThat(byNameAscending.hasNext()).isTrue();
+        assertThat(byNameAscending.hasPrevious()).isFalse();
+
+        GroupPage<SavingsGroup> secondPage = repository.findPage(
+                tenantId, new GroupPageRequest(1, 2, GroupSortField.NAME, SortDirection.ASC, null));
+        assertThat(secondPage.content()).extracting(group -> group.name().value())
+                .containsExactly("Gamma Circle");
+        assertThat(secondPage.hasNext()).isFalse();
+        assertThat(secondPage.hasPrevious()).isTrue();
+
+        GroupPage<SavingsGroup> byCreatedAtDescending = repository.findPage(
+                tenantId, new GroupPageRequest(0, 10, GroupSortField.CREATED_AT, SortDirection.DESC, null));
+        assertThat(byCreatedAtDescending.content()).extracting(group -> group.name().value())
+                .containsExactly("Gamma Circle", "Beta Circle", "Alpha Circle");
+
+        GroupPage<SavingsGroup> activeOnly = repository.findPage(
+                tenantId, new GroupPageRequest(0, 10, GroupSortField.NAME, SortDirection.ASC, GroupStatus.ACTIVE));
+        assertThat(activeOnly.content()).extracting(group -> group.name().value())
+                .containsExactly("Beta Circle");
+        assertThat(activeOnly.totalElements()).isEqualTo(1);
+    }
+
+    private SavingsGroup namedGroup(AggregateId tenantId, AggregateId ownerId, String name, Instant createdAt) {
+        String code = "BS-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase(Locale.ROOT);
+        return SavingsGroup.create(
+                GroupId.newId(),
+                tenantId,
+                new OwnerId(ownerId),
+                new GroupCode(code),
+                new GroupName(name),
+                GroupDescription.empty(),
+                GroupType.BHISHI,
+                monthlyRule(5),
+                new CreatedAt(createdAt));
     }
 
     private void persistUser(AggregateId userId, AggregateId tenantId, String email) {

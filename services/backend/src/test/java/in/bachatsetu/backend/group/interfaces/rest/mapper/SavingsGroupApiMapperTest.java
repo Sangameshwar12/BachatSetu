@@ -1,6 +1,7 @@
 package in.bachatsetu.backend.group.interfaces.rest.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import in.bachatsetu.backend.auth.application.security.AuthenticatedUser;
@@ -11,11 +12,16 @@ import in.bachatsetu.backend.group.application.command.CreateSavingsGroupCommand
 import in.bachatsetu.backend.group.application.command.JoinGroupCommand;
 import in.bachatsetu.backend.group.application.command.RemoveMemberCommand;
 import in.bachatsetu.backend.group.application.query.GroupMemberResult;
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
+import in.bachatsetu.backend.group.application.port.GroupSortField;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
+import in.bachatsetu.backend.group.application.port.SortDirection;
 import in.bachatsetu.backend.group.application.usecase.GetSavingsGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.ListSavingsGroupsUseCase;
 import in.bachatsetu.backend.group.domain.model.GroupId;
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.group.interfaces.rest.dto.AddGroupMemberRequest;
 import in.bachatsetu.backend.group.interfaces.rest.dto.ContributionScheduleRequest;
 import in.bachatsetu.backend.group.interfaces.rest.dto.CreateSavingsGroupRequest;
@@ -205,15 +211,17 @@ class SavingsGroupApiMapperTest {
     }
 
     @Test
-    void listGroupsDelegatesToUseCaseWithTenantIdentity() {
+    void listGroupsDelegatesToUseCaseWithTenantIdentityAndPageRequest() {
         AuthenticatedUser currentUser = authenticatedUser();
-        List<SavingsGroupSummary> expected = List.of(summary());
-        ListSavingsGroupsUseCase useCase = tenantId -> {
+        GroupPageRequest pageRequest = new GroupPageRequest(0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
+        GroupPage<SavingsGroupSummary> expected = new GroupPage<>(List.of(summary()), 0, 20, 1);
+        ListSavingsGroupsUseCase useCase = (tenantId, request) -> {
             assertThat(tenantId).isEqualTo(currentUser.tenantId());
+            assertThat(request).isEqualTo(pageRequest);
             return expected;
         };
 
-        assertThat(mapper.listGroups(useCase, currentUser)).isEqualTo(expected);
+        assertThat(mapper.listGroups(useCase, currentUser, pageRequest)).isEqualTo(expected);
     }
 
     @Test
@@ -228,38 +236,44 @@ class SavingsGroupApiMapperTest {
     }
 
     @Test
-    void paginatesSummariesAcrossPageBoundaries() {
-        List<SavingsGroupSummary> summaries = List.of(summary(), summary(), summary());
+    void mapsGroupPageToPageResponse() {
+        GroupPage<SavingsGroupSummary> page = new GroupPage<>(List.of(summary(), summary()), 0, 2, 3);
 
-        PageResponse<SavingsGroupSummaryResponse> firstPage = mapper.toSummaryPage(summaries, 0, 2);
-        assertThat(firstPage.content()).hasSize(2);
-        assertThat(firstPage.totalElements()).isEqualTo(3);
-        assertThat(firstPage.totalPages()).isEqualTo(2);
-        assertThat(firstPage.hasNext()).isTrue();
+        PageResponse<SavingsGroupSummaryResponse> response = mapper.toSummaryPage(page);
 
-        PageResponse<SavingsGroupSummaryResponse> secondPage = mapper.toSummaryPage(summaries, 1, 2);
-        assertThat(secondPage.content()).hasSize(1);
-        assertThat(secondPage.hasNext()).isFalse();
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.page()).isZero();
+        assertThat(response.size()).isEqualTo(2);
+        assertThat(response.totalElements()).isEqualTo(3);
+        assertThat(response.totalPages()).isEqualTo(2);
+        assertThat(response.hasNext()).isTrue();
+        assertThat(response.hasPrevious()).isFalse();
     }
 
     @Test
-    void paginatesEmptySummaryList() {
-        PageResponse<SavingsGroupSummaryResponse> page = mapper.toSummaryPage(List.of(), 0, 20);
+    void buildsPageRequestFromValidatedRestParameters() {
+        GroupPageRequest pageRequest = mapper.toPageRequest(1, 10, "name", "desc", "ACTIVE");
 
-        assertThat(page.content()).isEmpty();
-        assertThat(page.totalElements()).isZero();
-        assertThat(page.totalPages()).isZero();
-        assertThat(page.hasNext()).isFalse();
+        assertThat(pageRequest.page()).isEqualTo(1);
+        assertThat(pageRequest.size()).isEqualTo(10);
+        assertThat(pageRequest.sortField()).isEqualTo(GroupSortField.NAME);
+        assertThat(pageRequest.direction()).isEqualTo(SortDirection.DESC);
+        assertThat(pageRequest.statusFilter()).isEqualTo(GroupStatus.ACTIVE);
     }
 
     @Test
-    void returnsEmptyContentForPageBeyondAvailableData() {
-        List<SavingsGroupSummary> summaries = List.of(summary());
+    void buildsPageRequestWithoutStatusFilterWhenAbsent() {
+        GroupPageRequest pageRequest = mapper.toPageRequest(0, 20, "createdAt", "asc", null);
 
-        PageResponse<SavingsGroupSummaryResponse> page = mapper.toSummaryPage(summaries, 5, 20);
+        assertThat(pageRequest.statusFilter()).isNull();
+    }
 
-        assertThat(page.content()).isEmpty();
-        assertThat(page.hasNext()).isFalse();
+    @Test
+    void rejectsUnsupportedSortOrDirectionValues() {
+        assertThatThrownBy(() -> mapper.toPageRequest(0, 20, "unsupported", "asc", null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> mapper.toPageRequest(0, 20, "name", "sideways", null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private AuthenticatedUser authenticatedUser() {

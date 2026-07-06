@@ -10,8 +10,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
+import in.bachatsetu.backend.group.application.port.GroupSortField;
+import in.bachatsetu.backend.group.application.port.SortDirection;
 import in.bachatsetu.backend.group.domain.model.GroupCode;
 import in.bachatsetu.backend.group.domain.model.GroupId;
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.SavingsGroupJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.exception.PersistenceConflictException;
@@ -24,6 +29,9 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 class SavingsGroupRepositoryAdapterTest {
 
@@ -90,15 +98,42 @@ class SavingsGroupRepositoryAdapterTest {
                 .thenReturn(Optional.of(entity));
         when(repository.existsByTenantIdAndCodeAndDeletedFalse(tenantId.value(), code.value()))
                 .thenReturn(true);
-        when(repository.findDistinctByTenantIdAndDeletedFalseOrderByCreatedAtAsc(tenantId.value()))
-                .thenReturn(List.of(entity));
+        GroupPageRequest pageRequest = new GroupPageRequest(0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
+        when(repository.findPageByTenantIdAndOptionalStatus(
+                        org.mockito.ArgumentMatchers.eq(tenantId.value()),
+                        org.mockito.ArgumentMatchers.isNull(),
+                        any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity), PageRequest.of(0, 20), 1));
         when(mapper.toDomain(entity)).thenReturn(group);
 
         assertThat(adapter.findById(tenantId, groupId)).contains(group);
         assertThat(adapter.findByGroupCode(tenantId, code)).contains(group);
         assertThat(adapter.findByCode(tenantId, code)).contains(group);
         assertThat(adapter.existsByGroupCode(tenantId, code)).isTrue();
-        assertThat(adapter.findAll(tenantId)).containsExactly(group);
+        GroupPage<SavingsGroup> page = adapter.findPage(tenantId, pageRequest);
+        assertThat(page.content()).containsExactly(group);
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void appliesRequestedSortAndStatusFilterWhenBuildingThePageable() {
+        SavingsGroupJpaEntity entity = mock(SavingsGroupJpaEntity.class);
+        SavingsGroup group = newGroup(5);
+        AggregateId tenantId = group.tenantId();
+        GroupPageRequest pageRequest = new GroupPageRequest(
+                1, 5, GroupSortField.NAME, SortDirection.DESC, GroupStatus.ACTIVE);
+        when(repository.findPageByTenantIdAndOptionalStatus(
+                        org.mockito.ArgumentMatchers.eq(tenantId.value()),
+                        org.mockito.ArgumentMatchers.eq(GroupStatus.ACTIVE),
+                        any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity), PageRequest.of(1, 5), 6));
+        when(mapper.toDomain(entity)).thenReturn(group);
+
+        GroupPage<SavingsGroup> page = adapter.findPage(tenantId, pageRequest);
+
+        assertThat(page.page()).isEqualTo(1);
+        assertThat(page.size()).isEqualTo(5);
+        assertThat(page.totalElements()).isEqualTo(6);
     }
 
     @Test
@@ -131,6 +166,9 @@ class SavingsGroupRepositoryAdapterTest {
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> adapter.findByGroupCode(AggregateId.newId(), null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> adapter.findAll(null)).isInstanceOf(NullPointerException.class);
+        GroupPageRequest pageRequest = new GroupPageRequest(0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
+        assertThatThrownBy(() -> adapter.findPage(null, pageRequest)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> adapter.findPage(AggregateId.newId(), null))
+                .isInstanceOf(NullPointerException.class);
     }
 }

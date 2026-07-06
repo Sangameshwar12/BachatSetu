@@ -2,6 +2,8 @@ package in.bachatsetu.backend.group.interfaces.rest.controller;
 
 import in.bachatsetu.backend.auth.application.security.AuthenticatedUser;
 import in.bachatsetu.backend.auth.application.security.CurrentUserProvider;
+import in.bachatsetu.backend.group.application.port.GroupPage;
+import in.bachatsetu.backend.group.application.port.GroupPageRequest;
 import in.bachatsetu.backend.group.application.query.SavingsGroupResult;
 import in.bachatsetu.backend.group.application.query.SavingsGroupSummary;
 import in.bachatsetu.backend.group.application.usecase.ActivateGroupUseCase;
@@ -29,8 +31,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import java.net.URI;
-import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -137,7 +139,7 @@ public class SavingsGroupController {
             description = "Lists savings groups owned by the authenticated caller's tenant, page by page.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Page returned"),
-        @ApiResponse(responseCode = "400", description = "Invalid pagination parameters", content = @Content(
+        @ApiResponse(responseCode = "400", description = "Invalid pagination, sort, or filter parameters", content = @Content(
                 mediaType = PROBLEM_CONTENT_TYPE, schema = @Schema(implementation = ProblemDetail.class))),
         @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(
                 mediaType = PROBLEM_CONTENT_TYPE, schema = @Schema(implementation = ProblemDetail.class)))
@@ -149,10 +151,20 @@ public class SavingsGroupController {
             @RequestParam(defaultValue = "20")
             @Min(1)
             @Max(100)
-            @Parameter(description = "Page size, up to 100") int size) {
+            @Parameter(description = "Page size, up to 100") int size,
+            @RequestParam(defaultValue = "createdAt")
+            @Pattern(regexp = "name|createdAt")
+            @Parameter(description = "Field to sort by", example = "createdAt") String sort,
+            @RequestParam(defaultValue = "asc")
+            @Pattern(regexp = "asc|desc")
+            @Parameter(description = "Sort direction", example = "asc") String direction,
+            @RequestParam(required = false)
+            @Pattern(regexp = "INACTIVE|ACTIVE|SUSPENDED|CLOSED")
+            @Parameter(description = "Optional lifecycle status filter", example = "ACTIVE") String status) {
         AuthenticatedUser currentUser = currentUserProvider.requireCurrentUser();
-        List<SavingsGroupSummary> summaries = mapper.listGroups(listSavingsGroups, currentUser);
-        return mapper.toSummaryPage(summaries, page, size);
+        GroupPageRequest pageRequest = mapper.toPageRequest(page, size, sort, direction, status);
+        GroupPage<SavingsGroupSummary> result = mapper.listGroups(listSavingsGroups, currentUser, pageRequest);
+        return mapper.toSummaryPage(result);
     }
 
     @PatchMapping("/{groupId}/activate")

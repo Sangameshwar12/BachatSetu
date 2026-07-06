@@ -1,9 +1,9 @@
 # Savings Group Persistence
 
-Version: 1.0  
-Sprint: 9.3  
+Version: 1.1  
+Sprint: 9.3, pagination amended by Sprint 9.7  
 Status: Implemented  
-Last Updated: 2026-07-06
+Last Updated: 2026-07-07
 
 ## Purpose
 
@@ -61,13 +61,35 @@ History rows use deterministic identifiers and are never physically removed by a
 
 - Tenant-scoped lookup by group ID.
 - Tenant-scoped lookup and existence checking by code.
-- Ordered tenant listing.
+- Database-paginated, sortable, optionally status-filtered tenant listing.
 - Legacy identifier lookup.
 - Version-incrementing soft deletion.
 
 Entity graphs load the owner, memberships, and member users for aggregate reconstruction while leaving unrelated cycles, installments, draws, and payments lazy.
 
 `SavingsGroupRepositoryAdapter` translates between repository ports and Spring Data. Writes pass through the existing persistence exception translator. Read methods always exclude soft-deleted groups.
+
+## Pagination (Sprint 9.7)
+
+`findPage` replaced the earlier unpaged `findAll`. `SavingsGroupSpringDataRepository.findPageByTenantIdAndOptionalStatus`
+is an explicit `@Query` (combined with the same `@EntityGraph` used by every other aggregate-loading
+query) rather than a derived method, because the optional status filter needs a single
+`(:status IS NULL OR groupEntity.status = :status)` predicate instead of two near-duplicate derived
+queries. `RepositoryQueryDerivationTest` skips `@Query`-annotated methods, so this method is verified
+by `SavingsGroupPersistencePostgreSqlIntegrationTest` against a real database instead.
+
+`SavingsGroupRepositoryAdapter` is the only class that knows Spring Data's `Pageable`/`Sort`/`Page`
+exist: it builds a `Pageable` from the framework-free `GroupPageRequest` (documented in
+[Savings Group Application Layer](../application/savings-group-application.md)), maps
+`GroupSortField.NAME`/`CREATED_AT` to the JPA entity properties `name`/`createdAt`, and converts the
+returned Spring Data `Page<SavingsGroupJpaEntity>` back into the framework-free `GroupPage<SavingsGroup>`
+using the existing `SavingsGroupJpaMapper`. Neither the application layer nor the domain model
+references Spring Data pagination types.
+
+Sorting relies on `idx_groups_tenant_active_created (tenant_id, created_at, id)` for the default
+`createdAt` sort and `idx_groups_tenant_status (tenant_id, status)` for the status filter, both from
+existing migrations. Sorting by `name` does not yet have a dedicated index; tenant-scoped group counts
+are expected to remain small enough that this is acceptable until a future sprint proves otherwise.
 
 ## Mapping And Rehydration
 
@@ -143,7 +165,10 @@ The persistence suite includes:
 - Hibernate metadata and Spring Data query validation.
 - Migration contract validation.
 - PostgreSQL Testcontainers coverage for migration, history persistence, rehydration, optimistic locking, and soft deletion.
+- PostgreSQL Testcontainers coverage for real database-level pagination, sorting by name and by
+  creation time, and status filtering (Sprint 9.7).
 
 ## Operational Limitations
 
-The application repository contract currently exposes an unpaged `findAll` method. The adapter follows that contract, but large tenant listings should move to a paginated query in a later application sprint. Event publication and an outbox are outside this persistence sprint.
+Event publication and an outbox are outside this persistence sprint. Sorting by group name has no
+dedicated index yet; see [Pagination](#pagination-sprint-97) above.

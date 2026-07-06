@@ -124,7 +124,7 @@ class ApplicationContractTest {
                 .collect(Collectors.toSet());
 
         assertThat(repositoryMethods).containsExactlyInAnyOrder(
-                "save", "findById", "findByGroupCode", "existsByGroupCode", "findAll", "delete");
+                "save", "findById", "findByGroupCode", "existsByGroupCode", "findPage", "delete");
 
         GroupId groupId = GroupId.newId();
         GroupCodeGeneratorPort generator = ignored -> new GroupCode("BS-PORT");

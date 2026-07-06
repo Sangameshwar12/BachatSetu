@@ -4,7 +4,6 @@ import in.bachatsetu.backend.group.domain.model.GroupCode;
 import in.bachatsetu.backend.group.domain.model.GroupId;
 import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.shared.domain.AggregateId;
-import java.util.List;
 import java.util.Optional;
 
 /** Tenant-scoped persistence boundary required by Savings Group use cases. */
@@ -18,7 +17,7 @@ public interface SavingsGroupRepository {
 
     boolean existsByGroupCode(AggregateId tenantId, GroupCode groupCode);
 
-    List<SavingsGroup> findAll(AggregateId tenantId);
+    GroupPage<SavingsGroup> findPage(AggregateId tenantId, GroupPageRequest pageRequest);
 
     void delete(AggregateId tenantId, GroupId groupId);
 }

@@ -1,9 +1,9 @@
 # Savings Group Application Layer
 
-Version: 1.0  
-Sprint: 9.2  
+Version: 1.1  
+Sprint: 9.2, pagination amended by Sprint 9.7  
 Status: Implemented  
-Last Updated: 2026-07-06
+Last Updated: 2026-07-07
 
 ## Purpose
 
@@ -40,7 +40,7 @@ Dependency direction is inward: the application package depends only on the Savi
 | `SuspendGroupUseCase` | `SuspendGroupCommand` | `SavingsGroupResult` |
 | `CloseGroupUseCase` | `CloseGroupCommand` | `SavingsGroupResult` |
 | `GetSavingsGroupUseCase` | Tenant ID and group ID | `SavingsGroupResult` |
-| `ListSavingsGroupsUseCase` | Tenant ID | List of `SavingsGroupSummary` |
+| `ListSavingsGroupsUseCase` | Tenant ID and `GroupPageRequest` | `GroupPage<SavingsGroupSummary>` |
 
 Each use case has one concrete application service. Services use constructor injection and contain orchestration only.
 
@@ -68,7 +68,7 @@ The repository boundary provides:
 - `findById`
 - `findByGroupCode`
 - `existsByGroupCode`
-- `findAll`
+- `findPage`
 - `delete`
 
 All lookups and deletion are tenant-scoped to prevent accidental cross-tenant access. This sprint provides only the interface; no repository adapter is implemented.
@@ -81,6 +81,26 @@ All lookups and deletion are tenant-scoped to prevent accidental cross-tenant ac
 | `DomainEventPublisherPort` | Publishes committed aggregate events. |
 | `ClockPort` | Supplies deterministic application time. |
 | `TransactionPort` | Executes one complete use case transaction. |
+
+## Pagination (Sprint 9.7)
+
+`findPage` replaced the earlier unpaged `findAll` method. Pagination, sorting, and an optional
+lifecycle-status filter are carried by two framework-free types in `group.application.port`,
+alongside the repository port they parameterize:
+
+- `GroupPageRequest(page, size, sortField, direction, statusFilter)` validates `page >= 0` and
+  `1 <= size <= 100` in its compact constructor. `sortField` is a `GroupSortField`
+  (`NAME` or `CREATED_AT`); `direction` is a `SortDirection` (`ASC` or `DESC`); `statusFilter` is an
+  optional `GroupStatus`.
+- `GroupPage<T>` carries `content`, `page`, `size`, and `totalElements` as its only stored state.
+  `totalPages()`, `hasNext()`, and `hasPrevious()` are derived methods, never independently stored,
+  so the two can never disagree.
+
+`ListSavingsGroupsApplicationService` maps `GroupPage<SavingsGroup>` from the repository to
+`GroupPage<SavingsGroupSummary>` by mapping only the `content` list; the pagination metadata passes
+through unchanged. Neither type depends on Spring or Spring Data; the persistence adapter documented
+in [Savings Group Persistence](../persistence/savings-group-persistence.md) is solely responsible for
+translating `GroupPageRequest` into a `Pageable`.
 
 ## Transactions
 
