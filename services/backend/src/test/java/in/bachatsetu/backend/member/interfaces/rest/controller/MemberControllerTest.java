@@ -16,6 +16,7 @@ import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableExc
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.member.application.exception.DuplicateMemberNumberException;
+import in.bachatsetu.backend.member.application.exception.MemberAccessDeniedException;
 import in.bachatsetu.backend.member.application.exception.MemberProfileNotFoundException;
 import in.bachatsetu.backend.member.application.query.GroupParticipationResult;
 import in.bachatsetu.backend.member.application.query.MemberProfileResult;
@@ -132,7 +133,7 @@ class MemberControllerTest {
     void getsMemberProfile() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
         UUID memberId = UUID.randomUUID();
-        when(getMemberProfile.execute(eq(TENANT_ID), any())).thenReturn(result(memberId, "ACTIVE"));
+        when(getMemberProfile.execute(eq(TENANT_ID), any(), any())).thenReturn(result(memberId, "ACTIVE"));
 
         mockMvc.perform(get("/api/v1/members/" + memberId))
                 .andExpect(status().isOk())
@@ -143,7 +144,7 @@ class MemberControllerTest {
     @Test
     void reportsMissingMemberAsNotFound() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
-        when(getMemberProfile.execute(eq(TENANT_ID), any()))
+        when(getMemberProfile.execute(eq(TENANT_ID), any(), any()))
                 .thenThrow(new MemberProfileNotFoundException("member profile does not exist"));
 
         mockMvc.perform(get("/api/v1/members/" + UUID.randomUUID()))
@@ -158,6 +159,17 @@ class MemberControllerTest {
         mockMvc.perform(get("/api/v1/members/" + UUID.randomUUID()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("authentication-required"));
+    }
+
+    @Test
+    void reportsViewingAnotherMembersProfileAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(getMemberProfile.execute(eq(TENANT_ID), any(), any()))
+                .thenThrow(new MemberAccessDeniedException("only the member themselves may perform this operation"));
+
+        mockMvc.perform(get("/api/v1/members/" + UUID.randomUUID()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
     }
 
     @Test
@@ -230,7 +242,7 @@ class MemberControllerTest {
     void getsAMembersParticipations() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
         UUID memberId = UUID.randomUUID();
-        when(getMemberProfile.execute(eq(TENANT_ID), any())).thenReturn(result(memberId, "ACTIVE"));
+        when(getMemberProfile.execute(eq(TENANT_ID), any(), any())).thenReturn(result(memberId, "ACTIVE"));
 
         mockMvc.perform(get("/api/v1/members/" + memberId + "/participations"))
                 .andExpect(status().isOk())
@@ -241,12 +253,23 @@ class MemberControllerTest {
     @Test
     void reportsMissingMemberOnParticipationsAsNotFound() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
-        when(getMemberProfile.execute(eq(TENANT_ID), any()))
+        when(getMemberProfile.execute(eq(TENANT_ID), any(), any()))
                 .thenThrow(new MemberProfileNotFoundException("member profile does not exist"));
 
         mockMvc.perform(get("/api/v1/members/" + UUID.randomUUID() + "/participations"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("member-not-found"));
+    }
+
+    @Test
+    void reportsViewingAnotherMembersParticipationsAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(getMemberProfile.execute(eq(TENANT_ID), any(), any()))
+                .thenThrow(new MemberAccessDeniedException("only the member themselves may perform this operation"));
+
+        mockMvc.perform(get("/api/v1/members/" + UUID.randomUUID() + "/participations"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
     }
 
     @Test
@@ -360,6 +383,21 @@ class MemberControllerTest {
                                 """))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("member-not-found"));
+    }
+
+    @Test
+    void reportsUpdatingAnotherMembersStatusAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(updateMemberProfile.execute(any()))
+                .thenThrow(new MemberAccessDeniedException("only the member themselves may perform this operation"));
+
+        mockMvc.perform(patch("/api/v1/members/" + UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status": "ACTIVE"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
     }
 
     @Test

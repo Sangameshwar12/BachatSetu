@@ -9,6 +9,7 @@ import in.bachatsetu.backend.member.application.command.CreateMemberProfileComma
 import in.bachatsetu.backend.member.application.command.JoinGroupParticipationCommand;
 import in.bachatsetu.backend.member.application.command.UpdateMemberProfileCommand;
 import in.bachatsetu.backend.member.application.exception.DuplicateMemberNumberException;
+import in.bachatsetu.backend.member.application.exception.MemberAccessDeniedException;
 import in.bachatsetu.backend.member.application.exception.MemberApplicationException;
 import in.bachatsetu.backend.member.application.exception.MemberProfileNotFoundException;
 import in.bachatsetu.backend.member.application.port.ClockPort;
@@ -115,6 +116,7 @@ class ApplicationContractTest {
         assertThat(new MemberApplicationException("application failure")).hasMessage("application failure");
         assertThat(new MemberProfileNotFoundException("missing")).isInstanceOf(MemberApplicationException.class);
         assertThat(new DuplicateMemberNumberException("duplicate")).isInstanceOf(MemberApplicationException.class);
+        assertThat(new MemberAccessDeniedException("denied")).isInstanceOf(MemberApplicationException.class);
     }
 
     @Test

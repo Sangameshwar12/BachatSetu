@@ -74,9 +74,10 @@ class MemberApiMapperTest {
         AuthenticatedUser currentUser = authenticatedUser();
         UUID memberId = UUID.randomUUID();
         MemberProfileResult expected = result(memberId);
-        GetMemberProfileUseCase useCase = (tenantId, id) -> {
+        GetMemberProfileUseCase useCase = (tenantId, id, actorId) -> {
             assertThat(tenantId).isEqualTo(currentUser.tenantId());
             assertThat(id.value()).isEqualTo(memberId);
+            assertThat(actorId).isEqualTo(currentUser.userId().toAggregateId());
             return expected;
         };
 
@@ -102,9 +103,10 @@ class MemberApiMapperTest {
         AuthenticatedUser currentUser = authenticatedUser();
         UUID memberId = UUID.randomUUID();
         MemberProfileResult expected = result(memberId);
-        GetMemberProfileUseCase useCase = (tenantId, id) -> {
+        GetMemberProfileUseCase useCase = (tenantId, id, actorId) -> {
             assertThat(tenantId).isEqualTo(currentUser.tenantId());
             assertThat(id.value()).isEqualTo(memberId);
+            assertThat(actorId).isEqualTo(currentUser.userId().toAggregateId());
             return expected;
         };
 

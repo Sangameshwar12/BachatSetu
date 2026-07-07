@@ -1,7 +1,7 @@
 # Member Application Layer
 
-Version: 1.1
-Sprint: 10.1, management APIs and pagination amended by Sprint 10.2
+Version: 1.2
+Sprint: 10.1, management APIs and pagination amended by Sprint 10.2, authorization amended by Sprint 10.3
 Status: Implemented
 Last Updated: 2026-07-07
 
@@ -39,7 +39,7 @@ contracts, and Java.
 | --- | --- | --- |
 | `CreateMemberProfileUseCase` | `CreateMemberProfileCommand` | `MemberProfileResult` |
 | `JoinGroupParticipationUseCase` | `JoinGroupParticipationCommand` | `MemberProfileResult` |
-| `GetMemberProfileUseCase` | Tenant ID and member ID | `MemberProfileResult` |
+| `GetMemberProfileUseCase` | Tenant ID, member ID, and actor ID (Sprint 10.3) | `MemberProfileResult` |
 | `ListMemberProfilesUseCase` | Tenant ID and `MemberPageRequest` | `MemberPage<MemberProfileSummary>` |
 | `UpdateMemberProfileUseCase` | `UpdateMemberProfileCommand` | `MemberProfileResult` |
 
@@ -169,6 +169,66 @@ Application validation is intentionally limited to:
 Database uniqueness on `(group_id, member_number)` remains the ultimate safeguard against a concurrent
 number-generation race.
 
+## Authorization (Sprint 10.3)
+
+`member.application.security.MemberAuthorizationService` mirrors `group.application.security
+.GroupAuthorizationService` (Sprint 9.6) exactly in shape and spirit: one small, framework-free class with
+one method, `requireSelf(MemberProfile member, AggregateId actorId)`, that throws
+`MemberAccessDeniedException` if `!member.userId().equals(actorId)`. Like `GroupAuthorizationService`, it
+never inspects `AuthenticatedUser.roles()`/`.permissions()` — Group's own Sprint 9.6 authorization is pure
+aggregate-owned-ID comparison, and this sprint follows the same pattern rather than introducing a new one.
+
+**Rules applied:**
+
+| Operation | Rule |
+| --- | --- |
+| Create Member Profile | Any authenticated tenant user (unchanged — no new check). |
+| Get Member Profile | Only the member themselves. |
+| List Member Profiles | Unchanged tenant isolation only (no self/role restriction). |
+| Get Participations | Only the member themselves (inherited automatically — see below). |
+| Update Member Status | Only the member themselves. |
+
+**Why there is no "tenant administrator" branch.** The sprint brief allowed an administrator bypass "if
+such concept already exists." A `TENANT_ADMIN` role name is seeded in `V2__seed_roles_permissions.sql` and
+`AuthenticatedUser.roles()` is populated with a caller's real assigned role names at request time — but
+nothing in the codebase's application or domain layers ever reads `roles()`/`permissions()` to make an
+authorization decision; `GroupAuthorizationService` itself never checks them either. Introducing the first
+role-based authorization check anywhere in the codebase would be a new authorization pattern, which the
+sprint brief explicitly disallowed ("do not introduce a new authorization framework"). Per the brief's own
+fallback — "if no administrator concept exists, implement self-only access" — self-only access is
+implemented for both Get and Update.
+
+**Where authorization runs.** Every check happens application-side, immediately after the aggregate is
+loaded and before any mutation or response mapping, exactly mirroring `ActivateGroupApplicationService`'s
+`support.requireGroup(...)` → `authorization.requireOwner(...)` → `group.activate(...)` ordering:
+`GetMemberProfileApplicationService` and `UpdateMemberProfileApplicationService` both call
+`repository.findById(tenantId, memberId)` (or the shared `MemberApplicationSupport.requireMember`) first,
+then `authorization.requireSelf(member, actorId)`, then proceed. No repository lookup is duplicated for
+authorization purposes.
+
+**Why `GetMemberProfileUseCase` gained an `actorId` parameter.** Command-carrying use cases
+(`UpdateMemberProfileCommand`, `CreateMemberProfileCommand`) already carried an actor identifier before this
+sprint. `GetMemberProfileUseCase.execute(AggregateId tenantId, AggregateId memberId)` did not, because no
+authorization decision depended on who was asking. Enforcing self-only viewing requires knowing the caller,
+so the interface gained a third parameter, `AggregateId actorId` — an additive signature change with exactly
+two call sites (`MemberApiMapper.getMember` and `.getParticipations`), both updated to pass
+`currentUser.userId().toAggregateId()`.
+
+**Get Participations reuses Get Member Profile's authorization for free.** `GET
+/api/v1/members/{memberId}/participations` was already implemented (Sprint 10.2) by calling
+`GetMemberProfileUseCase` and extracting `result.participations()` in the REST mapper — no separate use
+case exists for it. Adding self-only authorization to `GetMemberProfileApplicationService` therefore
+automatically restricts participation viewing to the member themselves too, satisfying the brief's
+"a member may only view their own participations" rule without any additional code.
+
+**404 vs 403.** Tenant isolation is unchanged and still produces 404: `repository.findById(tenantId,
+memberId)` is tenant-scoped, so a different tenant's member ID returns empty and
+`MemberProfileNotFoundException` is thrown *before* authorization ever runs — cross-tenant existence is
+never revealed. A same-tenant, non-self request reaches the loaded aggregate and is rejected by
+`MemberAuthorizationService` with `MemberAccessDeniedException`, mapped to 403 by
+`MemberExceptionHandler.handleAccessDenied`, whose RFC 7807 `code` is `"access-denied"` — the identical
+string Group's own `GroupAccessDeniedException` handler already uses.
+
 ## Known Limitations (Sprint 10.2)
 
 Two endpoints requested by Sprint 10.2 are intentionally **not implemented**, following the same
@@ -201,9 +261,12 @@ The application suite covers:
 - Paginated, sorted tenant-scoped listing.
 - Mapper and immutable query-model behavior.
 - Commands, ports, exceptions, and null validation.
+- `MemberAuthorizationService.requireSelf` (self allowed, any other actor denied, null validation).
+- Self-allowed, non-self-forbidden, and cross-tenant-hidden (404, not 403) paths for Get and Update.
 
 ## Future Integration
 
-Business authorization (for example, restricting who may update or list member profiles) was out of scope
-for Sprint 10.1 and Sprint 10.2, mirroring how Savings Group authorization was deferred to its own sprint
-(9.6) after the REST foundation existed. Sprint 10.2's brief explicitly assigns this to Sprint 10.3.
+Sprint 10.3 covered self-only authorization for Create (unrestricted), Get, Update, List (tenant isolation
+only), and Participations. It did not add authorization to `JoinGroupParticipationUseCase` (adding a further
+group participation), since the sprint's own rules table did not list that operation — a scope boundary
+worth revisiting once product intent for who may add participations on a member's behalf is confirmed.

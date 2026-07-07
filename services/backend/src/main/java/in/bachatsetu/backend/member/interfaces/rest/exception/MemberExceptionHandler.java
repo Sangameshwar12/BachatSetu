@@ -2,6 +2,7 @@ package in.bachatsetu.backend.member.interfaces.rest.exception;
 
 import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableException;
 import in.bachatsetu.backend.member.application.exception.DuplicateMemberNumberException;
+import in.bachatsetu.backend.member.application.exception.MemberAccessDeniedException;
 import in.bachatsetu.backend.member.application.exception.MemberProfileNotFoundException;
 import in.bachatsetu.backend.member.domain.exception.DuplicateGroupParticipationException;
 import in.bachatsetu.backend.shared.domain.DomainException;
@@ -113,6 +114,18 @@ public class MemberExceptionHandler {
                 HttpStatus.CONFLICT,
                 "participation-already-exists",
                 "Member already participates in the group",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(MemberAccessDeniedException.class)
+    ResponseEntity<ProblemDetail> handleAccessDenied(
+            MemberAccessDeniedException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.FORBIDDEN,
+                "access-denied",
+                "Access denied",
                 exception.getMessage(),
                 request);
     }

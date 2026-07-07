@@ -11,6 +11,7 @@ import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.application.service.CreateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.GetMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.JoinGroupParticipationApplicationService;
+import in.bachatsetu.backend.member.application.security.MemberAuthorizationService;
 import in.bachatsetu.backend.member.application.service.ListMemberProfilesApplicationService;
 import in.bachatsetu.backend.member.application.service.UpdateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.domain.port.MemberRepository;
@@ -39,8 +40,14 @@ class MemberApplicationConfigTest {
     }
 
     @Test
+    void composesMemberAuthorizationService() {
+        assertThat(config.memberAuthorizationService()).isInstanceOf(MemberAuthorizationService.class);
+    }
+
+    @Test
     void composesGetMemberProfileUseCase() {
-        assertThat(config.getMemberProfileUseCase(repository, transaction, mapper))
+        MemberAuthorizationService authorization = config.memberAuthorizationService();
+        assertThat(config.getMemberProfileUseCase(repository, transaction, mapper, authorization))
                 .isInstanceOf(GetMemberProfileApplicationService.class);
     }
 
@@ -52,7 +59,8 @@ class MemberApplicationConfigTest {
 
     @Test
     void composesUpdateMemberProfileUseCase() {
-        assertThat(config.updateMemberProfileUseCase(repository, eventPublisher, clock, transaction, mapper))
+        MemberAuthorizationService authorization = config.memberAuthorizationService();
+        assertThat(config.updateMemberProfileUseCase(repository, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(UpdateMemberProfileApplicationService.class);
     }
 }

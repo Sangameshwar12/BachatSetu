@@ -8,6 +8,7 @@ import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.application.service.CreateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.GetMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.JoinGroupParticipationApplicationService;
+import in.bachatsetu.backend.member.application.security.MemberAuthorizationService;
 import in.bachatsetu.backend.member.application.service.ListMemberProfilesApplicationService;
 import in.bachatsetu.backend.member.application.service.UpdateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.usecase.CreateMemberProfileUseCase;
@@ -37,6 +38,11 @@ public class MemberApplicationConfig {
     }
 
     @Bean
+    public MemberAuthorizationService memberAuthorizationService() {
+        return new MemberAuthorizationService();
+    }
+
+    @Bean
     public CreateMemberProfileUseCase createMemberProfileUseCase(
             MemberRepository repository,
             MemberNumberGeneratorPort numberGenerator,
@@ -62,8 +68,9 @@ public class MemberApplicationConfig {
     public GetMemberProfileUseCase getMemberProfileUseCase(
             MemberRepository repository,
             TransactionPort transaction,
-            MemberApplicationMapper mapper) {
-        return new GetMemberProfileApplicationService(repository, transaction, mapper);
+            MemberApplicationMapper mapper,
+            MemberAuthorizationService authorization) {
+        return new GetMemberProfileApplicationService(repository, transaction, mapper, authorization);
     }
 
     @Bean
@@ -80,7 +87,9 @@ public class MemberApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            MemberApplicationMapper mapper) {
-        return new UpdateMemberProfileApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            MemberApplicationMapper mapper,
+            MemberAuthorizationService authorization) {
+        return new UpdateMemberProfileApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, authorization);
     }
 }

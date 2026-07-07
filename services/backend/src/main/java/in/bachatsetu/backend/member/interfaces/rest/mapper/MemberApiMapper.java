@@ -66,7 +66,8 @@ public class MemberApiMapper {
         Objects.requireNonNull(useCase, "use case must not be null");
         Objects.requireNonNull(currentUser, "current user must not be null");
         Objects.requireNonNull(memberId, "member id must not be null");
-        return useCase.execute(currentUser.tenantId(), AggregateId.from(memberId));
+        return useCase.execute(
+                currentUser.tenantId(), AggregateId.from(memberId), currentUser.userId().toAggregateId());
     }
 
     public MemberProfileResponse toResponse(MemberProfileResult result) {
@@ -101,7 +102,8 @@ public class MemberApiMapper {
         Objects.requireNonNull(useCase, "use case must not be null");
         Objects.requireNonNull(currentUser, "current user must not be null");
         Objects.requireNonNull(memberId, "member id must not be null");
-        MemberProfileResult result = useCase.execute(currentUser.tenantId(), AggregateId.from(memberId));
+        MemberProfileResult result = useCase.execute(
+                currentUser.tenantId(), AggregateId.from(memberId), currentUser.userId().toAggregateId());
         return result.participations().stream().map(this::toParticipationResponse).toList();
     }
 
