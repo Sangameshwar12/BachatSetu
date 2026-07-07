@@ -9,6 +9,10 @@ public interface DrawRepository {
 
     Optional<Draw> findById(AggregateId drawId);
 
+    Optional<Draw> findById(AggregateId tenantId, AggregateId drawId);
+
+    DrawPage<Draw> findPage(AggregateId tenantId, DrawPageRequest pageRequest);
+
     Optional<Draw> findByGroupAndNumber(AggregateId groupId, DrawNumber drawNumber);
 
     Optional<Draw> findByCycleId(AggregateId cycleId);

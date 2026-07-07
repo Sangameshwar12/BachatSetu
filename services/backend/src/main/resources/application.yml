@@ -119,3 +119,6 @@ bachatsetu:
   payment:
     rest:
       enabled: ${PAYMENT_REST_ENABLED:true}
+  draw:
+    rest:
+      enabled: ${DRAW_REST_ENABLED:true}
