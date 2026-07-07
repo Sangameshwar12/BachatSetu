@@ -45,8 +45,27 @@ class MemberApplicationMapperTest {
     }
 
     @Test
+    void mapsMemberProfileToSummary() {
+        AggregateId memberId = AggregateId.newId();
+        AggregateId userId = AggregateId.newId();
+        MemberProfile member = MemberProfile.create(
+                memberId, AggregateId.newId(), userId, new MemberNumber("MB-1A2B3C4D5E6F7A8B"),
+                AggregateId.newId(), NOW);
+        member.joinGroup(AggregateId.newId(), GroupRole.MEMBER, userId, NOW.plusSeconds(1));
+
+        var summary = mapper.toSummary(member);
+
+        assertThat(summary.memberId()).isEqualTo(memberId.value());
+        assertThat(summary.userId()).isEqualTo(userId.value());
+        assertThat(summary.memberNumber()).isEqualTo("MB-1A2B3C4D5E6F7A8B");
+        assertThat(summary.status()).isEqualTo("INVITED");
+        assertThat(summary.participationCount()).isEqualTo(1);
+    }
+
+    @Test
     void rejectsNullInputs() {
         assertThatThrownBy(() -> mapper.toResult(null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> mapper.toSummary(null)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> mapper.toParticipationResult(null)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> mapper.toConsentResult(null)).isInstanceOf(NullPointerException.class);
     }

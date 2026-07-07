@@ -8,10 +8,19 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.MemberSpr
 import in.bachatsetu.backend.member.domain.model.GroupParticipation;
 import in.bachatsetu.backend.member.domain.model.MemberNumber;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
+import in.bachatsetu.backend.member.domain.port.MemberPage;
+import in.bachatsetu.backend.member.domain.port.MemberPageRequest;
 import in.bachatsetu.backend.member.domain.port.MemberRepository;
+import in.bachatsetu.backend.member.domain.port.MemberSortField;
+import in.bachatsetu.backend.member.domain.port.SortDirection;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +66,42 @@ public class MemberRepositoryAdapter implements MemberRepository {
                 .findFirstByTenantIdAndMemberNumberAndDeletedFalseOrderByJoinedAtAsc(
                         tenantId.value(), memberNumber.value())
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public MemberPage<MemberProfile> findPage(AggregateId tenantId, MemberPageRequest pageRequest) {
+        Pageable pageable = PageRequest.of(pageRequest.page(), pageRequest.size(), toSort(pageRequest));
+        Page<GroupMemberJpaEntity> representativeRows =
+                repository.findRepresentativeRowsByTenantId(tenantId.value(), pageable);
+        List<MemberProfile> content = representativeRows.getContent().stream()
+                .map(this::assembleByUser)
+                .toList();
+        return new MemberPage<>(
+                content, representativeRows.getNumber(), representativeRows.getSize(),
+                representativeRows.getTotalElements());
+    }
+
+    private MemberProfile assembleByUser(GroupMemberJpaEntity representativeRow) {
+        UUID tenantId = representativeRow.getTenantId();
+        UUID userId = representativeRow.getUser().getId();
+        List<GroupMemberJpaEntity> rows =
+                repository.findAllByTenantIdAndUser_IdAndDeletedFalseOrderByJoinedAtAsc(tenantId, userId);
+        return assemble(rows);
+    }
+
+    private Sort toSort(MemberPageRequest pageRequest) {
+        String property = toSortProperty(pageRequest.sortField());
+        Sort.Direction direction = pageRequest.direction() == SortDirection.DESC
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return Sort.by(direction, property);
+    }
+
+    private String toSortProperty(MemberSortField sortField) {
+        if (sortField == MemberSortField.MEMBER_NUMBER) {
+            return "memberNumber";
+        }
+        return "createdAt";
     }
 
     @Override

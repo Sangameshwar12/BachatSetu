@@ -3,6 +3,7 @@ package in.bachatsetu.backend.member.application.mapper;
 import in.bachatsetu.backend.member.application.query.GroupParticipationResult;
 import in.bachatsetu.backend.member.application.query.MemberConsentResult;
 import in.bachatsetu.backend.member.application.query.MemberProfileResult;
+import in.bachatsetu.backend.member.application.query.MemberProfileSummary;
 import in.bachatsetu.backend.member.domain.model.GroupParticipation;
 import in.bachatsetu.backend.member.domain.model.MemberConsent;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
@@ -22,6 +23,16 @@ public final class MemberApplicationMapper {
                 member.participations().stream().map(this::toParticipationResult).toList(),
                 member.consents().stream().map(this::toConsentResult).toList(),
                 member.version());
+    }
+
+    public MemberProfileSummary toSummary(MemberProfile member) {
+        Objects.requireNonNull(member, "member profile must not be null");
+        return new MemberProfileSummary(
+                member.id().value(),
+                member.userId().value(),
+                member.memberNumber().value(),
+                member.status().name(),
+                member.participations().size());
     }
 
     public GroupParticipationResult toParticipationResult(GroupParticipation participation) {

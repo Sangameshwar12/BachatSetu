@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import in.bachatsetu.backend.member.application.command.CreateMemberProfileCommand;
 import in.bachatsetu.backend.member.application.command.JoinGroupParticipationCommand;
+import in.bachatsetu.backend.member.application.command.UpdateMemberProfileCommand;
 import in.bachatsetu.backend.member.application.exception.DuplicateMemberNumberException;
 import in.bachatsetu.backend.member.application.exception.MemberApplicationException;
 import in.bachatsetu.backend.member.application.exception.MemberProfileNotFoundException;
@@ -16,6 +17,7 @@ import in.bachatsetu.backend.member.application.port.MemberNumberGeneratorPort;
 import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.domain.model.GroupRole;
 import in.bachatsetu.backend.member.domain.model.MemberNumber;
+import in.bachatsetu.backend.member.domain.model.MemberStatus;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.lang.reflect.Method;
 import java.time.Instant;
@@ -74,6 +76,15 @@ class ApplicationContractTest {
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupParticipationCommand(id, id, id, GroupRole.MEMBER, null))
                 .isInstanceOf(NullPointerException.class);
+
+        assertThatThrownBy(() -> new UpdateMemberProfileCommand(null, id, MemberStatus.ACTIVE, id))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileCommand(id, null, MemberStatus.ACTIVE, id))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileCommand(id, id, null, id))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileCommand(id, id, MemberStatus.ACTIVE, null))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -96,7 +107,9 @@ class ApplicationContractTest {
         List<Class<?>> useCases = List.of(
                 in.bachatsetu.backend.member.application.usecase.CreateMemberProfileUseCase.class,
                 in.bachatsetu.backend.member.application.usecase.JoinGroupParticipationUseCase.class,
-                in.bachatsetu.backend.member.application.usecase.GetMemberProfileUseCase.class);
+                in.bachatsetu.backend.member.application.usecase.GetMemberProfileUseCase.class,
+                in.bachatsetu.backend.member.application.usecase.ListMemberProfilesUseCase.class,
+                in.bachatsetu.backend.member.application.usecase.UpdateMemberProfileUseCase.class);
 
         assertThat(useCases).allMatch(Class::isInterface);
         assertThat(new MemberApplicationException("application failure")).hasMessage("application failure");
@@ -111,6 +124,6 @@ class ApplicationContractTest {
                 .map(Method::getName)
                 .collect(Collectors.toSet());
 
-        assertThat(methods).contains("findById", "findByUserId", "findByMemberNumber", "save");
+        assertThat(methods).contains("findById", "findByUserId", "findByMemberNumber", "findPage", "save");
     }
 }

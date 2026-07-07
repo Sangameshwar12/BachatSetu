@@ -5,6 +5,10 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.BaseJpaReposi
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface MemberSpringDataRepository extends BaseJpaRepository<GroupMemberJpaEntity> {
 
@@ -15,4 +19,17 @@ public interface MemberSpringDataRepository extends BaseJpaRepository<GroupMembe
 
     Optional<GroupMemberJpaEntity> findFirstByTenantIdAndMemberNumberAndDeletedFalseOrderByJoinedAtAsc(
             UUID tenantId, String memberNumber);
+
+    @Query("""
+            SELECT groupMember FROM GroupMemberJpaEntity groupMember
+             WHERE groupMember.tenantId = :tenantId
+               AND groupMember.deleted = false
+               AND groupMember.joinedAt = (
+                   SELECT MIN(earliest.joinedAt) FROM GroupMemberJpaEntity earliest
+                    WHERE earliest.tenantId = groupMember.tenantId
+                      AND earliest.user = groupMember.user
+                      AND earliest.deleted = false
+               )
+            """)
+    Page<GroupMemberJpaEntity> findRepresentativeRowsByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
 }

@@ -11,6 +11,8 @@ import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.application.service.CreateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.GetMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.JoinGroupParticipationApplicationService;
+import in.bachatsetu.backend.member.application.service.ListMemberProfilesApplicationService;
+import in.bachatsetu.backend.member.application.service.UpdateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.domain.port.MemberRepository;
 import org.junit.jupiter.api.Test;
 
@@ -40,5 +42,17 @@ class MemberApplicationConfigTest {
     void composesGetMemberProfileUseCase() {
         assertThat(config.getMemberProfileUseCase(repository, transaction, mapper))
                 .isInstanceOf(GetMemberProfileApplicationService.class);
+    }
+
+    @Test
+    void composesListMemberProfilesUseCase() {
+        assertThat(config.listMemberProfilesUseCase(repository, transaction, mapper))
+                .isInstanceOf(ListMemberProfilesApplicationService.class);
+    }
+
+    @Test
+    void composesUpdateMemberProfileUseCase() {
+        assertThat(config.updateMemberProfileUseCase(repository, eventPublisher, clock, transaction, mapper))
+                .isInstanceOf(UpdateMemberProfileApplicationService.class);
     }
 }

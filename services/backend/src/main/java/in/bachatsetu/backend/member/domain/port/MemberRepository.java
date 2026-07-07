@@ -15,5 +15,7 @@ public interface MemberRepository {
 
     Optional<MemberProfile> findByMemberNumber(AggregateId tenantId, MemberNumber memberNumber);
 
+    MemberPage<MemberProfile> findPage(AggregateId tenantId, MemberPageRequest pageRequest);
+
     void save(MemberProfile member);
 }

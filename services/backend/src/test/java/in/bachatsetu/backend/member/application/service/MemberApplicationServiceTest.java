@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import in.bachatsetu.backend.member.application.command.CreateMemberProfileCommand;
 import in.bachatsetu.backend.member.application.command.JoinGroupParticipationCommand;
+import in.bachatsetu.backend.member.application.command.UpdateMemberProfileCommand;
 import in.bachatsetu.backend.member.application.exception.DuplicateMemberNumberException;
 import in.bachatsetu.backend.member.application.exception.MemberProfileNotFoundException;
 import in.bachatsetu.backend.member.application.mapper.MemberApplicationMapper;
@@ -20,16 +21,26 @@ import in.bachatsetu.backend.member.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.member.application.port.MemberNumberGeneratorPort;
 import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.application.query.MemberProfileResult;
+import in.bachatsetu.backend.member.application.query.MemberProfileSummary;
 import in.bachatsetu.backend.member.application.usecase.CreateMemberProfileUseCase;
 import in.bachatsetu.backend.member.application.usecase.GetMemberProfileUseCase;
 import in.bachatsetu.backend.member.application.usecase.JoinGroupParticipationUseCase;
+import in.bachatsetu.backend.member.application.usecase.ListMemberProfilesUseCase;
+import in.bachatsetu.backend.member.application.usecase.UpdateMemberProfileUseCase;
 import in.bachatsetu.backend.member.domain.event.MemberCreated;
 import in.bachatsetu.backend.member.domain.event.MemberJoinedGroup;
+import in.bachatsetu.backend.member.domain.event.MemberStatusChanged;
 import in.bachatsetu.backend.member.domain.exception.DuplicateGroupParticipationException;
+import in.bachatsetu.backend.member.domain.exception.InvalidMembershipStateException;
 import in.bachatsetu.backend.member.domain.model.GroupRole;
 import in.bachatsetu.backend.member.domain.model.MemberNumber;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
+import in.bachatsetu.backend.member.domain.model.MemberStatus;
+import in.bachatsetu.backend.member.domain.port.MemberPage;
+import in.bachatsetu.backend.member.domain.port.MemberPageRequest;
 import in.bachatsetu.backend.member.domain.port.MemberRepository;
+import in.bachatsetu.backend.member.domain.port.MemberSortField;
+import in.bachatsetu.backend.member.domain.port.SortDirection;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.DomainEvent;
 import java.time.Instant;
@@ -194,6 +205,71 @@ class MemberApplicationServiceTest {
     }
 
     @Test
+    void listsTenantScopedMemberSummaries() {
+        AggregateId tenantId = AggregateId.newId();
+        MemberProfile first = existingMember(tenantId);
+        MemberProfile second = existingMember(tenantId);
+        MemberPageRequest pageRequest = new MemberPageRequest(0, 20, MemberSortField.CREATED_AT, SortDirection.ASC);
+        when(repository.findPage(tenantId, pageRequest))
+                .thenReturn(new MemberPage<>(List.of(first, second), 0, 20, 2));
+        ListMemberProfilesUseCase service = new ListMemberProfilesApplicationService(repository, transaction, mapper);
+
+        MemberPage<MemberProfileSummary> page = service.execute(tenantId, pageRequest);
+
+        assertThat(page.content()).hasSize(2).extracting(MemberProfileSummary::participationCount)
+                .containsExactly(1, 1);
+        assertThat(page.totalElements()).isEqualTo(2);
+        assertThatThrownBy(() -> page.content().add(mapper.toSummary(first)))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void updatesMemberStatusAndPublishesEvent() {
+        AggregateId tenantId = AggregateId.newId();
+        MemberProfile member = existingMember(tenantId);
+        when(repository.findById(tenantId, member.id())).thenReturn(Optional.of(member));
+        UpdateMemberProfileUseCase service = new UpdateMemberProfileApplicationService(
+                repository, publisher, clock, transaction, mapper);
+
+        MemberProfileResult result = service.execute(
+                new UpdateMemberProfileCommand(tenantId, member.id(), MemberStatus.ACTIVE, member.userId()));
+
+        assertThat(result.status()).isEqualTo("ACTIVE");
+        verify(repository).save(member);
+        assertPublishedEvents(MemberStatusChanged.class);
+    }
+
+    @Test
+    void rejectsInvalidStatusTransitionWithoutSavingOrPublishing() {
+        AggregateId tenantId = AggregateId.newId();
+        MemberProfile member = existingMember(tenantId);
+        when(repository.findById(tenantId, member.id())).thenReturn(Optional.of(member));
+        UpdateMemberProfileUseCase service = new UpdateMemberProfileApplicationService(
+                repository, publisher, clock, transaction, mapper);
+
+        assertThatThrownBy(() -> service.execute(
+                        new UpdateMemberProfileCommand(tenantId, member.id(), MemberStatus.INVITED, member.userId())))
+                .isInstanceOf(InvalidMembershipStateException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
+    void reportsMissingMemberOnUpdateWithoutSavingOrPublishing() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId memberId = AggregateId.newId();
+        when(repository.findById(tenantId, memberId)).thenReturn(Optional.empty());
+        UpdateMemberProfileUseCase service = new UpdateMemberProfileApplicationService(
+                repository, publisher, clock, transaction, mapper);
+
+        assertThatThrownBy(() -> service.execute(
+                        new UpdateMemberProfileCommand(tenantId, memberId, MemberStatus.ACTIVE, AggregateId.newId())))
+                .isInstanceOf(MemberProfileNotFoundException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
     void rejectsNullUseCaseInputs() {
         assertThatThrownBy(() -> new CreateMemberProfileApplicationService(
                         repository, numberGenerator, publisher, clock, transaction, mapper)
@@ -208,6 +284,16 @@ class MemberApplicationServiceTest {
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetMemberProfileApplicationService(repository, transaction, mapper)
                         .execute(AggregateId.newId(), null))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ListMemberProfilesApplicationService(repository, transaction, mapper)
+                        .execute(null, new MemberPageRequest(0, 20, MemberSortField.CREATED_AT, SortDirection.ASC)))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ListMemberProfilesApplicationService(repository, transaction, mapper)
+                        .execute(AggregateId.newId(), null))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileApplicationService(
+                        repository, publisher, clock, transaction, mapper)
+                .execute(null))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -239,6 +325,27 @@ class MemberApplicationServiceTest {
         assertThatThrownBy(() -> new GetMemberProfileApplicationService(repository, null, mapper))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetMemberProfileApplicationService(repository, transaction, null))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ListMemberProfilesApplicationService(null, transaction, mapper))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ListMemberProfilesApplicationService(repository, null, mapper))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ListMemberProfilesApplicationService(repository, transaction, null))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileApplicationService(
+                        null, publisher, clock, transaction, mapper))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileApplicationService(
+                        repository, null, clock, transaction, mapper))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileApplicationService(
+                        repository, publisher, null, transaction, mapper))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileApplicationService(
+                        repository, publisher, clock, null, mapper))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdateMemberProfileApplicationService(
+                        repository, publisher, clock, transaction, null))
                 .isInstanceOf(NullPointerException.class);
     }
 

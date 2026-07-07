@@ -1,7 +1,7 @@
 # Member Application Layer
 
-Version: 1.0
-Sprint: 10.1
+Version: 1.1
+Sprint: 10.1, management APIs and pagination amended by Sprint 10.2
 Status: Implemented
 Last Updated: 2026-07-07
 
@@ -40,6 +40,8 @@ contracts, and Java.
 | `CreateMemberProfileUseCase` | `CreateMemberProfileCommand` | `MemberProfileResult` |
 | `JoinGroupParticipationUseCase` | `JoinGroupParticipationCommand` | `MemberProfileResult` |
 | `GetMemberProfileUseCase` | Tenant ID and member ID | `MemberProfileResult` |
+| `ListMemberProfilesUseCase` | Tenant ID and `MemberPageRequest` | `MemberPage<MemberProfileSummary>` |
+| `UpdateMemberProfileUseCase` | `UpdateMemberProfileCommand` | `MemberProfileResult` |
 
 Each use case has one concrete application service. Services use constructor injection and contain
 orchestration only.
@@ -56,6 +58,43 @@ service calls `MemberProfile.create(...)` and then `member.joinGroup(...)` in th
 it reaches the repository. `JoinGroupParticipationUseCase` covers the separate case of an already-persisted
 member joining an additional group.
 
+## Updating Lifecycle Status (Sprint 10.2)
+
+Sprint 10.2 required a `PATCH /api/v1/members/{memberId}` endpoint for "editable profile fields." Inspecting
+`MemberProfile` showed it has exactly one mutable field beyond its child collections — `status` — and no
+method ever changed it (`create()` hardcodes `INVITED`). `tenantId`, `userId`, and `memberNumber` are
+immutable by design and were already excluded from the brief. `MemberProfile.changeStatus(MemberStatus,
+AggregateId, Instant)` is therefore the only new domain method: an additive, narrowly-guarded transition
+(same-status and out-of-terminal-state transitions are rejected, mirroring the terminal-state check already
+present in `joinGroup`) that emits a new `MemberStatusChanged` event, structurally identical to how
+`SavingsGroup.transitionTo` guards its own lifecycle. `UpdateMemberProfileUseCase` is the only use case that
+calls it; `Update` in this context means "change lifecycle status," since no other profile field exists to
+edit.
+
+## Listing Member Profiles (Sprint 10.2)
+
+`ListMemberProfilesUseCase` lists tenant-scoped member profiles, paginated and sorted at the persistence
+boundary, following the same shape as Savings Group's Sprint 9.7 pagination: a page/size/totalElements
+carrier with derived `totalPages()`/`hasNext()`/`hasPrevious()`, a page request record validating
+`page >= 0` and `1 <= size <= 100`, and a sort-field enum (`MEMBER_NUMBER` or `CREATED_AT`) with a direction
+enum (`ASC`/`DESC`). Unlike Savings Group, Member does not support a status filter for Sprint 10.2 — the
+brief only asked for page, size, sort, and direction.
+
+**Why `MemberPage`/`MemberPageRequest`/`MemberSortField`/`SortDirection` live in `member.domain.port`
+instead of `member.application.port`.** Savings Group placed its equivalents in `group.application.port`
+because `SavingsGroupRepository` — the port that returns a paginated result — is itself an application-layer
+port. Member has no equivalent application-layer repository port (see "member.domain.port.MemberRepository"
+below); its repository port is the pre-existing `member.domain.port.MemberRepository`. A domain port's
+return type cannot live in `..application..` (`APPLICATION_MUST_DEPEND_ONLY_ON_DOMAIN_AND_APPLICATION` runs
+the other direction, and nothing permits `..domain..` to depend on `..application..`). Since these four types
+are plain, framework-free Java (records and enums, no Spring/JPA), keeping them beside the repository port
+they parametrize — in `member.domain.port` — satisfies every existing ArchUnit rule without a new carve-out.
+`ListMemberProfilesUseCase` and the REST mapper are both allowed to reference them (`..application..` and
+`..interfaces..` may depend on `..domain..`); only `*Controller`-named classes may not, which is why
+`MemberApiMapper.listMembers(useCase, currentUser, page, size, sort, direction)` fully consolidates page
+construction, use-case invocation, and response mapping — the controller method never touches `MemberPage`
+or `MemberPageRequest` directly.
+
 ## Commands
 
 Commands are immutable records containing domain value objects and operation context. Mutation commands
@@ -66,6 +105,8 @@ perform null validation only.
 
 - `MemberProfileResult` is the complete application view, including every group participation and consent.
 - `GroupParticipationResult` and `MemberConsentResult` are the nested projections used inside it.
+- `MemberProfileSummary` (Sprint 10.2) is the compact list projection: member ID, user ID, member number,
+  status, and a total participation count.
 
 `MemberApplicationMapper` converts the aggregate and its child entities to these models. Query models expose
 scalar Java values and immutable collections, never domain aggregates or persistence entities.
@@ -128,20 +169,41 @@ Application validation is intentionally limited to:
 Database uniqueness on `(group_id, member_number)` remains the ultimate safeguard against a concurrent
 number-generation race.
 
+## Known Limitations (Sprint 10.2)
+
+Two endpoints requested by Sprint 10.2 are intentionally **not implemented**, following the same
+"do not invent domain behavior" discipline the sprint brief applied explicitly to soft delete:
+
+- **`PATCH /api/v1/members/{memberId}/consents`.** `MemberConsent` has no mutator anywhere in the domain
+  model, and persistence has no storage for it at all: `MemberJpaMapper.toDomain` hardcodes
+  `member.consents()` to `List.of()`, and there is no `consents` column or table in
+  `community.group_members` or elsewhere. Building this endpoint for real would require a new table and
+  migration — a schema change the sprint brief explicitly said not to make ("do not redesign"). The
+  endpoint is not built.
+- **`DELETE /api/v1/members/{memberId}`.** No removal or soft-delete method exists anywhere on
+  `MemberProfile`, and `MemberStatus.REMOVED` is an enum value nothing ever assigns (Sprint 10.1 already
+  flagged the absence of any deletion capability in the persistence layer). Per the sprint brief's explicit
+  instruction to document rather than invent this, the endpoint is not built. A future sprint could
+  represent removal as a `changeStatus(REMOVED, ...)` call under the same mechanism as the status-update
+  endpoint, once product intent for member removal semantics (e.g., whether removal should cascade to
+  active group participations) is confirmed.
+
 ## Testing
 
 The application suite covers:
 
-- All three service implementations and use-case contracts.
+- All five service implementations and use-case contracts.
 - Repository success and missing-aggregate paths.
 - Duplicate member number rejection.
 - Transaction execution and save-before-publish ordering.
-- Aggregate event publication (`MemberCreated`, `MemberJoinedGroup`).
+- Aggregate event publication (`MemberCreated`, `MemberJoinedGroup`, `MemberStatusChanged`).
+- Status-transition guards (same-status and out-of-terminal-state rejection).
+- Paginated, sorted tenant-scoped listing.
 - Mapper and immutable query-model behavior.
 - Commands, ports, exceptions, and null validation.
 
 ## Future Integration
 
-Business authorization (for example, restricting who may create a profile on a group's behalf) was out of
-scope for Sprint 10.1, mirroring how Savings Group authorization was deferred to its own sprint (9.6) after
-the REST foundation existed.
+Business authorization (for example, restricting who may update or list member profiles) was out of scope
+for Sprint 10.1 and Sprint 10.2, mirroring how Savings Group authorization was deferred to its own sprint
+(9.6) after the REST foundation existed. Sprint 10.2's brief explicitly assigns this to Sprint 10.3.

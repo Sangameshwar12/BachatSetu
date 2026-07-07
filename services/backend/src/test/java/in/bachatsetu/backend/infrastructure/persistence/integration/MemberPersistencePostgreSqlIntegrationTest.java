@@ -13,11 +13,17 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.UserSprin
 import in.bachatsetu.backend.member.domain.model.GroupRole;
 import in.bachatsetu.backend.member.domain.model.MemberNumber;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
+import in.bachatsetu.backend.member.domain.port.MemberPage;
+import in.bachatsetu.backend.member.domain.port.MemberPageRequest;
 import in.bachatsetu.backend.member.domain.port.MemberRepository;
+import in.bachatsetu.backend.member.domain.port.MemberSortField;
+import in.bachatsetu.backend.member.domain.port.SortDirection;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.user.domain.model.PreferredLanguage;
 import in.bachatsetu.backend.user.domain.model.UserStatus;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -107,6 +113,55 @@ class MemberPersistencePostgreSqlIntegrationTest extends PostgreSqlIntegrationTe
         flushAndClear();
 
         assertThat(memberRepository.findById(AggregateId.newId(), memberId)).isEmpty();
+    }
+
+    @Test
+    @Transactional
+    void paginatesAndSortsMembersAtTheDatabase() {
+        SavingsGroup group = newGroup(AggregateId.newId(), 5);
+        persistUser(group.organizerId(), group.tenantId(), "owner-three@example.in");
+        AggregateId tenantId = group.tenantId();
+        groupRepository.save(group);
+        flushAndClear();
+
+        MemberProfile alpha = newMember(tenantId, group, "MB-ALPHA1", NOW);
+        MemberProfile beta = newMember(tenantId, group, "MB-BETA1", NOW.plusSeconds(1));
+        MemberProfile gamma = newMember(tenantId, group, "MB-GAMMA1", NOW.plusSeconds(2));
+        memberRepository.save(alpha);
+        memberRepository.save(beta);
+        memberRepository.save(gamma);
+        flushAndClear();
+
+        MemberPage<MemberProfile> byNumberAscending = memberRepository.findPage(
+                tenantId, new MemberPageRequest(0, 2, MemberSortField.MEMBER_NUMBER, SortDirection.ASC));
+        assertThat(byNumberAscending.content()).extracting(member -> member.memberNumber().value())
+                .containsExactly("MB-ALPHA1", "MB-BETA1");
+        assertThat(byNumberAscending.totalElements()).isEqualTo(3);
+        assertThat(byNumberAscending.hasNext()).isTrue();
+        assertThat(byNumberAscending.hasPrevious()).isFalse();
+
+        MemberPage<MemberProfile> secondPage = memberRepository.findPage(
+                tenantId, new MemberPageRequest(1, 2, MemberSortField.MEMBER_NUMBER, SortDirection.ASC));
+        assertThat(secondPage.content()).extracting(member -> member.memberNumber().value())
+                .containsExactly("MB-GAMMA1");
+        assertThat(secondPage.hasNext()).isFalse();
+        assertThat(secondPage.hasPrevious()).isTrue();
+
+        MemberPage<MemberProfile> byCreatedAtDescending = memberRepository.findPage(
+                tenantId, new MemberPageRequest(0, 10, MemberSortField.CREATED_AT, SortDirection.DESC));
+        assertThat(byCreatedAtDescending.content()).extracting(member -> member.memberNumber().value())
+                .containsExactly("MB-GAMMA1", "MB-BETA1", "MB-ALPHA1");
+        assertThat(byCreatedAtDescending.content()).allSatisfy(
+                member -> assertThat(member.participations()).hasSize(1));
+    }
+
+    private MemberProfile newMember(AggregateId tenantId, SavingsGroup group, String memberNumber, Instant joinedAt) {
+        AggregateId userId = AggregateId.newId();
+        persistUser(userId, tenantId, memberNumber.toLowerCase(Locale.ROOT) + "@example.in");
+        MemberProfile member = MemberProfile.create(
+                AggregateId.newId(), tenantId, userId, new MemberNumber(memberNumber), group.organizerId(), joinedAt);
+        member.joinGroup(group.id(), GroupRole.MEMBER, group.organizerId(), joinedAt);
+        return member;
     }
 
     private void persistUser(AggregateId userId, AggregateId tenantId, String email) {

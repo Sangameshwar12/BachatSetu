@@ -2,11 +2,13 @@ package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupMemberJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.exception.PersistenceMappingException;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvider;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.MemberJpaMapper;
@@ -17,13 +19,22 @@ import in.bachatsetu.backend.member.domain.model.MemberNumber;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
 import in.bachatsetu.backend.member.domain.model.MemberStatus;
 import in.bachatsetu.backend.member.domain.model.ParticipationStatus;
+import in.bachatsetu.backend.member.domain.port.MemberPage;
+import in.bachatsetu.backend.member.domain.port.MemberPageRequest;
+import in.bachatsetu.backend.member.domain.port.MemberSortField;
+import in.bachatsetu.backend.member.domain.port.SortDirection;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.AuditInfo;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 class MemberRepositoryAdapterTest {
 
@@ -118,6 +129,48 @@ class MemberRepositoryAdapterTest {
         when(mapper.toDomain(entity)).thenReturn(profile);
 
         assertThat(adapter.findByMemberNumber(tenantId, memberNumber)).contains(profile);
+    }
+
+    @Test
+    void findsPageAssemblingEachRepresentativeRow() {
+        AggregateId tenantId = AggregateId.newId();
+        UUID userId = UUID.randomUUID();
+        GroupMemberJpaEntity representativeRow = mock(GroupMemberJpaEntity.class);
+        UserJpaEntity user = mock(UserJpaEntity.class);
+        when(user.getId()).thenReturn(userId);
+        when(representativeRow.getTenantId()).thenReturn(tenantId.value());
+        when(representativeRow.getUser()).thenReturn(user);
+        GroupMemberJpaEntity fullRow = mock(GroupMemberJpaEntity.class);
+        MemberProfile profile = memberWithOneParticipation(AggregateId.newId(), AggregateId.newId());
+        when(repository.findRepresentativeRowsByTenantId(
+                        org.mockito.ArgumentMatchers.eq(tenantId.value()), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(representativeRow), PageRequest.of(0, 20), 1));
+        when(repository.findAllByTenantIdAndUser_IdAndDeletedFalseOrderByJoinedAtAsc(tenantId.value(), userId))
+                .thenReturn(List.of(fullRow));
+        when(mapper.toDomain(fullRow)).thenReturn(profile);
+        MemberPageRequest pageRequest = new MemberPageRequest(0, 20, MemberSortField.MEMBER_NUMBER, SortDirection.ASC);
+
+        MemberPage<MemberProfile> page = adapter.findPage(tenantId, pageRequest);
+
+        assertThat(page.content()).singleElement()
+                .satisfies(assembled -> assertThat(assembled.id()).isEqualTo(profile.id()));
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void appliesRequestedSortWhenBuildingThePageable() {
+        AggregateId tenantId = AggregateId.newId();
+        Page<GroupMemberJpaEntity> emptyPage = new PageImpl<>(List.of(), PageRequest.of(1, 5), 6);
+        when(repository.findRepresentativeRowsByTenantId(
+                        org.mockito.ArgumentMatchers.eq(tenantId.value()), any(Pageable.class)))
+                .thenReturn(emptyPage);
+        MemberPageRequest pageRequest = new MemberPageRequest(1, 5, MemberSortField.CREATED_AT, SortDirection.DESC);
+
+        MemberPage<MemberProfile> page = adapter.findPage(tenantId, pageRequest);
+
+        assertThat(page.page()).isEqualTo(1);
+        assertThat(page.size()).isEqualTo(5);
+        assertThat(page.totalElements()).isEqualTo(6);
     }
 
     @Test

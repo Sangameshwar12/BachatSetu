@@ -8,9 +8,13 @@ import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.application.service.CreateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.GetMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.service.JoinGroupParticipationApplicationService;
+import in.bachatsetu.backend.member.application.service.ListMemberProfilesApplicationService;
+import in.bachatsetu.backend.member.application.service.UpdateMemberProfileApplicationService;
 import in.bachatsetu.backend.member.application.usecase.CreateMemberProfileUseCase;
 import in.bachatsetu.backend.member.application.usecase.GetMemberProfileUseCase;
 import in.bachatsetu.backend.member.application.usecase.JoinGroupParticipationUseCase;
+import in.bachatsetu.backend.member.application.usecase.ListMemberProfilesUseCase;
+import in.bachatsetu.backend.member.application.usecase.UpdateMemberProfileUseCase;
 import in.bachatsetu.backend.member.domain.port.MemberRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
@@ -60,5 +64,23 @@ public class MemberApplicationConfig {
             TransactionPort transaction,
             MemberApplicationMapper mapper) {
         return new GetMemberProfileApplicationService(repository, transaction, mapper);
+    }
+
+    @Bean
+    public ListMemberProfilesUseCase listMemberProfilesUseCase(
+            MemberRepository repository,
+            TransactionPort transaction,
+            MemberApplicationMapper mapper) {
+        return new ListMemberProfilesApplicationService(repository, transaction, mapper);
+    }
+
+    @Bean
+    public UpdateMemberProfileUseCase updateMemberProfileUseCase(
+            MemberRepository repository,
+            DomainEventPublisherPort eventPublisher,
+            ClockPort clock,
+            TransactionPort transaction,
+            MemberApplicationMapper mapper) {
+        return new UpdateMemberProfileApplicationService(repository, eventPublisher, clock, transaction, mapper);
     }
 }

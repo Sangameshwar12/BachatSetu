@@ -2,6 +2,7 @@ package in.bachatsetu.backend.member.domain.model;
 
 import in.bachatsetu.backend.member.domain.event.MemberCreated;
 import in.bachatsetu.backend.member.domain.event.MemberJoinedGroup;
+import in.bachatsetu.backend.member.domain.event.MemberStatusChanged;
 import in.bachatsetu.backend.member.domain.exception.DuplicateGroupParticipationException;
 import in.bachatsetu.backend.member.domain.exception.InvalidMembershipStateException;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -83,6 +84,25 @@ public final class MemberProfile extends BaseAggregateRoot {
         markChanged(actorId, joinedAt);
         registerEvent(new MemberJoinedGroup(UUID.randomUUID(), id(), groupId, role, joinedAt));
         return participation;
+    }
+
+    public void changeStatus(MemberStatus target, AggregateId actorId, Instant changedAt) {
+        Objects.requireNonNull(target, "target status must not be null");
+        Objects.requireNonNull(changedAt, "changed at must not be null");
+        if (!isAllowedStatusTransition(status, target)) {
+            throw new InvalidMembershipStateException("member cannot transition from " + status + " to " + target);
+        }
+        MemberStatus previousStatus = status;
+        markChanged(actorId, changedAt);
+        status = target;
+        registerEvent(new MemberStatusChanged(UUID.randomUUID(), id(), previousStatus, target, changedAt));
+    }
+
+    private static boolean isAllowedStatusTransition(MemberStatus current, MemberStatus target) {
+        if (current == target) {
+            return false;
+        }
+        return current != MemberStatus.EXITED && current != MemberStatus.REMOVED;
     }
 
     public AggregateId tenantId() {
