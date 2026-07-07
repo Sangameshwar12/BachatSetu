@@ -182,10 +182,37 @@ The application suite covers:
 - Mapper and immutable query-model behavior, including bid mapping.
 - Commands, ports, exceptions, and null validation.
 
+## Authorization (Sprint 11.3)
+
+`create`, `conduct`, and `close` are restricted to the owner (organizer) of the `Draw`'s Savings Group.
+`get` and `list` remain tenant-scoped only, with no ownership or participant restriction.
+
+`DrawAuthorizationService` (`draw.application.security`) mirrors `GroupAuthorizationService`/
+`MemberAuthorizationService` exactly: a stateless, framework-free, single-method service
+(`requireOwner(SavingsGroup group, AggregateId actorId)`) that performs no repository lookups and throws
+`DrawAccessDeniedException` if the actor does not own the group. Since `Draw` itself has no owner concept —
+ownership belongs to its `SavingsGroup` — the already-loaded aggregate it compares against is a
+`SavingsGroup`, not a `Draw`.
+
+Loading that `SavingsGroup` is the calling application service's job, not the authorization service's.
+`DrawApplicationSupport.requireOwningGroup(tenantId, groupId)` fetches it through
+`group.application.port.SavingsGroupRepository` — a new, additive cross-module dependency from
+`draw.application.*` onto `group.application.*`/`group.domain.*`, which `LayerDependencyArchitectureTest`
+already permits (`APPLICATION_MUST_DEPEND_ONLY_ON_DOMAIN_AND_APPLICATION` allows any `..application..` class
+to depend on any other `..application..` or `..domain..` class, regardless of module), and which introduces
+no dependency cycle since Group does not depend on Draw. For `conduct`/`close`, the group is looked up using
+the already-loaded `Draw`'s own `groupId()`/`tenantId()` — no second `Draw` lookup, only one additional
+`SavingsGroup` lookup. If that lookup finds nothing (only reachable in practice for `create`, where the
+caller supplies an unverified `groupId`; `conduct`/`close` load it via a draw's own FK-guaranteed group
+reference), `DrawAccessDeniedException` is thrown rather than a distinct not-found error, so a caller who
+does not own a group cannot learn whether the group exists at all.
+
+Because `Draw`'s own tenant-scoped lookup (`requireDraw`) always runs before the group/ownership check for
+`conduct`/`close`, a cross-tenant caller still receives `DrawNotFoundException` (404) — authorization is
+never reached — exactly matching the security philosophy already established for Group and Member.
+
 ## Future Integration
 
-Business authorization (restricting who may create, conduct, or close a draw) is explicitly out of scope —
-Sprint 11.3 owns it, mirroring how Group deferred to 9.6, Member deferred to 10.3, and Payment deferred to
-11.3 as well. Lottery/auction algorithm improvements, winner payout, receipt generation, notifications, and
-scheduled/background draw execution are separate, later sprints; this sprint deliberately stops at the
-point where a draw's lifecycle can be driven manually through the REST API.
+Lottery/auction algorithm improvements, winner payout, receipt generation, notifications, and
+scheduled/background draw execution remain separate, later sprints; this sprint deliberately stops at the
+point where a draw's lifecycle can be driven manually, and securely, through the REST API.

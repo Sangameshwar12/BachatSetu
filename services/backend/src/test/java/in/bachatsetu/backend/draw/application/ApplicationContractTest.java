@@ -9,13 +9,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import in.bachatsetu.backend.draw.application.command.CloseDrawCommand;
 import in.bachatsetu.backend.draw.application.command.ConductDrawCommand;
 import in.bachatsetu.backend.draw.application.command.CreateDrawCommand;
+import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawApplicationException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
 import in.bachatsetu.backend.draw.application.port.ClockPort;
 import in.bachatsetu.backend.draw.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.draw.application.port.TransactionPort;
+import in.bachatsetu.backend.draw.application.security.DrawAuthorizationService;
+import in.bachatsetu.backend.group.domain.GroupDomainFixtures;
+import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -104,6 +109,22 @@ class ApplicationContractTest {
         assertThat(useCases).allMatch(Class::isInterface);
         assertThat(new DrawApplicationException("application failure")).hasMessage("application failure");
         assertThat(new DrawNotFoundException("missing")).isInstanceOf(DrawApplicationException.class);
+        assertThat(new DrawAccessDeniedException("denied")).isInstanceOf(DrawApplicationException.class);
+    }
+
+    @Test
+    void authorizationServiceIsStatelessFrameworkFreeAndPublic() {
+        assertThat(Modifier.isFinal(DrawAuthorizationService.class.getModifiers())).isTrue();
+        assertThat(DrawAuthorizationService.class.getDeclaredFields()).isEmpty();
+        assertThat(Arrays.stream(DrawAuthorizationService.class.getDeclaredConstructors())
+                .allMatch(constructor -> constructor.getParameterCount() == 0))
+                .isTrue();
+
+        DrawAuthorizationService authorization = new DrawAuthorizationService();
+        SavingsGroup group = GroupDomainFixtures.newGroup(5);
+        authorization.requireOwner(group, group.organizerId());
+        assertThatThrownBy(() -> authorization.requireOwner(group, AggregateId.newId()))
+                .isInstanceOf(DrawAccessDeniedException.class);
     }
 
     @Test

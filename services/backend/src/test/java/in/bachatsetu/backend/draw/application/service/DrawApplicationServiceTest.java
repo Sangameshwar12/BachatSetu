@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import in.bachatsetu.backend.draw.application.command.CloseDrawCommand;
 import in.bachatsetu.backend.draw.application.command.ConductDrawCommand;
 import in.bachatsetu.backend.draw.application.command.CreateDrawCommand;
+import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
 import in.bachatsetu.backend.draw.application.mapper.DrawApplicationMapper;
 import in.bachatsetu.backend.draw.application.port.ClockPort;
@@ -21,6 +22,7 @@ import in.bachatsetu.backend.draw.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.draw.application.port.TransactionPort;
 import in.bachatsetu.backend.draw.application.query.DrawResult;
 import in.bachatsetu.backend.draw.application.query.DrawSummary;
+import in.bachatsetu.backend.draw.application.security.DrawAuthorizationService;
 import in.bachatsetu.backend.draw.application.usecase.CloseDrawUseCase;
 import in.bachatsetu.backend.draw.application.usecase.ConductDrawUseCase;
 import in.bachatsetu.backend.draw.application.usecase.CreateDrawUseCase;
@@ -38,6 +40,16 @@ import in.bachatsetu.backend.draw.domain.port.DrawPageRequest;
 import in.bachatsetu.backend.draw.domain.port.DrawRepository;
 import in.bachatsetu.backend.draw.domain.port.DrawSortField;
 import in.bachatsetu.backend.draw.domain.port.SortDirection;
+import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
+import in.bachatsetu.backend.group.domain.GroupDomainFixtures;
+import in.bachatsetu.backend.group.domain.model.CreatedAt;
+import in.bachatsetu.backend.group.domain.model.GroupCode;
+import in.bachatsetu.backend.group.domain.model.GroupDescription;
+import in.bachatsetu.backend.group.domain.model.GroupId;
+import in.bachatsetu.backend.group.domain.model.GroupName;
+import in.bachatsetu.backend.group.domain.model.GroupType;
+import in.bachatsetu.backend.group.domain.model.OwnerId;
+import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.DomainEvent;
 import java.time.Clock;
@@ -51,26 +63,32 @@ import org.mockito.ArgumentCaptor;
 class DrawApplicationServiceTest {
 
     private DrawRepository repository;
+    private SavingsGroupRepository groupRepository;
     private DrawFactory drawFactory;
     private DomainEventPublisherPort publisher;
     private ClockPort clock;
     private TransactionPort transaction;
     private DrawApplicationMapper mapper;
+    private DrawAuthorizationService authorization;
 
     @BeforeEach
     void setUp() {
         repository = mock(DrawRepository.class);
+        groupRepository = mock(SavingsGroupRepository.class);
         drawFactory = new DrawFactory(Clock.fixed(NOW, ZoneOffset.UTC));
         publisher = mock(DomainEventPublisherPort.class);
         clock = () -> NOW.plusSeconds(7200);
         transaction = directTransaction();
         mapper = new DrawApplicationMapper();
+        authorization = new DrawAuthorizationService();
     }
 
     @Test
     void createsSavesPublishesAndMapsDraw() {
         CreateDrawCommand command = createCommand();
-        CreateDrawUseCase service = new CreateDrawApplicationService(repository, drawFactory, publisher, transaction, mapper);
+        stubOwningGroup(command.tenantId(), command.groupId(), command.actorId());
+        CreateDrawUseCase service = new CreateDrawApplicationService(
+                repository, groupRepository, drawFactory, publisher, transaction, mapper, authorization);
 
         DrawResult result = service.execute(command);
 
@@ -78,6 +96,31 @@ class DrawApplicationServiceTest {
         assertThat(result.number()).isEqualTo(command.number().value());
         verify(repository).save(any(Draw.class));
         assertPublishedEvents(DrawScheduled.class);
+    }
+
+    @Test
+    void createRejectsAnActorWhoIsNotTheGroupOwner() {
+        CreateDrawCommand command = createCommand();
+        stubOwningGroup(command.tenantId(), command.groupId(), AggregateId.newId());
+        CreateDrawUseCase service = new CreateDrawApplicationService(
+                repository, groupRepository, drawFactory, publisher, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(command)).isInstanceOf(DrawAccessDeniedException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
+    void createRejectsWhenTheTargetGroupDoesNotExist() {
+        CreateDrawCommand command = createCommand();
+        when(groupRepository.findById(command.tenantId(), new GroupId(command.groupId())))
+                .thenReturn(Optional.empty());
+        CreateDrawUseCase service = new CreateDrawApplicationService(
+                repository, groupRepository, drawFactory, publisher, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(command)).isInstanceOf(DrawAccessDeniedException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
     }
 
     @Test
@@ -124,11 +167,14 @@ class DrawApplicationServiceTest {
     @Test
     void conductsAScheduledDraw() {
         AggregateId tenantId = AggregateId.newId();
+        AggregateId ownerId = AggregateId.newId();
         Draw draw = newScheduledDraw(AggregateId.newId());
         when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
-        ConductDrawUseCase service = new ConductDrawApplicationService(repository, publisher, clock, transaction, mapper);
+        stubOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
+        ConductDrawUseCase service = new ConductDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
 
-        DrawResult result = service.execute(new ConductDrawCommand(tenantId, draw.id(), draw.tenantId()));
+        DrawResult result = service.execute(new ConductDrawCommand(tenantId, draw.id(), ownerId));
 
         assertThat(result.status()).isEqualTo("OPEN");
         verify(repository).save(draw);
@@ -136,15 +182,33 @@ class DrawApplicationServiceTest {
     }
 
     @Test
-    void rejectsConductingBeforeTheScheduledTime() {
+    void conductRejectsAnActorWhoIsNotTheGroupOwner() {
         AggregateId tenantId = AggregateId.newId();
+        AggregateId ownerId = AggregateId.newId();
         Draw draw = newScheduledDraw(AggregateId.newId());
         when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
-        ClockPort earlyClock = () -> NOW.plusSeconds(10);
-        ConductDrawUseCase service =
-                new ConductDrawApplicationService(repository, publisher, earlyClock, transaction, mapper);
+        stubOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
+        ConductDrawUseCase service = new ConductDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
 
-        assertThatThrownBy(() -> service.execute(new ConductDrawCommand(tenantId, draw.id(), draw.tenantId())))
+        assertThatThrownBy(() -> service.execute(new ConductDrawCommand(tenantId, draw.id(), AggregateId.newId())))
+                .isInstanceOf(DrawAccessDeniedException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
+    void rejectsConductingBeforeTheScheduledTime() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId ownerId = AggregateId.newId();
+        Draw draw = newScheduledDraw(AggregateId.newId());
+        when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
+        stubOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
+        ClockPort earlyClock = () -> NOW.plusSeconds(10);
+        ConductDrawUseCase service = new ConductDrawApplicationService(
+                repository, groupRepository, publisher, earlyClock, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(new ConductDrawCommand(tenantId, draw.id(), ownerId)))
                 .isInstanceOf(InvalidDrawStateException.class);
         verify(repository, never()).save(any());
         verify(publisher, never()).publish(any());
@@ -155,7 +219,8 @@ class DrawApplicationServiceTest {
         AggregateId tenantId = AggregateId.newId();
         AggregateId drawId = AggregateId.newId();
         when(repository.findById(tenantId, drawId)).thenReturn(Optional.empty());
-        ConductDrawUseCase service = new ConductDrawApplicationService(repository, publisher, clock, transaction, mapper);
+        ConductDrawUseCase service = new ConductDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
 
         assertThatThrownBy(() -> service.execute(new ConductDrawCommand(tenantId, drawId, AggregateId.newId())))
                 .isInstanceOf(DrawNotFoundException.class);
@@ -172,7 +237,9 @@ class DrawApplicationServiceTest {
         draw.open(actorId, NOW.plusSeconds(3600));
         draw.pullDomainEvents();
         when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
-        CloseDrawUseCase service = new CloseDrawApplicationService(repository, publisher, clock, transaction, mapper);
+        stubOwningGroup(draw.tenantId(), draw.groupId(), actorId);
+        CloseDrawUseCase service = new CloseDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
 
         DrawResult result = service.execute(new CloseDrawCommand(tenantId, draw.id(), winnerId, actorId));
 
@@ -183,14 +250,36 @@ class DrawApplicationServiceTest {
     }
 
     @Test
-    void rejectsClosingADrawThatIsNotOpen() {
+    void closeRejectsAnActorWhoIsNotTheGroupOwner() {
         AggregateId tenantId = AggregateId.newId();
-        Draw draw = newScheduledDraw(AggregateId.newId());
+        AggregateId ownerId = AggregateId.newId();
+        Draw draw = newScheduledDraw(AggregateId.newId(), DrawType.RANDOM);
+        draw.open(ownerId, NOW.plusSeconds(3600));
+        draw.pullDomainEvents();
         when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
-        CloseDrawUseCase service = new CloseDrawApplicationService(repository, publisher, clock, transaction, mapper);
+        stubOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
+        CloseDrawUseCase service = new CloseDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
 
         assertThatThrownBy(() -> service.execute(
-                        new CloseDrawCommand(tenantId, draw.id(), AggregateId.newId(), draw.tenantId())))
+                        new CloseDrawCommand(tenantId, draw.id(), AggregateId.newId(), AggregateId.newId())))
+                .isInstanceOf(DrawAccessDeniedException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
+    void rejectsClosingADrawThatIsNotOpen() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId ownerId = AggregateId.newId();
+        Draw draw = newScheduledDraw(AggregateId.newId());
+        when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
+        stubOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
+        CloseDrawUseCase service = new CloseDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(
+                        new CloseDrawCommand(tenantId, draw.id(), AggregateId.newId(), ownerId)))
                 .isInstanceOf(InvalidDrawStateException.class);
         verify(repository, never()).save(any());
         verify(publisher, never()).publish(any());
@@ -201,7 +290,8 @@ class DrawApplicationServiceTest {
         AggregateId tenantId = AggregateId.newId();
         AggregateId drawId = AggregateId.newId();
         when(repository.findById(tenantId, drawId)).thenReturn(Optional.empty());
-        CloseDrawUseCase service = new CloseDrawApplicationService(repository, publisher, clock, transaction, mapper);
+        CloseDrawUseCase service = new CloseDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
 
         assertThatThrownBy(() -> service.execute(
                         new CloseDrawCommand(tenantId, drawId, AggregateId.newId(), AggregateId.newId())))
@@ -212,8 +302,9 @@ class DrawApplicationServiceTest {
 
     @Test
     void rejectsNullUseCaseInputs() {
-        assertThatThrownBy(() -> new CreateDrawApplicationService(repository, drawFactory, publisher, transaction, mapper)
-                .execute(null))
+        assertThatThrownBy(() -> new CreateDrawApplicationService(
+                        repository, groupRepository, drawFactory, publisher, transaction, mapper, authorization)
+                        .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetDrawApplicationService(repository, transaction, mapper)
                         .execute(null, AggregateId.newId()))
@@ -227,21 +318,29 @@ class DrawApplicationServiceTest {
         assertThatThrownBy(() -> new ListDrawsApplicationService(repository, transaction, mapper)
                         .execute(AggregateId.newId(), null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new ConductDrawApplicationService(repository, publisher, clock, transaction, mapper)
-                .execute(null))
+        assertThatThrownBy(() -> new ConductDrawApplicationService(
+                        repository, groupRepository, publisher, clock, transaction, mapper, authorization)
+                        .execute(null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CloseDrawApplicationService(repository, publisher, clock, transaction, mapper)
-                .execute(null))
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        repository, groupRepository, publisher, clock, transaction, mapper, authorization)
+                        .execute(null))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void validatesRequiredServiceDependencies() {
-        assertThatThrownBy(() -> new CreateDrawApplicationService(repository, null, publisher, transaction, mapper))
+        assertThatThrownBy(() -> new CreateDrawApplicationService(
+                        repository, groupRepository, null, publisher, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CreateDrawApplicationService(repository, drawFactory, publisher, null, mapper))
+        assertThatThrownBy(() -> new CreateDrawApplicationService(
+                        repository, groupRepository, drawFactory, publisher, null, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CreateDrawApplicationService(repository, drawFactory, publisher, transaction, null))
+        assertThatThrownBy(() -> new CreateDrawApplicationService(
+                        repository, groupRepository, drawFactory, publisher, transaction, null, authorization))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CreateDrawApplicationService(
+                        repository, groupRepository, drawFactory, publisher, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetDrawApplicationService(null, transaction, mapper))
                 .isInstanceOf(NullPointerException.class);
@@ -255,26 +354,56 @@ class DrawApplicationServiceTest {
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new ListDrawsApplicationService(repository, transaction, null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new ConductDrawApplicationService(null, publisher, clock, transaction, mapper))
+        assertThatThrownBy(() -> new ConductDrawApplicationService(
+                        null, groupRepository, publisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new ConductDrawApplicationService(repository, null, clock, transaction, mapper))
+        assertThatThrownBy(() -> new ConductDrawApplicationService(
+                        repository, groupRepository, null, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new ConductDrawApplicationService(repository, publisher, null, transaction, mapper))
+        assertThatThrownBy(() -> new ConductDrawApplicationService(
+                        repository, groupRepository, publisher, null, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new ConductDrawApplicationService(repository, publisher, clock, null, mapper))
+        assertThatThrownBy(() -> new ConductDrawApplicationService(
+                        repository, groupRepository, publisher, clock, null, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new ConductDrawApplicationService(repository, publisher, clock, transaction, null))
+        assertThatThrownBy(() -> new ConductDrawApplicationService(
+                        repository, groupRepository, publisher, clock, transaction, null, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CloseDrawApplicationService(null, publisher, clock, transaction, mapper))
+        assertThatThrownBy(() -> new ConductDrawApplicationService(
+                        repository, groupRepository, publisher, clock, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CloseDrawApplicationService(repository, null, clock, transaction, mapper))
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        null, groupRepository, publisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CloseDrawApplicationService(repository, publisher, null, transaction, mapper))
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        repository, groupRepository, null, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CloseDrawApplicationService(repository, publisher, clock, null, mapper))
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        repository, groupRepository, publisher, null, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CloseDrawApplicationService(repository, publisher, clock, transaction, null))
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        repository, groupRepository, publisher, clock, null, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        repository, groupRepository, publisher, clock, transaction, null, authorization))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        repository, groupRepository, publisher, clock, transaction, mapper, null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    private void stubOwningGroup(AggregateId tenantId, AggregateId groupId, AggregateId ownerId) {
+        SavingsGroup group = SavingsGroup.create(
+                new GroupId(groupId),
+                tenantId,
+                new OwnerId(ownerId),
+                new GroupCode("BS-TEST"),
+                new GroupName("Bachat Circle"),
+                new GroupDescription("Monthly community savings"),
+                GroupType.BHISHI,
+                GroupDomainFixtures.monthlyRule(5),
+                new CreatedAt(GroupDomainFixtures.NOW));
+        when(groupRepository.findById(tenantId, new GroupId(groupId))).thenReturn(Optional.of(group));
     }
 
     private Draw newScheduledDraw(AggregateId actorId) {

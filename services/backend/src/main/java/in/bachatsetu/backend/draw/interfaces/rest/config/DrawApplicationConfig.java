@@ -4,6 +4,7 @@ import in.bachatsetu.backend.draw.application.mapper.DrawApplicationMapper;
 import in.bachatsetu.backend.draw.application.port.ClockPort;
 import in.bachatsetu.backend.draw.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.draw.application.port.TransactionPort;
+import in.bachatsetu.backend.draw.application.security.DrawAuthorizationService;
 import in.bachatsetu.backend.draw.application.service.CloseDrawApplicationService;
 import in.bachatsetu.backend.draw.application.service.ConductDrawApplicationService;
 import in.bachatsetu.backend.draw.application.service.CreateDrawApplicationService;
@@ -16,6 +17,7 @@ import in.bachatsetu.backend.draw.application.usecase.GetDrawUseCase;
 import in.bachatsetu.backend.draw.application.usecase.ListDrawsUseCase;
 import in.bachatsetu.backend.draw.domain.factory.DrawFactory;
 import in.bachatsetu.backend.draw.domain.port.DrawRepository;
+import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +29,8 @@ import org.springframework.context.annotation.Configuration;
     DrawFactory.class,
     DomainEventPublisherPort.class,
     ClockPort.class,
-    TransactionPort.class
+    TransactionPort.class,
+    SavingsGroupRepository.class
 })
 public class DrawApplicationConfig {
 
@@ -37,13 +40,21 @@ public class DrawApplicationConfig {
     }
 
     @Bean
+    public DrawAuthorizationService drawAuthorizationService() {
+        return new DrawAuthorizationService();
+    }
+
+    @Bean
     public CreateDrawUseCase createDrawUseCase(
             DrawRepository repository,
+            SavingsGroupRepository groupRepository,
             DrawFactory drawFactory,
             DomainEventPublisherPort eventPublisher,
             TransactionPort transaction,
-            DrawApplicationMapper mapper) {
-        return new CreateDrawApplicationService(repository, drawFactory, eventPublisher, transaction, mapper);
+            DrawApplicationMapper mapper,
+            DrawAuthorizationService authorization) {
+        return new CreateDrawApplicationService(
+                repository, groupRepository, drawFactory, eventPublisher, transaction, mapper, authorization);
     }
 
     @Bean
@@ -65,20 +76,26 @@ public class DrawApplicationConfig {
     @Bean
     public ConductDrawUseCase conductDrawUseCase(
             DrawRepository repository,
+            SavingsGroupRepository groupRepository,
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            DrawApplicationMapper mapper) {
-        return new ConductDrawApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            DrawApplicationMapper mapper,
+            DrawAuthorizationService authorization) {
+        return new ConductDrawApplicationService(
+                repository, groupRepository, eventPublisher, clock, transaction, mapper, authorization);
     }
 
     @Bean
     public CloseDrawUseCase closeDrawUseCase(
             DrawRepository repository,
+            SavingsGroupRepository groupRepository,
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            DrawApplicationMapper mapper) {
-        return new CloseDrawApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            DrawApplicationMapper mapper,
+            DrawAuthorizationService authorization) {
+        return new CloseDrawApplicationService(
+                repository, groupRepository, eventPublisher, clock, transaction, mapper, authorization);
     }
 }

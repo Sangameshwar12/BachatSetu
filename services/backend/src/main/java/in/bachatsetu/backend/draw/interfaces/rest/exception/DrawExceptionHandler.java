@@ -1,6 +1,7 @@
 package in.bachatsetu.backend.draw.interfaces.rest.exception;
 
 import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableException;
+import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
 import in.bachatsetu.backend.shared.domain.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -87,6 +88,18 @@ public class DrawExceptionHandler {
                 HttpStatus.NOT_FOUND,
                 "draw-not-found",
                 "Draw not found",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(DrawAccessDeniedException.class)
+    ResponseEntity<ProblemDetail> handleAccessDenied(
+            DrawAccessDeniedException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.FORBIDDEN,
+                "access-denied",
+                "Access denied",
                 exception.getMessage(),
                 request);
     }

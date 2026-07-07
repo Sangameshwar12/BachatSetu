@@ -15,6 +15,7 @@ import in.bachatsetu.backend.auth.application.security.CurrentUserProvider;
 import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableException;
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
 import in.bachatsetu.backend.auth.domain.model.UserId;
+import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
 import in.bachatsetu.backend.draw.application.query.DrawResult;
 import in.bachatsetu.backend.draw.application.query.DrawSummary;
@@ -99,6 +100,19 @@ class DrawControllerTest {
                                 """.formatted(UUID.randomUUID())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("validation-error"));
+    }
+
+    @Test
+    void reportsNonOwnerCreateAttemptAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(createDraw.execute(any()))
+                .thenThrow(new DrawAccessDeniedException("only the group owner may perform this operation"));
+
+        mockMvc.perform(post("/api/v1/draws")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequestBody()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
     }
 
     @Test
@@ -229,6 +243,17 @@ class DrawControllerTest {
     }
 
     @Test
+    void reportsNonOwnerConductAttemptAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(conductDraw.execute(any()))
+                .thenThrow(new DrawAccessDeniedException("only the group owner may perform this operation"));
+
+        mockMvc.perform(patch("/api/v1/draws/" + UUID.randomUUID() + "/conduct"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
     void reportsMissingDrawOnConductAsNotFound() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
         when(conductDraw.execute(any()))
@@ -274,6 +299,21 @@ class DrawControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("validation-error"));
+    }
+
+    @Test
+    void reportsNonOwnerCloseAttemptAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(closeDraw.execute(any()))
+                .thenThrow(new DrawAccessDeniedException("only the group owner may perform this operation"));
+
+        mockMvc.perform(patch("/api/v1/draws/" + UUID.randomUUID() + "/close")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"winnerId": "%s"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
     }
 
     @Test
