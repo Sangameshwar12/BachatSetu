@@ -9,6 +9,10 @@ public interface ReceiptRepository {
 
     Optional<Receipt> findById(AggregateId receiptId);
 
+    Optional<Receipt> findById(AggregateId tenantId, AggregateId receiptId);
+
+    ReceiptPage<Receipt> findPage(AggregateId tenantId, ReceiptPageRequest pageRequest);
+
     Optional<Receipt> findByNumber(AggregateId tenantId, ReceiptNumber number);
 
     Optional<Receipt> findByPaymentId(AggregateId paymentId);

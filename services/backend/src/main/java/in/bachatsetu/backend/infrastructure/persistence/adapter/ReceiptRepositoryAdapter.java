@@ -6,9 +6,18 @@ import in.bachatsetu.backend.infrastructure.persistence.mapper.ReceiptJpaMapper;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.ReceiptSpringDataRepository;
 import in.bachatsetu.backend.receipt.domain.model.Receipt;
 import in.bachatsetu.backend.receipt.domain.model.ReceiptNumber;
+import in.bachatsetu.backend.receipt.domain.port.ReceiptPage;
+import in.bachatsetu.backend.receipt.domain.port.ReceiptPageRequest;
 import in.bachatsetu.backend.receipt.domain.port.ReceiptRepository;
+import in.bachatsetu.backend.receipt.domain.port.ReceiptSortField;
+import in.bachatsetu.backend.receipt.domain.port.SortDirection;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +42,35 @@ public class ReceiptRepositoryAdapter implements ReceiptRepository {
     @Override
     public Optional<Receipt> findById(AggregateId receiptId) {
         return repository.findByIdAndDeletedFalse(receiptId.value()).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<Receipt> findById(AggregateId tenantId, AggregateId receiptId) {
+        return repository.findByTenantIdAndIdAndDeletedFalse(tenantId.value(), receiptId.value())
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public ReceiptPage<Receipt> findPage(AggregateId tenantId, ReceiptPageRequest pageRequest) {
+        Pageable pageable = PageRequest.of(pageRequest.page(), pageRequest.size(), toSort(pageRequest));
+        Page<ReceiptJpaEntity> page = repository.findAllByTenantIdAndDeletedFalse(tenantId.value(), pageable);
+        List<Receipt> content = page.getContent().stream().map(mapper::toDomain).toList();
+        return new ReceiptPage<>(content, page.getNumber(), page.getSize(), page.getTotalElements());
+    }
+
+    private Sort toSort(ReceiptPageRequest pageRequest) {
+        String property = toSortProperty(pageRequest.sortField());
+        Sort.Direction direction = pageRequest.direction() == SortDirection.DESC
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return Sort.by(direction, property);
+    }
+
+    private String toSortProperty(ReceiptSortField sortField) {
+        if (sortField == ReceiptSortField.AMOUNT) {
+            return "amountPaise";
+        }
+        return "createdAt";
     }
 
     @Override

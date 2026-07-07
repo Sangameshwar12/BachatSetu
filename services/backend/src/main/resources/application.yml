@@ -122,3 +122,6 @@ bachatsetu:
   draw:
     rest:
       enabled: ${DRAW_REST_ENABLED:true}
+  receipt:
+    rest:
+      enabled: ${RECEIPT_REST_ENABLED:true}
