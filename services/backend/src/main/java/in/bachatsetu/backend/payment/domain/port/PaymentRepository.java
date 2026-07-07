@@ -11,6 +11,10 @@ public interface PaymentRepository {
 
     Optional<Payment> findById(AggregateId paymentId);
 
+    Optional<Payment> findById(AggregateId tenantId, AggregateId paymentId);
+
+    PaymentPage<Payment> findPage(AggregateId tenantId, PaymentPageRequest pageRequest);
+
     Optional<Payment> findByReference(AggregateId tenantId, PaymentReference reference);
 
     Optional<Payment> findByIdempotencyKey(AggregateId tenantId, IdempotencyKey idempotencyKey);

@@ -116,3 +116,6 @@ bachatsetu:
   member:
     rest:
       enabled: ${MEMBER_REST_ENABLED:true}
+  payment:
+    rest:
+      enabled: ${PAYMENT_REST_ENABLED:true}
