@@ -15,10 +15,13 @@ import in.bachatsetu.backend.receipt.application.command.CreateReceiptCommand;
 import in.bachatsetu.backend.receipt.application.exception.ReceiptNotFoundException;
 import in.bachatsetu.backend.receipt.application.mapper.ReceiptApplicationMapper;
 import in.bachatsetu.backend.receipt.application.port.DomainEventPublisherPort;
+import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
 import in.bachatsetu.backend.receipt.application.port.TransactionPort;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptSummary;
 import in.bachatsetu.backend.receipt.application.usecase.CreateReceiptUseCase;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
 import in.bachatsetu.backend.receipt.domain.event.ReceiptGenerated;
@@ -148,6 +151,54 @@ class ReceiptApplicationServiceTest {
         assertThat(page.totalElements()).isEqualTo(2);
         assertThatThrownBy(() -> page.content().add(mapper.toSummary(first)))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void pdfServiceLoadsReceiptAndReturnsGeneratedBytes() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId receiptId = AggregateId.newId();
+        ReceiptResult receiptResult = mapper.toResult(newReceipt(AggregateId.newId()));
+        GetReceiptUseCase getReceipt = mock(GetReceiptUseCase.class);
+        ReceiptPdfGenerator pdfGenerator = mock(ReceiptPdfGenerator.class);
+        byte[] pdfBytes = {1, 2, 3, 4};
+        when(getReceipt.execute(tenantId, receiptId)).thenReturn(receiptResult);
+        when(pdfGenerator.generate(receiptResult)).thenReturn(pdfBytes);
+        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator);
+
+        ReceiptPdfResult result = service.execute(tenantId, receiptId);
+
+        assertThat(result.content()).containsExactly(pdfBytes);
+        assertThat(result.fileName()).isEqualTo(receiptResult.number().replace("/", "-") + ".pdf");
+    }
+
+    @Test
+    void pdfServicePropagatesNotFoundForCrossTenantOrMissingReceipts() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId receiptId = AggregateId.newId();
+        GetReceiptUseCase getReceipt = mock(GetReceiptUseCase.class);
+        ReceiptPdfGenerator pdfGenerator = mock(ReceiptPdfGenerator.class);
+        when(getReceipt.execute(tenantId, receiptId))
+                .thenThrow(new ReceiptNotFoundException("receipt does not exist"));
+        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator);
+
+        assertThatThrownBy(() -> service.execute(tenantId, receiptId))
+                .isInstanceOf(ReceiptNotFoundException.class);
+    }
+
+    @Test
+    void pdfServiceRejectsNullInputs() {
+        GetReceiptUseCase getReceipt = mock(GetReceiptUseCase.class);
+        ReceiptPdfGenerator pdfGenerator = mock(ReceiptPdfGenerator.class);
+        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator);
+
+        assertThatThrownBy(() -> service.execute(null, AggregateId.newId()))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> service.execute(AggregateId.newId(), null))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new GetReceiptPdfApplicationService(null, pdfGenerator))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new GetReceiptPdfApplicationService(getReceipt, null))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test

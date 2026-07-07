@@ -9,7 +9,9 @@ import in.bachatsetu.backend.receipt.application.command.CreateReceiptCommand;
 import in.bachatsetu.backend.receipt.application.exception.ReceiptApplicationException;
 import in.bachatsetu.backend.receipt.application.exception.ReceiptNotFoundException;
 import in.bachatsetu.backend.receipt.application.port.DomainEventPublisherPort;
+import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
 import in.bachatsetu.backend.receipt.application.port.TransactionPort;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -64,11 +66,36 @@ class ApplicationContractTest {
         List<Class<?>> useCases = List.of(
                 in.bachatsetu.backend.receipt.application.usecase.CreateReceiptUseCase.class,
                 in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase.class,
-                in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase.class);
+                in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase.class,
+                in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase.class);
 
         assertThat(useCases).allMatch(Class::isInterface);
         assertThat(new ReceiptApplicationException("application failure")).hasMessage("application failure");
         assertThat(new ReceiptNotFoundException("missing")).isInstanceOf(ReceiptApplicationException.class);
+    }
+
+    @Test
+    void pdfGeneratorPortIsAFunctionalAbstractionOverBytes() {
+        assertThat(ReceiptPdfGenerator.class.isInterface()).isTrue();
+        assertThat(ReceiptPdfGenerator.class.getDeclaredMethods()).hasSize(1);
+    }
+
+    @Test
+    void pdfResultDefensivelyCopiesItsContent() {
+        byte[] original = {1, 2, 3};
+        ReceiptPdfResult result = new ReceiptPdfResult(original, "receipt.pdf");
+        original[0] = 9;
+
+        assertThat(result.content()).containsExactly(1, 2, 3);
+        assertThat(result.content()).isNotSameAs(result.content());
+    }
+
+    @Test
+    void pdfResultRejectsNullContext() {
+        assertThatThrownBy(() -> new ReceiptPdfResult(null, "receipt.pdf"))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ReceiptPdfResult(new byte[] {1}, null))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test

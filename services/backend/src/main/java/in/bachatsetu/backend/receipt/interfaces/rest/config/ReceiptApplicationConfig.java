@@ -2,11 +2,14 @@ package in.bachatsetu.backend.receipt.interfaces.rest.config;
 
 import in.bachatsetu.backend.receipt.application.mapper.ReceiptApplicationMapper;
 import in.bachatsetu.backend.receipt.application.port.DomainEventPublisherPort;
+import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
 import in.bachatsetu.backend.receipt.application.port.TransactionPort;
 import in.bachatsetu.backend.receipt.application.service.CreateReceiptApplicationService;
 import in.bachatsetu.backend.receipt.application.service.GetReceiptApplicationService;
+import in.bachatsetu.backend.receipt.application.service.GetReceiptPdfApplicationService;
 import in.bachatsetu.backend.receipt.application.service.ListReceiptsApplicationService;
 import in.bachatsetu.backend.receipt.application.usecase.CreateReceiptUseCase;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
 import in.bachatsetu.backend.receipt.domain.factory.ReceiptFactory;
@@ -21,7 +24,8 @@ import org.springframework.context.annotation.Configuration;
     ReceiptRepository.class,
     ReceiptFactory.class,
     DomainEventPublisherPort.class,
-    TransactionPort.class
+    TransactionPort.class,
+    ReceiptPdfGenerator.class
 })
 public class ReceiptApplicationConfig {
 
@@ -54,5 +58,12 @@ public class ReceiptApplicationConfig {
             TransactionPort transaction,
             ReceiptApplicationMapper mapper) {
         return new ListReceiptsApplicationService(repository, transaction, mapper);
+    }
+
+    @Bean
+    public GetReceiptPdfUseCase getReceiptPdfUseCase(
+            GetReceiptUseCase getReceiptUseCase,
+            ReceiptPdfGenerator pdfGenerator) {
+        return new GetReceiptPdfApplicationService(getReceiptUseCase, pdfGenerator);
     }
 }

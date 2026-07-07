@@ -1,9 +1,11 @@
 package in.bachatsetu.backend.receipt.interfaces.rest.config;
 
 import in.bachatsetu.backend.receipt.application.port.DomainEventPublisherPort;
+import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
 import in.bachatsetu.backend.receipt.application.port.TransactionPort;
 import in.bachatsetu.backend.receipt.domain.factory.ReceiptFactory;
 import in.bachatsetu.backend.receipt.interfaces.rest.adapter.ApplicationEventReceiptEventPublisherAdapter;
+import in.bachatsetu.backend.receipt.interfaces.rest.adapter.OpenPdfReceiptPdfGenerator;
 import in.bachatsetu.backend.receipt.interfaces.rest.adapter.SpringReceiptTransactionAdapter;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -41,5 +43,10 @@ public class ReceiptInfrastructureConfig {
     @Bean
     DomainEventPublisherPort applicationEventReceiptEventPublisherAdapter(ApplicationEventPublisher publisher) {
         return new ApplicationEventReceiptEventPublisherAdapter(publisher);
+    }
+
+    @Bean
+    ReceiptPdfGenerator openPdfReceiptPdfGenerator() {
+        return new OpenPdfReceiptPdfGenerator();
     }
 }

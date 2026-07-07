@@ -2,8 +2,10 @@ package in.bachatsetu.backend.receipt.interfaces.rest.controller;
 
 import in.bachatsetu.backend.auth.application.security.AuthenticatedUser;
 import in.bachatsetu.backend.auth.application.security.CurrentUserProvider;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
 import in.bachatsetu.backend.receipt.application.usecase.CreateReceiptUseCase;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.CreateReceiptRequest;
@@ -24,6 +26,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import java.net.URI;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +57,7 @@ public class ReceiptController {
     private final CreateReceiptUseCase createReceipt;
     private final GetReceiptUseCase getReceipt;
     private final ListReceiptsUseCase listReceipts;
+    private final GetReceiptPdfUseCase getReceiptPdf;
     private final CurrentUserProvider currentUserProvider;
     private final ReceiptApiMapper mapper;
 
@@ -60,11 +65,13 @@ public class ReceiptController {
             CreateReceiptUseCase createReceipt,
             GetReceiptUseCase getReceipt,
             ListReceiptsUseCase listReceipts,
+            GetReceiptPdfUseCase getReceiptPdf,
             CurrentUserProvider currentUserProvider,
             ReceiptApiMapper mapper) {
         this.createReceipt = createReceipt;
         this.getReceipt = getReceipt;
         this.listReceipts = listReceipts;
+        this.getReceiptPdf = getReceiptPdf;
         this.currentUserProvider = currentUserProvider;
         this.mapper = mapper;
     }
@@ -131,5 +138,26 @@ public class ReceiptController {
             @Parameter(description = "Sort direction", example = "asc") String direction) {
         AuthenticatedUser currentUser = currentUserProvider.requireCurrentUser();
         return mapper.listReceipts(listReceipts, currentUser, page, size, sort, direction);
+    }
+
+    @GetMapping(path = "/{receiptId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(
+            summary = "Download a receipt PDF",
+            description = "Renders one tenant-scoped receipt as a downloadable PDF document.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "PDF returned"),
+        @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(
+                mediaType = PROBLEM_CONTENT_TYPE, schema = @Schema(implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "404", description = "Receipt not found", content = @Content(
+                mediaType = PROBLEM_CONTENT_TYPE, schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public ResponseEntity<byte[]> getPdf(@PathVariable String receiptId) {
+        AuthenticatedUser currentUser = currentUserProvider.requireCurrentUser();
+        ReceiptPdfResult result = mapper.getReceiptPdf(getReceiptPdf, currentUser, receiptId);
+        ContentDisposition disposition = ContentDisposition.attachment().filename(result.fileName()).build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(result.content());
     }
 }

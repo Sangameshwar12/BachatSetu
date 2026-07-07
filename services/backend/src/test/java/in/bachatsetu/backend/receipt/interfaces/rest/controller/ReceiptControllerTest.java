@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,9 +17,11 @@ import in.bachatsetu.backend.auth.domain.model.MobileNumber;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.receipt.application.exception.ReceiptNotFoundException;
 import in.bachatsetu.backend.receipt.application.query.ReceiptLineResult;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptSummary;
 import in.bachatsetu.backend.receipt.application.usecase.CreateReceiptUseCase;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
 import in.bachatsetu.backend.receipt.domain.port.ReceiptPage;
@@ -28,6 +31,7 @@ import in.bachatsetu.backend.receipt.domain.port.SortDirection;
 import in.bachatsetu.backend.receipt.interfaces.rest.exception.ReceiptExceptionHandler;
 import in.bachatsetu.backend.receipt.interfaces.rest.mapper.ReceiptApiMapper;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -59,6 +63,9 @@ class ReceiptControllerTest {
 
     @MockBean
     private ListReceiptsUseCase listReceipts;
+
+    @MockBean
+    private GetReceiptPdfUseCase getReceiptPdf;
 
     @MockBean
     private CurrentUserProvider currentUserProvider;
@@ -208,6 +215,42 @@ class ReceiptControllerTest {
         when(currentUserProvider.requireCurrentUser()).thenThrow(new CurrentUserUnavailableException());
 
         mockMvc.perform(get("/api/v1/receipts"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("authentication-required"));
+    }
+
+    @Test
+    void downloadsReceiptPdf() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        UUID receiptId = UUID.randomUUID();
+        byte[] pdfContent = "%PDF-1.4 test content".getBytes(StandardCharsets.UTF_8);
+        when(getReceiptPdf.execute(eq(TENANT_ID), any()))
+                .thenReturn(new ReceiptPdfResult(pdfContent, "RCT-20260707-1A2B3C4D.pdf"));
+
+        mockMvc.perform(get("/api/v1/receipts/" + receiptId + "/pdf"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"))
+                .andExpect(header().string(
+                        "Content-Disposition", "attachment; filename=\"RCT-20260707-1A2B3C4D.pdf\""))
+                .andExpect(content().bytes(pdfContent));
+    }
+
+    @Test
+    void reportsMissingReceiptPdfAsNotFound() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(getReceiptPdf.execute(eq(TENANT_ID), any()))
+                .thenThrow(new ReceiptNotFoundException("receipt does not exist"));
+
+        mockMvc.perform(get("/api/v1/receipts/" + UUID.randomUUID() + "/pdf"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("receipt-not-found"));
+    }
+
+    @Test
+    void rejectsUnauthenticatedPdfRequest() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenThrow(new CurrentUserUnavailableException());
+
+        mockMvc.perform(get("/api/v1/receipts/" + UUID.randomUUID() + "/pdf"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("authentication-required"));
     }

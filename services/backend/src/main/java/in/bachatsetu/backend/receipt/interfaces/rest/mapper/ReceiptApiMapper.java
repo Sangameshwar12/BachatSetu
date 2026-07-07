@@ -3,8 +3,10 @@ package in.bachatsetu.backend.receipt.interfaces.rest.mapper;
 import in.bachatsetu.backend.auth.application.security.AuthenticatedUser;
 import in.bachatsetu.backend.receipt.application.command.CreateReceiptCommand;
 import in.bachatsetu.backend.receipt.application.query.ReceiptLineResult;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptSummary;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
 import in.bachatsetu.backend.receipt.domain.model.ReceiptDescription;
@@ -43,6 +45,13 @@ public class ReceiptApiMapper {
     }
 
     public ReceiptResult getReceipt(GetReceiptUseCase useCase, AuthenticatedUser currentUser, String receiptId) {
+        Objects.requireNonNull(useCase, "use case must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        Objects.requireNonNull(receiptId, "receipt id must not be null");
+        return useCase.execute(currentUser.tenantId(), AggregateId.from(receiptId));
+    }
+
+    public ReceiptPdfResult getReceiptPdf(GetReceiptPdfUseCase useCase, AuthenticatedUser currentUser, String receiptId) {
         Objects.requireNonNull(useCase, "use case must not be null");
         Objects.requireNonNull(currentUser, "current user must not be null");
         Objects.requireNonNull(receiptId, "receipt id must not be null");

@@ -8,8 +8,10 @@ import in.bachatsetu.backend.auth.domain.model.MobileNumber;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.receipt.application.command.CreateReceiptCommand;
 import in.bachatsetu.backend.receipt.application.query.ReceiptLineResult;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptSummary;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
 import in.bachatsetu.backend.receipt.domain.port.ReceiptPage;
@@ -66,6 +68,23 @@ class ReceiptApiMapperTest {
         };
 
         assertThat(mapper.getReceipt(useCase, currentUser, receiptId.toString())).isEqualTo(expected);
+    }
+
+    @Test
+    void getReceiptPdfDelegatesToUseCaseWithParsedIdentifiers() {
+        AuthenticatedUser currentUser = authenticatedUser();
+        UUID receiptId = UUID.randomUUID();
+        ReceiptPdfResult expected = new ReceiptPdfResult(new byte[] {1, 2, 3}, "RCT-20260807-1A2B3C4D.pdf");
+        GetReceiptPdfUseCase useCase = (tenantId, id) -> {
+            assertThat(tenantId).isEqualTo(currentUser.tenantId());
+            assertThat(id.value()).isEqualTo(receiptId);
+            return expected;
+        };
+
+        ReceiptPdfResult result = mapper.getReceiptPdf(useCase, currentUser, receiptId.toString());
+
+        assertThat(result.fileName()).isEqualTo(expected.fileName());
+        assertThat(result.content()).containsExactly(expected.content());
     }
 
     @Test
