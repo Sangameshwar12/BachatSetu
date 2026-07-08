@@ -8,5 +8,9 @@ public interface NotificationRepository {
 
     Optional<Notification> findById(AggregateId notificationId);
 
+    Optional<Notification> findById(AggregateId tenantId, AggregateId notificationId);
+
+    NotificationPage<Notification> findPage(AggregateId tenantId, NotificationPageRequest pageRequest);
+
     void save(Notification notification);
 }

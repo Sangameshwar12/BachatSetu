@@ -125,3 +125,6 @@ bachatsetu:
   receipt:
     rest:
       enabled: ${RECEIPT_REST_ENABLED:true}
+  notification:
+    rest:
+      enabled: ${NOTIFICATION_REST_ENABLED:true}
