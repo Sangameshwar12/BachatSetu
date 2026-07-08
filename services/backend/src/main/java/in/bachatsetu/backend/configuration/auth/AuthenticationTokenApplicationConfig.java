@@ -20,26 +20,28 @@ import in.bachatsetu.backend.auth.domain.port.RefreshTokenRepository;
 import in.bachatsetu.backend.auth.domain.port.RoleRepository;
 import in.bachatsetu.backend.auth.domain.port.UserRepository;
 import in.bachatsetu.backend.infrastructure.auth.config.AuthenticationTokenProperties;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import in.bachatsetu.backend.infrastructure.persistence.adapter.ConditionalOnPersistenceRepositories;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Outer composition root for framework-free token application services. */
+/**
+ * Outer composition root for framework-free token application services.
+ *
+ * <p>Gated on {@code bachatsetu.persistence.repositories.enabled} rather than a
+ * cross-configuration-class {@code @ConditionalOnBean} check for its required ports: regular
+ * (non-auto-configuration) {@code @Configuration} classes discovered by component scanning have
+ * no guaranteed processing order relative to one another, so a class-level
+ * {@code @ConditionalOnBean} referencing ports defined by sibling configuration classes was
+ * evaluated non-deterministically and could skip this configuration even when every required
+ * port was actually present.
+ */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
         prefix = "bachatsetu.authentication.token",
         name = "enabled",
         havingValue = "true")
-@ConditionalOnBean({
-    UserRepository.class,
-    RoleRepository.class,
-    PermissionRepository.class,
-    RefreshTokenRepository.class,
-    JwtProviderPort.class,
-    TokenHasherPort.class,
-    TokenClockPort.class
-})
+@ConditionalOnPersistenceRepositories
 public class AuthenticationTokenApplicationConfig {
 
     @Bean

@@ -23,19 +23,26 @@ import in.bachatsetu.backend.group.application.usecase.JoinGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.ListSavingsGroupsUseCase;
 import in.bachatsetu.backend.group.application.usecase.RemoveMemberUseCase;
 import in.bachatsetu.backend.group.application.usecase.SuspendGroupUseCase;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Composes framework-free Savings Group application services when all outbound ports exist. */
+/**
+ * Composes framework-free Savings Group application services when all outbound ports exist.
+ *
+ * <p>Gated on {@code bachatsetu.persistence.repositories.enabled} rather than a
+ * cross-configuration-class {@code @ConditionalOnBean} check: regular (non-auto-configuration)
+ * {@code @Configuration} classes discovered by component scanning have no guaranteed processing
+ * order relative to one another, so a class-level {@code @ConditionalOnBean} referencing ports
+ * defined by {@code GroupInfrastructureConfig} was evaluated non-deterministically and could skip
+ * this configuration even when every required port was actually present.
+ */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean({
-    SavingsGroupRepository.class,
-    GroupCodeGeneratorPort.class,
-    DomainEventPublisherPort.class,
-    ClockPort.class,
-    TransactionPort.class
-})
+@ConditionalOnProperty(
+        prefix = "bachatsetu.persistence.repositories",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class SavingsGroupApplicationConfig {
 
     @Bean

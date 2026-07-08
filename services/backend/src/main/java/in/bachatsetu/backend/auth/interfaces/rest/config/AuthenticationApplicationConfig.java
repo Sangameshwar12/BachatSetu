@@ -16,20 +16,27 @@ import in.bachatsetu.backend.auth.application.validation.OtpRequestValidator;
 import in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository;
 import in.bachatsetu.backend.auth.domain.port.UserRepository;
 import in.bachatsetu.backend.auth.domain.service.OtpPolicyService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Composes framework-free OTP application services when all outbound ports exist. */
+/**
+ * Composes framework-free OTP application services when all outbound ports exist.
+ *
+ * <p>Gated on the same {@code bachatsetu.persistence.repositories.enabled} property the outbound
+ * adapters themselves use, rather than a cross-configuration-class {@code @ConditionalOnBean}
+ * check: regular (non-auto-configuration) {@code @Configuration} classes discovered by component
+ * scanning have no guaranteed processing order relative to one another, so a class-level
+ * {@code @ConditionalOnBean} referencing ports defined by a sibling configuration class is
+ * evaluated non-deterministically and can incorrectly skip this configuration even when every
+ * required port is actually present.
+ */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean({
-    UserRepository.class,
-    OtpVerificationRepository.class,
-    ClockPort.class,
-    RandomGeneratorPort.class,
-    HashingPort.class,
-    OtpSenderPort.class
-})
+@ConditionalOnProperty(
+        prefix = "bachatsetu.persistence.repositories",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class AuthenticationApplicationConfig {
 
     @Bean

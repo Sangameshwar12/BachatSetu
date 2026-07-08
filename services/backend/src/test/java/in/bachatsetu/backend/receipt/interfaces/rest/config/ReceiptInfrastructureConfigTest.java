@@ -36,13 +36,15 @@ class ReceiptInfrastructureConfigTest {
     }
 
     @Test
-    void doesNotWireAdaptersWithoutATransactionManager() {
-        contextRunner.run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).doesNotHaveBean(TransactionPort.class);
-            assertThat(context).doesNotHaveBean(DomainEventPublisherPort.class);
-            assertThat(context).doesNotHaveBean(ReceiptFactory.class);
-            assertThat(context).doesNotHaveBean(ReceiptPdfGenerator.class);
-        });
+    void doesNotWireAdaptersWhenPersistenceRepositoriesDisabled() {
+        contextRunner
+                .withPropertyValues("bachatsetu.persistence.repositories.enabled=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(TransactionPort.class);
+                    assertThat(context).doesNotHaveBean(DomainEventPublisherPort.class);
+                    assertThat(context).doesNotHaveBean(ReceiptFactory.class);
+                    assertThat(context).doesNotHaveBean(ReceiptPdfGenerator.class);
+                });
     }
 }

@@ -18,20 +18,26 @@ import in.bachatsetu.backend.draw.application.usecase.ListDrawsUseCase;
 import in.bachatsetu.backend.draw.domain.factory.DrawFactory;
 import in.bachatsetu.backend.draw.domain.port.DrawRepository;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Composes framework-free Draw application services when all outbound ports exist. */
+/**
+ * Composes framework-free Draw application services when all outbound ports exist.
+ *
+ * <p>Gated on {@code bachatsetu.persistence.repositories.enabled} rather than a
+ * cross-configuration-class {@code @ConditionalOnBean} check: regular (non-auto-configuration)
+ * {@code @Configuration} classes discovered by component scanning have no guaranteed processing
+ * order relative to one another, so a class-level {@code @ConditionalOnBean} referencing ports
+ * defined by {@code DrawInfrastructureConfig} was evaluated non-deterministically and could skip
+ * this configuration even when every required port was actually present.
+ */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean({
-    DrawRepository.class,
-    DrawFactory.class,
-    DomainEventPublisherPort.class,
-    ClockPort.class,
-    TransactionPort.class,
-    SavingsGroupRepository.class
-})
+@ConditionalOnProperty(
+        prefix = "bachatsetu.persistence.repositories",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class DrawApplicationConfig {
 
     @Bean

@@ -8,16 +8,28 @@ import in.bachatsetu.backend.receipt.interfaces.rest.adapter.ApplicationEventRec
 import in.bachatsetu.backend.receipt.interfaces.rest.adapter.OpenPdfReceiptPdfGenerator;
 import in.bachatsetu.backend.receipt.interfaces.rest.adapter.SpringReceiptTransactionAdapter;
 import java.time.Clock;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Composes the Receipt outbound port adapters backing the application layer. */
+/**
+ * Composes the Receipt outbound port adapters backing the application layer.
+ *
+ * <p>Gated on {@code bachatsetu.persistence.repositories.enabled} rather than
+ * {@code @ConditionalOnBean(PlatformTransactionManager.class)}: {@code PlatformTransactionManager}
+ * is registered by a Spring Boot auto-configuration, which is processed as a deferred import
+ * after every regular, component-scanned {@code @Configuration} class has already had its
+ * class-level conditions evaluated — so the bean-presence check was never guaranteed to see it.
+ */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean(PlatformTransactionManager.class)
+@ConditionalOnProperty(
+        prefix = "bachatsetu.persistence.repositories",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class ReceiptInfrastructureConfig {
 
     @Bean

@@ -14,19 +14,26 @@ import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
 import in.bachatsetu.backend.receipt.domain.factory.ReceiptFactory;
 import in.bachatsetu.backend.receipt.domain.port.ReceiptRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Composes framework-free Receipt application services when all outbound ports exist. */
+/**
+ * Composes framework-free Receipt application services when all outbound ports exist.
+ *
+ * <p>Gated on {@code bachatsetu.persistence.repositories.enabled} rather than a
+ * cross-configuration-class {@code @ConditionalOnBean} check: regular (non-auto-configuration)
+ * {@code @Configuration} classes discovered by component scanning have no guaranteed processing
+ * order relative to one another, so a class-level {@code @ConditionalOnBean} referencing ports
+ * defined by {@code ReceiptInfrastructureConfig} was evaluated non-deterministically and could
+ * skip this configuration even when every required port was actually present.
+ */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean({
-    ReceiptRepository.class,
-    ReceiptFactory.class,
-    DomainEventPublisherPort.class,
-    TransactionPort.class,
-    ReceiptPdfGenerator.class
-})
+@ConditionalOnProperty(
+        prefix = "bachatsetu.persistence.repositories",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class ReceiptApplicationConfig {
 
     @Bean

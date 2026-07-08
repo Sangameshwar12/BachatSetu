@@ -14,19 +14,26 @@ import in.bachatsetu.backend.payment.application.usecase.ListPaymentsUseCase;
 import in.bachatsetu.backend.payment.application.usecase.UpdatePaymentStatusUseCase;
 import in.bachatsetu.backend.payment.domain.factory.PaymentFactory;
 import in.bachatsetu.backend.payment.domain.port.PaymentRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Composes framework-free Payment application services when all outbound ports exist. */
+/**
+ * Composes framework-free Payment application services when all outbound ports exist.
+ *
+ * <p>Gated on {@code bachatsetu.persistence.repositories.enabled} rather than a
+ * cross-configuration-class {@code @ConditionalOnBean} check: regular (non-auto-configuration)
+ * {@code @Configuration} classes discovered by component scanning have no guaranteed processing
+ * order relative to one another, so a class-level {@code @ConditionalOnBean} referencing ports
+ * defined by {@code PaymentInfrastructureConfig} was evaluated non-deterministically and could
+ * skip this configuration even when every required port was actually present.
+ */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean({
-    PaymentRepository.class,
-    PaymentFactory.class,
-    DomainEventPublisherPort.class,
-    ClockPort.class,
-    TransactionPort.class
-})
+@ConditionalOnProperty(
+        prefix = "bachatsetu.persistence.repositories",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class PaymentApplicationConfig {
 
     @Bean

@@ -37,13 +37,15 @@ class MemberInfrastructureConfigTest {
     }
 
     @Test
-    void doesNotWireAdaptersWithoutATransactionManager() {
-        contextRunner.run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).doesNotHaveBean(ClockPort.class);
-            assertThat(context).doesNotHaveBean(TransactionPort.class);
-            assertThat(context).doesNotHaveBean(MemberNumberGeneratorPort.class);
-            assertThat(context).doesNotHaveBean(DomainEventPublisherPort.class);
-        });
+    void doesNotWireAdaptersWhenPersistenceRepositoriesDisabled() {
+        contextRunner
+                .withPropertyValues("bachatsetu.persistence.repositories.enabled=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(ClockPort.class);
+                    assertThat(context).doesNotHaveBean(TransactionPort.class);
+                    assertThat(context).doesNotHaveBean(MemberNumberGeneratorPort.class);
+                    assertThat(context).doesNotHaveBean(DomainEventPublisherPort.class);
+                });
     }
 }
