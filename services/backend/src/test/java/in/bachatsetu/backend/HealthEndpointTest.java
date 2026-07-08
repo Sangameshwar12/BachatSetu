@@ -25,6 +25,9 @@ import org.springframework.http.ResponseEntity;
             "bachatsetu.draw.rest.enabled=false",
             "bachatsetu.receipt.rest.enabled=false",
             "bachatsetu.notification.rest.enabled=false",
+            "bachatsetu.auction.rest.enabled=false",
+            "bachatsetu.automation.enabled=false",
+            "bachatsetu.payment.gateway.enabled=false",
             "spring.autoconfigure.exclude="
                     + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"

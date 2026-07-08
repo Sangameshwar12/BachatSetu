@@ -2,7 +2,7 @@
 
 BachatSetu is India's Community Savings Platform. The first supported product module is Bhishi, also known as ROSCA or Committee groups. The platform is designed to grow into a broader community collections and savings SaaS for self-help groups, apartment collections, society maintenance, temple collections, festival collections, office contributions, travel saving groups, NGO collections, and community funds.
 
-This repository defines the production foundation, engineering standards, architecture, delivery workflow, and project roadmap, alongside a working backend implementation (`services/backend`) covering OTP authentication, savings groups, members, payments, draws, and receipts.
+This repository defines the production foundation, engineering standards, architecture, delivery workflow, and project roadmap, alongside a working backend implementation (`services/backend`) covering OTP authentication, savings groups, members, payments, draws, auctions, receipts, and notifications.
 
 ## Current Repository Contents
 
@@ -120,7 +120,7 @@ Once the app is running:
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - Raw OpenAPI document: `http://localhost:8080/v3/api-docs`
 
-Every completed REST module registers its endpoints here: OTP Authentication (`/api/v1/auth/otp/*`), Savings Groups (`/api/v1/groups/**`), Members (`/api/v1/members/**`), Payments (`/api/v1/payments/**`), Draws (`/api/v1/draws/**`), and Receipts (`/api/v1/receipts/**`).
+Every completed REST module registers its endpoints here: OTP Authentication (`/api/v1/auth/otp/*`), Savings Groups (`/api/v1/groups/**`), Members (`/api/v1/members/**`), Payments (`/api/v1/payments/**`), Draws (`/api/v1/draws/**`), Receipts (`/api/v1/receipts/**`), Notifications (`/api/v1/notifications/**`), and Auctions (`/api/v1/auctions/**`).
 
 ### Health Check
 

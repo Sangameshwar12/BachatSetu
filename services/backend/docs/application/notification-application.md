@@ -1,7 +1,7 @@
 # Notification Application Layer
 
-Version: 1.0
-Sprint: 11.7 (extends the pre-existing Notification domain and persistence foundation)
+Version: 1.1
+Sprint: 11.7 (application/REST foundation); 11.9 (domain event integration)
 Status: Implemented
 Last Updated: 2026-07-08
 
@@ -136,17 +136,20 @@ framework-free domain classes accomplish this:
 - **`notification.domain.model.NotificationTemplate`** — an immutable `(category, subjectTemplate,
   bodyTemplate)` record. `bodyTemplate` is required; `subjectTemplate` is optional (SMS/WhatsApp typically
   have no subject).
-- **`notification.domain.service.NotificationTemplateCatalog`** — a static, in-code registry mapping each of
-  the six pre-existing `NotificationCategory` values to exactly one canned template, using the sprint's
-  example placeholders (`{{memberName}}`, `{{groupName}}`, `{{amount}}`, `{{drawNumber}}`,
-  `{{receiptNumber}}`). One category maps to one template — there is no separate "template code" concept,
-  since the category enum already provides a natural, existing key.
+- **`notification.domain.service.NotificationTemplateCatalog`** — a static, in-code registry mapping each
+  `NotificationCategory` value to exactly one canned template. The original six (Sprint 11.7) use the
+  sprint's example placeholders (`{{memberName}}`, `{{groupName}}`, `{{amount}}`, `{{drawNumber}}`,
+  `{{receiptNumber}}`) baked into fixed wording. The six added in Sprint 11.9 (`PAYMENT`, `RECEIPT`, `DRAW`,
+  `AUCTION`, `GROUP`, `MEMBER`) instead use a pass-through template (`{{title}}`/`{{body}}`) — see
+  [Domain Event Notification Integration](#domain-event-notification-integration-sprint-119) below for why.
 - **`notification.domain.service.NotificationTemplateRenderer`** — performs simple `{{placeholder}}` string
   substitution (no template engine, per the sprint's explicit scope). A placeholder absent from the caller's
   map is left literally unreplaced in the output; this is a deliberate, minimal behavior, not an oversight.
 
-Future services (Payment, Draw, Receipt, Group) that want to notify a member call `CreateNotificationUseCase`
-with a `category` and a `Map` of placeholder values — they never construct message text themselves.
+Services that want to notify a member call `CreateNotificationUseCase` with a `category` and a `Map` of
+placeholder values — they never construct message text themselves. As of Sprint 11.9, this is realized for
+Payment, Receipt, Draw, Auction, Group, and Member through the domain-event listeners described below, rather
+than through any direct call from those modules' own application services.
 
 ## Channel Abstractions
 
@@ -237,6 +240,134 @@ execution order for `CreateNotificationUseCase` is:
    QUEUED→SENDING and SENDING→SENT transitions).
 9. Map and return the result.
 
+## Domain Event Notification Integration (Sprint 11.9)
+
+Sprint 11.9 connects six completed-business-event families to notification creation, entirely through Spring
+application events — no business module calls `CreateNotificationUseCase` (or any other Notification type)
+directly, and no business module holds a compile-time dependency on the Notification module.
+
+### Event Flow
+
+```mermaid
+flowchart LR
+    P[Payment.verify] -->|PaymentStatusChanged| PL[PaymentVerifiedNotificationListener]
+    R[Receipt.generate] -->|ReceiptGenerated| RL[ReceiptGeneratedNotificationListener]
+    D[Draw.complete] -->|DrawCompleted| DL[DrawCompletionNotificationListener]
+    G1[SavingsGroup.create/joinMember/removeMember] -->|SavingsGroupCreated / MemberJoined / MemberRemoved| GL[SavingsGroupNotificationListener]
+    M1[MemberProfile.changeStatus] -->|MemberStatusChanged| ML[MemberNotificationListener]
+    M2[UserProfile.changeContact] -->|UserContactChanged| ML
+    PL --> CN[CreateNotificationUseCase]
+    RL --> CN
+    DL --> CN
+    GL --> CN
+    ML --> CN
+```
+
+Every arrow into a listener is a pre-existing domain event (`DrawCompleted` is reused unchanged from Draw's
+own Sprint 11.2 lifecycle; `PaymentStatusChanged`, `ReceiptGenerated`, `SavingsGroupCreated`, `MemberJoined`,
+`MemberRemoved`, `MemberStatusChanged`, and `UserContactChanged` all pre-date this sprint too). No new domain
+event was introduced — this sprint is pure additive listening, matching its "reuse existing... do not
+duplicate" scope.
+
+### Listener Architecture
+
+| Listener | Package | Reacts to | Notifies |
+| --- | --- | --- | --- |
+| `PaymentVerifiedNotificationListener` | `notification.interfaces.rest.event` | `PaymentStatusChanged` (filtered to `VERIFIED`) | The paying member and the group organizer (`PAYMENT`) |
+| `ReceiptGeneratedNotificationListener` | `notification.interfaces.rest.event` | `ReceiptGenerated` | The receipt's member (`RECEIPT`) |
+| `DrawCompletionNotificationListener` | `auction.interfaces.rest.event` | `DrawCompleted` | The winner (`AUCTION` if `Draw.type() == DrawType.AUCTION`, else `DRAW`) and the group organizer (`DRAW`) |
+| `SavingsGroupNotificationListener` | `notification.interfaces.rest.event` | `SavingsGroupCreated`, `MemberJoined`, `MemberRemoved` | The group owner, the joining member, or the removed member (`GROUP`) |
+| `MemberNotificationListener` | `notification.interfaces.rest.event` | `MemberStatusChanged`, `UserContactChanged` | The member whose status changed, or the user whose contact details changed (`MEMBER`) |
+
+Four of the five listeners live under `notification.interfaces.rest.event`, matching this sprint's framing
+("business modules publish events, the Notification module consumes them"). `DrawCompletionNotificationListener`
+is the one exception: it already existed (Sprint 11.8, under `auction.interfaces.rest.event`) and already
+fully covered the winner-notification half of both the "Draw Completed" and "Auction Completed" requirements
+this sprint lists — since `DrawCompleted` fires once per closed draw regardless of type, adding a *second*,
+separately-triggered listener for the same event would either duplicate the winner notification or require
+awkward suppression logic in two places. Extending the existing listener (adding the organizer notification
+and branching the winner's category/wording on `Draw#type()`) was the additive, no-duplicate-notification
+choice; moving it into `notification.interfaces` would have been a same-behavior file relocation with no
+functional benefit, which the sprint's "do not redesign existing architecture" instruction weighs against.
+
+Every listener method is a `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)` — the same
+mechanism `DrawCompletionNotificationListener` introduced in Sprint 11.8 (the first use of Spring's
+event-listener mechanism in this codebase) — so a notification is only attempted once the triggering
+business transaction has durably committed, never for one that is later rolled back. Every listener class is
+gated by the same `@ConditionalOnProperty(prefix = "bachatsetu.persistence.repositories", name = "enabled",
+havingValue = "true", matchIfMissing = true)` every repository-backed bean in this codebase already uses, so
+the minimal-context tests (`HealthEndpointTest`, `SecurityIntegrationTest`,
+`AuthenticationOpenApiSmokeTest`) that disable persistence repositories continue to boot without needing a
+new per-listener toggle property.
+
+### Why Six New Pass-Through Categories
+
+The sprint's business requirements specify exact wording per event (for example, "Payment Received" /
+"Your contribution ... has been successfully verified" for a verified payment, distinct from "Receipt
+Available" / "Your payment receipt is ready for download" for a generated receipt), while
+`CreateNotificationApplicationService` always renders a notification's content through
+`NotificationTemplateCatalog.templateFor(command.category())` — there is no way to pass literal text through
+the pre-existing `CreateNotificationUseCase` API, and that service is reused completely unchanged this
+sprint. Rather than add one narrow category per exact message (which would not map onto the sprint's own
+"NOTIFICATION TYPES: PAYMENT, RECEIPT, DRAW, AUCTION, GROUP, MEMBER" grouping, since several of those types
+cover more than one distinct wording — `GROUP` alone covers group creation, a member joining, and a member
+being removed), each of the six new categories uses a pass-through template
+(`subjectTemplate = "{{title}}"`, `bodyTemplate = "{{body}}"`). The triggering listener supplies the exact
+required wording as the `title`/`body` placeholders; the category still determines *which* notification
+family a message belongs to (visible on `NotificationResult`/`NotificationSummaryResponse` for filtering and
+display), and the message still flows through the same category → template → renderer pipeline as every
+other notification.
+
+### Resolving Recipients From Bare Domain Events
+
+Domain events deliberately carry only identifiers, not denormalized display data, so most listeners look up
+the triggering aggregate through its repository before building a notification — exactly the pattern
+`DrawCompletionNotificationListener` established in Sprint 11.8:
+
+- `PaymentStatusChanged`/`ReceiptGenerated` carry only the payment/receipt id; the listener loads the
+  aggregate via `PaymentRepository.findById(paymentId)`/`ReceiptRepository.findById(receiptId)` (both
+  pre-existing, cross-tenant, single-argument overloads) for `tenantId`, `memberId`, and `groupId`.
+- `MemberJoined`/`MemberRemoved` carry the group id as their `aggregateId` and the member's id; the listener
+  loads the group via the pre-existing `group.domain.port.GroupRepository.findById(AggregateId)` (a legacy,
+  cross-tenant port already implemented by `SavingsGroupRepositoryAdapter` alongside the tenant-scoped
+  `group.application.port.SavingsGroupRepository`) for `tenantId` and `name()`.
+- `SavingsGroupCreated` carries `tenantId` and `ownerId` directly on the event, so no repository lookup is
+  needed at all.
+- `MemberStatusChanged` carries the `MemberProfile`'s own id as `aggregateId`; the listener loads it via the
+  pre-existing cross-tenant `MemberRepository.findById(AggregateId)` for `tenantId` and `userId()`.
+- `UserContactChanged` (mapped to "Profile Updated") is raised on the User aggregate, whose `aggregateId` is
+  already the recipient's own user id — but `user.domain.model.UserProfile` has no tenant of its own (unlike
+  every other aggregate in this codebase), so `tenantId` cannot be read off the event or its aggregate. The
+  listener instead resolves it via a new, additive `MemberRepository.findByUserId(AggregateId userId)`
+  cross-tenant overload (paired with the pre-existing `findByUserId(AggregateId tenantId, AggregateId
+  userId)`, mirroring the `findById`/`findById(tenantId, id)` overload pattern every repository port in this
+  codebase already follows) — implemented in `MemberRepositoryAdapter` via one new derived Spring Data query,
+  `findAllByUser_IdAndDeletedFalseOrderByJoinedAtAsc(UUID userId)`. A user with no member profile yet (for
+  example, one who registered but has not joined any group) has no resolvable tenant and is silently skipped
+  — there is nothing to notify against.
+
+In every case, if the lookup finds nothing, the listener returns without creating a notification rather than
+guessing or failing — the identical "no-op on missing aggregate" behavior `DrawCompletionNotificationListener`
+already established.
+
+### No-Duplicate-Notification Guards
+
+Because a Savings Group's organizer is also automatically a `GroupMember` of their own group, and can
+therefore also be a paying member, a bidder, or a draw winner, three listeners explicitly compare the
+secondary recipient against the primary one and skip the second notification when they are the same person:
+`PaymentVerifiedNotificationListener` (member vs. organizer), `DrawCompletionNotificationListener` (winner
+vs. organizer). This is the mechanism this sprint's "no duplicate notifications" testing requirement
+verifies.
+
+### Failure Handling
+
+Every listener method independently wraps its own logic in a `try`/`catch (RuntimeException)` block that
+logs at `ERROR` via SLF4J and does not rethrow — a notification failure is always best-effort and must never
+appear to fail, or roll back, the already-committed business transaction that triggered it. Where a single
+event can produce more than one notification (`DrawCompletionNotificationListener`'s winner and organizer
+notifications), each is wrapped independently, so a failure sending one does not prevent the other from being
+attempted.
+
 ## Testing
 
 - `NotificationTest` (new) — the pre-existing `Notification` aggregate itself had zero test coverage before
@@ -265,6 +396,15 @@ execution order for `CreateNotificationUseCase` is:
 - `NotificationPersistencePostgreSqlIntegrationTest` (Testcontainers; skips cleanly without Docker) — full
   lifecycle round-trip against a real PostgreSQL instance, tenant isolation, and database-level pagination
   and sorting.
+- `PaymentVerifiedNotificationListenerTest`, `ReceiptGeneratedNotificationListenerTest`,
+  `SavingsGroupNotificationListenerTest`, `MemberNotificationListenerTest`,
+  `DrawCompletionNotificationListenerTest` (Sprint 11.9, new/extended) — success paths for every integrated
+  event, the missing-aggregate no-op path, the no-duplicate-notification guard (organizer/member/winner
+  equality), failure-swallowing without rethrowing, and constructor null-validation for every listener.
+- `MemberRepositoryAdapterTest` (Sprint 11.9, extended) — the new cross-tenant `findByUserId(AggregateId)`
+  overload, both the assembled-match and no-match cases.
+- `NotificationTemplateCatalogTest` (unmodified, automatically extended via `@EnumSource(NotificationCategory.class)`)
+  — verifies the six Sprint 11.9 pass-through categories also have a registered, non-blank template.
 
 ## Current Limitations
 
@@ -280,3 +420,13 @@ execution order for `CreateNotificationUseCase` is:
   as its own later sprint.
 - **`IN_APP`/`PUSH` naming divergence.** Documented above; a future sprint could rename the domain enum value
   (with a small Flyway migration) if the mismatch becomes confusing, but it does not affect behavior.
+- **Event-triggered notification wording omits some illustrative detail.** The sprint's payment-verified
+  example wording references a specific month ("your contribution for July"); the actual listener uses the
+  group's name in place of a cycle/month label, since a payment does not cheaply resolve to a human-readable
+  month without an additional `MonthlyCycle` lookup this sprint's scope did not require. Wording stays
+  data-derived (never fabricated) but is not always as specific as the sprint's illustrative example.
+- **`destination` is always the recipient's own identifier string, never a real email/phone/device token.**
+  Every event-triggered listener follows the exact placeholder pattern `CreateNotificationApplicationService`
+  itself expects (a required, non-null `destination`), matching how `DrawCompletionNotificationListener`
+  already did this in Sprint 11.8. Resolving a real destination address is blocked on the same "no real
+  provider integrations" limitation above.

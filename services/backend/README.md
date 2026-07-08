@@ -19,6 +19,12 @@ in.bachatsetu.backend
   notification/domain/{model,event,exception,port,factory}
 ```
 
+`auction` is not listed above because it has no domain package of its own: "Auction" is the pre-existing
+`Draw` aggregate (`draw.domain.model.Draw`) operating in `DrawType.AUCTION` mode. The `auction` top-level
+package contains only `application` and `interfaces` layers — a business-vocabulary-aligned facade over
+`draw.domain`/`draw.application` — documented in
+[docs/application/auction-application.md](docs/application/auction-application.md).
+
 ## Architectural Decisions
 
 - Domain code uses only the Java standard library and has no Spring, persistence, HTTP, or serialization annotations.

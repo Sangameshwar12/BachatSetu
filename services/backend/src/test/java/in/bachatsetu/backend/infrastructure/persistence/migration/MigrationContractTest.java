@@ -13,7 +13,7 @@ class MigrationContractTest {
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
 
     @Test
-    void containsOnlyTheSixOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheSevenOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
                     .containsExactly(
@@ -22,7 +22,8 @@ class MigrationContractTest {
                             "V3__identity_persistence.sql",
                             "V4__secure_otp_authentication.sql",
                             "V5__refresh_token_security.sql",
-                            "V6__savings_group_schema.sql");
+                            "V6__savings_group_schema.sql",
+                            "V7__payment_gateway_orders.sql");
         }
     }
 
@@ -65,7 +66,8 @@ class MigrationContractTest {
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V3__identity_persistence.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V4__secure_otp_authentication.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V5__refresh_token_security.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V6__savings_group_schema.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V6__savings_group_schema.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V7__payment_gateway_orders.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -151,6 +153,22 @@ class MigrationContractTest {
                 .contains("ON CONFLICT (group_member_id, event_type) DO NOTHING")
                 .doesNotContain("CREATE TABLE community.groups")
                 .doesNotContain("CREATE TABLE community.group_members");
+    }
+
+    @Test
+    void paymentGatewayMigrationAddsAnAdditiveOrdersTableOnly() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V7__payment_gateway_orders.sql"));
+
+        assertThat(sql)
+                .contains("CREATE TABLE finance.payment_gateway_orders")
+                .contains("REFERENCES finance.payments (id)")
+                .contains("uk_gateway_orders_payment")
+                .contains("uk_gateway_orders_provider_order")
+                .contains("gateway_type IN ('RAZORPAY', 'STRIPE', 'CASHFREE')")
+                .contains("version BIGINT NOT NULL DEFAULT 0")
+                .contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
+                .doesNotContain("ALTER TABLE finance.payments")
+                .doesNotContain("DROP ");
     }
 
     private int count(String source, String token) {

@@ -5,12 +5,14 @@ import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvi
 import in.bachatsetu.backend.infrastructure.persistence.mapper.NotificationJpaMapper;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.NotificationSpringDataRepository;
 import in.bachatsetu.backend.notification.domain.model.Notification;
+import in.bachatsetu.backend.notification.domain.model.NotificationCategory;
 import in.bachatsetu.backend.notification.domain.port.NotificationPage;
 import in.bachatsetu.backend.notification.domain.port.NotificationPageRequest;
 import in.bachatsetu.backend.notification.domain.port.NotificationRepository;
 import in.bachatsetu.backend.notification.domain.port.NotificationSortField;
 import in.bachatsetu.backend.notification.domain.port.SortDirection;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -72,6 +74,13 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
             return "scheduledAt";
         }
         return "createdAt";
+    }
+
+    @Override
+    public boolean existsForRecipientSince(
+            AggregateId tenantId, AggregateId recipientUserId, NotificationCategory category, Instant since) {
+        return repository.existsByTenantIdAndUser_IdAndCategoryAndCreatedAtGreaterThanEqualAndDeletedFalse(
+                tenantId.value(), recipientUserId.value(), category, since);
     }
 
     @Override

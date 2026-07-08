@@ -13,6 +13,8 @@ public interface MemberRepository {
 
     Optional<MemberProfile> findByUserId(AggregateId tenantId, AggregateId userId);
 
+    Optional<MemberProfile> findByUserId(AggregateId userId);
+
     Optional<MemberProfile> findByMemberNumber(AggregateId tenantId, MemberNumber memberNumber);
 
     MemberPage<MemberProfile> findPage(AggregateId tenantId, MemberPageRequest pageRequest);

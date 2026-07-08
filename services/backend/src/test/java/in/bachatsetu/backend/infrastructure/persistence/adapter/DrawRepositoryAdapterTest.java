@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import in.bachatsetu.backend.draw.domain.model.BidAmount;
 import in.bachatsetu.backend.draw.domain.model.Draw;
 import in.bachatsetu.backend.draw.domain.model.DrawNumber;
+import in.bachatsetu.backend.draw.domain.model.DrawStatus;
 import in.bachatsetu.backend.draw.domain.model.DrawType;
 import in.bachatsetu.backend.draw.domain.port.DrawPage;
 import in.bachatsetu.backend.draw.domain.port.DrawPageRequest;
@@ -142,6 +143,39 @@ class DrawRepositoryAdapterTest {
         assertThat(page.page()).isEqualTo(1);
         assertThat(page.size()).isEqualTo(5);
         assertThat(page.totalElements()).isEqualTo(6);
+    }
+
+    @Test
+    void findsPageByTypeAndAppliesRequestedSort() {
+        AggregateId tenantId = AggregateId.newId();
+        DrawJpaEntity entity = mock(DrawJpaEntity.class);
+        Draw draw = newDraw(AggregateId.newId());
+        DrawPageRequest pageRequest = new DrawPageRequest(0, 20, DrawSortField.SCHEDULED_AT, SortDirection.DESC);
+        when(repository.findAllByTenantIdAndTypeAndDeletedFalse(
+                        eq(tenantId.value()), eq(DrawType.AUCTION), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity), PageRequest.of(0, 20), 1));
+        when(mapper.toDomain(entity)).thenReturn(draw);
+
+        DrawPage<Draw> page = adapter.findPageByType(tenantId, DrawType.AUCTION, pageRequest);
+
+        assertThat(page.content()).containsExactly(draw);
+        assertThat(page.totalElements()).isEqualTo(1);
+        verify(repository).findAllByTenantIdAndTypeAndDeletedFalse(
+                eq(tenantId.value()), eq(DrawType.AUCTION), any(Pageable.class));
+    }
+
+    @Test
+    void findsDueScheduledDrawsAcrossTenants() {
+        DrawJpaEntity entity = mock(DrawJpaEntity.class);
+        Draw draw = newDraw(AggregateId.newId());
+        Instant cutoff = NOW.plusSeconds(3600);
+        when(repository.findAllByStatusAndScheduledAtLessThanEqualAndDeletedFalse(DrawStatus.SCHEDULED, cutoff))
+                .thenReturn(List.of(entity));
+        when(mapper.toDomain(entity)).thenReturn(draw);
+
+        List<Draw> due = adapter.findDueScheduled(cutoff);
+
+        assertThat(due).containsExactly(draw);
     }
 
     @Test

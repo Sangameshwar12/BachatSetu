@@ -9,6 +9,15 @@ import java.util.Objects;
 /**
  * Centralizes the one canned message template per {@link NotificationCategory}, so message text is defined
  * once here rather than duplicated across the services that trigger notifications.
+ *
+ * <p>{@link NotificationCategory#PAYMENT}, {@link NotificationCategory#RECEIPT}, {@link
+ * NotificationCategory#DRAW}, {@link NotificationCategory#AUCTION}, {@link NotificationCategory#GROUP}, and
+ * {@link NotificationCategory#MEMBER} (Sprint 11.9) use a pass-through template ({@code {{title}}}/{@code
+ * {{body}}}) rather than a fixed sentence: each covers several distinct domain-event-triggered messages (for
+ * example {@code GROUP} covers group creation, a member joining, and a member being removed), so the exact
+ * wording is supplied by the triggering event listener as placeholders rather than fixed here. This still
+ * goes through the same category, template, and renderer pipeline as every other notification — only the
+ * wording is caller-supplied instead of category-fixed.
  */
 public final class NotificationTemplateCatalog {
 
@@ -54,6 +63,18 @@ public final class NotificationTemplateCatalog {
                 NotificationCategory.SECURITY_ALERT,
                 "Security alert",
                 "Hello {{memberName}}, we noticed a security-relevant event on your account."));
+        templates.put(NotificationCategory.PAYMENT, new NotificationTemplate(
+                NotificationCategory.PAYMENT, "{{title}}", "{{body}}"));
+        templates.put(NotificationCategory.RECEIPT, new NotificationTemplate(
+                NotificationCategory.RECEIPT, "{{title}}", "{{body}}"));
+        templates.put(NotificationCategory.DRAW, new NotificationTemplate(
+                NotificationCategory.DRAW, "{{title}}", "{{body}}"));
+        templates.put(NotificationCategory.AUCTION, new NotificationTemplate(
+                NotificationCategory.AUCTION, "{{title}}", "{{body}}"));
+        templates.put(NotificationCategory.GROUP, new NotificationTemplate(
+                NotificationCategory.GROUP, "{{title}}", "{{body}}"));
+        templates.put(NotificationCategory.MEMBER, new NotificationTemplate(
+                NotificationCategory.MEMBER, "{{title}}", "{{body}}"));
         return Map.copyOf(templates);
     }
 }

@@ -194,6 +194,24 @@ class PaymentApplicationServiceTest {
     }
 
     @Test
+    void refundsAVerifiedPayment() {
+        AggregateId tenantId = AggregateId.newId();
+        Payment payment = newPayment(AggregateId.newId());
+        payment.verify(new ProviderReference("test-provider", "txn-001"), payment.tenantId(), NOW.plusSeconds(5));
+        payment.pullDomainEvents();
+        when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
+        UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
+                repository, publisher, clock, transaction, mapper);
+
+        PaymentResult result = service.execute(new UpdatePaymentStatusCommand(
+                tenantId, payment.id(), PaymentStatus.REFUNDED, null, null, payment.tenantId()));
+
+        assertThat(result.status()).isEqualTo("REFUNDED");
+        verify(repository).save(payment);
+        assertPublishedEvents(PaymentStatusChanged.class);
+    }
+
+    @Test
     void rejectsAnUnsupportedTargetStatus() {
         AggregateId tenantId = AggregateId.newId();
         Payment payment = newPayment(AggregateId.newId());

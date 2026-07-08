@@ -110,6 +110,19 @@ public final class Payment extends BaseAggregateRoot {
         changeStatus(PaymentStatus.FAILED, actorId, failedAt);
     }
 
+    /**
+     * Records that a verified payment has been refunded through the gateway it was verified by.
+     *
+     * <p>Only a {@link PaymentStatus#VERIFIED} payment may be refunded — refunding money that was never
+     * confirmed as received has no meaning. The refund's own provider-side details (refund id, provider)
+     * are gateway-integration metadata owned by the {@code paymentgateway} module, not this aggregate; this
+     * method only records the business fact that this payment is no longer considered paid.
+     */
+    public void refund(AggregateId actorId, Instant refundedAt) {
+        requireStatus(PaymentStatus.VERIFIED);
+        changeStatus(PaymentStatus.REFUNDED, actorId, refundedAt);
+    }
+
     private void changeStatus(PaymentStatus nextStatus, AggregateId actorId, Instant changedAt) {
         if (status == nextStatus) {
             return;

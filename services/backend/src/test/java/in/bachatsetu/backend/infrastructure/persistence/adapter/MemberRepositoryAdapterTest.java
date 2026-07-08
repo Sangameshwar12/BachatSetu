@@ -118,6 +118,33 @@ class MemberRepositoryAdapterTest {
     }
 
     @Test
+    void findsByUserIdAcrossTenantsAssemblingAllParticipationRows() {
+        AggregateId userId = AggregateId.newId();
+        AggregateId memberId = AggregateId.newId();
+        GroupMemberJpaEntity firstRow = mock(GroupMemberJpaEntity.class);
+        GroupMemberJpaEntity secondRow = mock(GroupMemberJpaEntity.class);
+        MemberProfile firstProfile = memberWithOneParticipation(memberId, AggregateId.newId());
+        MemberProfile secondProfile = memberWithOneParticipation(memberId, AggregateId.newId());
+        when(repository.findAllByUser_IdAndDeletedFalseOrderByJoinedAtAsc(userId.value()))
+                .thenReturn(List.of(firstRow, secondRow));
+        when(mapper.toDomain(firstRow)).thenReturn(firstProfile);
+        when(mapper.toDomain(secondRow)).thenReturn(secondProfile);
+
+        MemberProfile assembled = adapter.findByUserId(userId).orElseThrow();
+
+        assertThat(assembled.id()).isEqualTo(firstProfile.id());
+        assertThat(assembled.participations()).hasSize(2);
+    }
+
+    @Test
+    void reportsNoMatchingUserAcrossTenants() {
+        AggregateId userId = AggregateId.newId();
+        when(repository.findAllByUser_IdAndDeletedFalseOrderByJoinedAtAsc(userId.value())).thenReturn(List.of());
+
+        assertThat(adapter.findByUserId(userId)).isEmpty();
+    }
+
+    @Test
     void findsByMemberNumber() {
         AggregateId tenantId = AggregateId.newId();
         MemberNumber memberNumber = new MemberNumber("MB-1A2B3C4D5E6F7A8B");

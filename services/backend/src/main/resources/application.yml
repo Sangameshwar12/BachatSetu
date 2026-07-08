@@ -103,6 +103,7 @@ bachatsetu:
         - /swagger-ui/**
         - /swagger-ui.html
         - /api/v1/auth/**
+        - /api/v1/payments/webhooks/**
       cors:
         allowed-origins: ${AUTH_CORS_ALLOWED_ORIGINS:http://localhost:3000}
         allowed-methods: ${AUTH_CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
@@ -119,6 +120,20 @@ bachatsetu:
   payment:
     rest:
       enabled: ${PAYMENT_REST_ENABLED:true}
+    gateway:
+      enabled: ${PAYMENT_GATEWAY_ENABLED:true}
+      default-provider: ${PAYMENT_GATEWAY_DEFAULT_PROVIDER:RAZORPAY}
+      razorpay:
+        key-id: ${RAZORPAY_KEY_ID:}
+        secret: ${RAZORPAY_SECRET:}
+        webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+      stripe:
+        api-key: ${STRIPE_API_KEY:}
+        webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+      cashfree:
+        client-id: ${CASHFREE_CLIENT_ID:}
+        client-secret: ${CASHFREE_CLIENT_SECRET:}
+        webhook-secret: ${CASHFREE_WEBHOOK_SECRET:}
   draw:
     rest:
       enabled: ${DRAW_REST_ENABLED:true}
@@ -128,3 +143,17 @@ bachatsetu:
   notification:
     rest:
       enabled: ${NOTIFICATION_REST_ENABLED:true}
+  auction:
+    rest:
+      enabled: ${AUCTION_REST_ENABLED:true}
+  automation:
+    enabled: ${AUTOMATION_ENABLED:true}
+    draw:
+      cron: ${AUTOMATION_DRAW_CRON:0 */15 * * * *}
+    payment-reminder:
+      cron: ${AUTOMATION_PAYMENT_REMINDER_CRON:0 0 9 * * *}
+      days-ahead: ${AUTOMATION_PAYMENT_REMINDER_DAYS_AHEAD:3}
+    overdue-reminder:
+      cron: ${AUTOMATION_OVERDUE_REMINDER_CRON:0 30 9 * * *}
+    cleanup:
+      cron: ${AUTOMATION_CLEANUP_CRON:0 0 3 * * *}

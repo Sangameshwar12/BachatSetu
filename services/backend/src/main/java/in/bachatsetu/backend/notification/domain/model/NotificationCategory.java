@@ -6,5 +6,11 @@ public enum NotificationCategory {
     CONTRIBUTION_REMINDER,
     GROUP_UPDATE,
     DRAW_RESULT,
-    SECURITY_ALERT
+    SECURITY_ALERT,
+    PAYMENT,
+    RECEIPT,
+    DRAW,
+    AUCTION,
+    GROUP,
+    MEMBER
 }

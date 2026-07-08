@@ -61,6 +61,13 @@ public class MemberRepositoryAdapter implements MemberRepository {
     }
 
     @Override
+    public Optional<MemberProfile> findByUserId(AggregateId userId) {
+        List<GroupMemberJpaEntity> rows =
+                repository.findAllByUser_IdAndDeletedFalseOrderByJoinedAtAsc(userId.value());
+        return rows.isEmpty() ? Optional.empty() : Optional.of(assemble(rows));
+    }
+
+    @Override
     public Optional<MemberProfile> findByMemberNumber(AggregateId tenantId, MemberNumber memberNumber) {
         return repository
                 .findFirstByTenantIdAndMemberNumberAndDeletedFalseOrderByJoinedAtAsc(

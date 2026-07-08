@@ -17,6 +17,8 @@ public interface MemberSpringDataRepository extends BaseJpaRepository<GroupMembe
     List<GroupMemberJpaEntity> findAllByTenantIdAndUser_IdAndDeletedFalseOrderByJoinedAtAsc(
             UUID tenantId, UUID userId);
 
+    List<GroupMemberJpaEntity> findAllByUser_IdAndDeletedFalseOrderByJoinedAtAsc(UUID userId);
+
     Optional<GroupMemberJpaEntity> findFirstByTenantIdAndMemberNumberAndDeletedFalseOrderByJoinedAtAsc(
             UUID tenantId, String memberNumber);
 

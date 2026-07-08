@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 public final class Draw extends BaseAggregateRoot {
@@ -141,6 +142,23 @@ public final class Draw extends BaseAggregateRoot {
         status = DrawStatus.COMPLETED;
         markChanged(actorId, completedAt);
         registerEvent(new DrawCompleted(UUID.randomUUID(), id(), winnerId, completedAt));
+    }
+
+    /**
+     * The accepted winning bid of a completed auction-type draw, if one exists.
+     *
+     * <p>Empty for non-auction draws, incomplete draws, or a completed draw with no accepted bid
+     * (which cannot occur through {@link #complete}, but is guarded here defensively since this
+     * accessor derives its answer from {@link #bids} rather than storing its own state).
+     */
+    public Optional<AuctionWinner> winner() {
+        if (type != DrawType.AUCTION || status != DrawStatus.COMPLETED || winnerMemberId == null) {
+            return Optional.empty();
+        }
+        return bids.stream()
+                .filter(bid -> bid.status() == BidStatus.ACCEPTED)
+                .findFirst()
+                .map(bid -> new AuctionWinner(winnerMemberId, bid.amount(), auditInfo().updatedAt()));
     }
 
     public AggregateId tenantId() { return tenantId; }

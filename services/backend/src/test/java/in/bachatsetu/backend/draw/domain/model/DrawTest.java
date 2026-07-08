@@ -66,6 +66,46 @@ class DrawTest {
                 .isInstanceOf(InvalidDrawStateException.class);
     }
 
+    @Test
+    void reportsTheWinningBidOnceACompletedAuctionHasOne() {
+        AggregateId actorId = AggregateId.newId();
+        AggregateId memberId = AggregateId.newId();
+        Draw draw = newAuction(actorId);
+        draw.open(actorId, NOW.plusSeconds(10));
+        draw.submitBid(memberId, new BidAmount(Money.inr(10_000)), actorId, NOW.plusSeconds(20));
+
+        draw.complete(memberId, actorId, NOW.plusSeconds(30));
+
+        assertThat(draw.winner()).isPresent();
+        assertThat(draw.winner().orElseThrow().memberId()).isEqualTo(memberId);
+        assertThat(draw.winner().orElseThrow().winningAmount()).isEqualTo(new BidAmount(Money.inr(10_000)));
+        assertThat(draw.winner().orElseThrow().decidedAt()).isEqualTo(NOW.plusSeconds(30));
+    }
+
+    @Test
+    void reportsNoWinnerForAnIncompleteAuction() {
+        AggregateId actorId = AggregateId.newId();
+        Draw draw = newAuction(actorId);
+        draw.open(actorId, NOW.plusSeconds(10));
+        draw.submitBid(AggregateId.newId(), new BidAmount(Money.inr(10_000)), actorId, NOW.plusSeconds(20));
+
+        assertThat(draw.winner()).isEmpty();
+    }
+
+    @Test
+    void reportsNoWinnerForACompletedNonAuctionDraw() {
+        AggregateId actorId = AggregateId.newId();
+        AggregateId memberId = AggregateId.newId();
+        Draw draw = Draw.schedule(
+                AggregateId.newId(), AggregateId.newId(), AggregateId.newId(), AggregateId.newId(),
+                new DrawNumber(1), DrawType.RANDOM, NOW.plusSeconds(10), actorId, NOW);
+        draw.open(actorId, NOW.plusSeconds(10));
+
+        draw.complete(memberId, actorId, NOW.plusSeconds(30));
+
+        assertThat(draw.winner()).isEmpty();
+    }
+
     private Draw newAuction(AggregateId actorId) {
         return Draw.schedule(
                 AggregateId.newId(),

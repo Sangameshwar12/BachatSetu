@@ -116,6 +116,20 @@ class NotificationRepositoryAdapterTest {
     }
 
     @Test
+    void reportsWhetherARecipientWasAlreadyNotifiedSince() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId recipientId = AggregateId.newId();
+        when(repository.existsByTenantIdAndUser_IdAndCategoryAndCreatedAtGreaterThanEqualAndDeletedFalse(
+                        tenantId.value(), recipientId.value(), NotificationCategory.CONTRIBUTION_REMINDER, NOW))
+                .thenReturn(true);
+
+        boolean exists = adapter.existsForRecipientSince(
+                tenantId, recipientId, NotificationCategory.CONTRIBUTION_REMINDER, NOW);
+
+        assertThat(exists).isTrue();
+    }
+
+    @Test
     void savesNewAndUpdatedNotifications() {
         Notification notification = newNotification(AggregateId.newId());
         NotificationJpaEntity candidate = mock(NotificationJpaEntity.class);

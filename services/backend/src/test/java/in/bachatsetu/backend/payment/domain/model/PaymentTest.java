@@ -54,6 +54,29 @@ class PaymentTest {
     }
 
     @Test
+    void refundsAVerifiedPaymentExactlyOnce() {
+        AggregateId actorId = AggregateId.newId();
+        Payment payment = newPayment(actorId);
+        payment.startAttempt(actorId, NOW.plusSeconds(10));
+        payment.verify(new ProviderReference("test-provider", "txn-001"), actorId, NOW.plusSeconds(20));
+
+        payment.refund(actorId, NOW.plusSeconds(30));
+
+        assertThat(payment.status()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThatThrownBy(() -> payment.refund(actorId, NOW.plusSeconds(40)))
+                .isInstanceOf(InvalidPaymentStateException.class);
+    }
+
+    @Test
+    void rejectsRefundingAPaymentThatWasNeverVerified() {
+        AggregateId actorId = AggregateId.newId();
+        Payment payment = newPayment(actorId);
+
+        assertThatThrownBy(() -> payment.refund(actorId, NOW.plusSeconds(10)))
+                .isInstanceOf(InvalidPaymentStateException.class);
+    }
+
+    @Test
     void rejectsNonPositivePaymentAmounts() {
         AggregateId actorId = AggregateId.newId();
 

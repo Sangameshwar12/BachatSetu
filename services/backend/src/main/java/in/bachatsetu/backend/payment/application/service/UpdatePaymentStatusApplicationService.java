@@ -44,6 +44,7 @@ public final class UpdatePaymentStatusApplicationService implements UpdatePaymen
             case PENDING_PROVIDER -> payment.startAttempt(command.actorId(), now);
             case VERIFIED -> payment.verify(command.providerReference(), command.actorId(), now);
             case FAILED -> payment.fail(command.failureCode(), command.actorId(), now);
+            case REFUNDED -> payment.refund(command.actorId(), now);
             default -> throw new IllegalArgumentException(
                     "unsupported target status: " + command.targetStatus());
         }

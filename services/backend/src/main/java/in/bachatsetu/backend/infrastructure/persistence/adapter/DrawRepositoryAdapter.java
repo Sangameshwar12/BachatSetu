@@ -3,6 +3,8 @@ package in.bachatsetu.backend.infrastructure.persistence.adapter;
 import in.bachatsetu.backend.draw.domain.model.AuctionBid;
 import in.bachatsetu.backend.draw.domain.model.Draw;
 import in.bachatsetu.backend.draw.domain.model.DrawNumber;
+import in.bachatsetu.backend.draw.domain.model.DrawStatus;
+import in.bachatsetu.backend.draw.domain.model.DrawType;
 import in.bachatsetu.backend.draw.domain.port.DrawPage;
 import in.bachatsetu.backend.draw.domain.port.DrawPageRequest;
 import in.bachatsetu.backend.draw.domain.port.DrawRepository;
@@ -16,6 +18,7 @@ import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvi
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.AuctionBidSpringDataRepository;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.DrawSpringDataRepository;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -68,6 +71,15 @@ public class DrawRepositoryAdapter implements DrawRepository {
         return new DrawPage<>(content, page.getNumber(), page.getSize(), page.getTotalElements());
     }
 
+    @Override
+    public DrawPage<Draw> findPageByType(AggregateId tenantId, DrawType type, DrawPageRequest pageRequest) {
+        Pageable pageable = PageRequest.of(pageRequest.page(), pageRequest.size(), toSort(pageRequest));
+        Page<DrawJpaEntity> page =
+                repository.findAllByTenantIdAndTypeAndDeletedFalse(tenantId.value(), type, pageable);
+        List<Draw> content = page.getContent().stream().map(mapper::toDomain).toList();
+        return new DrawPage<>(content, page.getNumber(), page.getSize(), page.getTotalElements());
+    }
+
     private Sort toSort(DrawPageRequest pageRequest) {
         String property = toSortProperty(pageRequest.sortField());
         Sort.Direction direction = pageRequest.direction() == SortDirection.DESC
@@ -92,6 +104,12 @@ public class DrawRepositoryAdapter implements DrawRepository {
     @Override
     public Optional<Draw> findByCycleId(AggregateId cycleId) {
         return repository.findByCycle_IdAndDeletedFalse(cycleId.value()).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Draw> findDueScheduled(Instant cutoff) {
+        return repository.findAllByStatusAndScheduledAtLessThanEqualAndDeletedFalse(DrawStatus.SCHEDULED, cutoff)
+                .stream().map(mapper::toDomain).toList();
     }
 
     @Override
