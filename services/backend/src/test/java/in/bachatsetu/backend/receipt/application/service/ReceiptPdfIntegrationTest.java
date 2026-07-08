@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.receipt.application.exception.ReceiptNotFoundException;
 import in.bachatsetu.backend.receipt.application.mapper.ReceiptApplicationMapper;
 import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
@@ -38,7 +39,9 @@ class ReceiptPdfIntegrationTest {
     private final GetReceiptApplicationService getReceipt =
             new GetReceiptApplicationService(repository, directTransaction(), mapper);
     private final ReceiptPdfGenerator pdfGenerator = new OpenPdfReceiptPdfGenerator();
-    private final GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator);
+    private final CreateAuditEntryUseCase createAuditEntry = mock(CreateAuditEntryUseCase.class);
+    private final GetReceiptPdfUseCase service =
+            new GetReceiptPdfApplicationService(getReceipt, pdfGenerator, createAuditEntry);
 
     @Test
     void rendersARealReceiptIntoADownloadablePdf() {

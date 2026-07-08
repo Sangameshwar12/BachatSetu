@@ -3,6 +3,7 @@ package in.bachatsetu.backend.storage.interfaces.rest.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.storage.application.mapper.StorageApplicationMapper;
 import in.bachatsetu.backend.storage.application.port.ChecksumGeneratorPort;
 import in.bachatsetu.backend.storage.application.port.ClockPort;
@@ -33,12 +34,13 @@ class StorageApplicationConfigTest {
             new StorageProperties.Aws("", "", "", ""),
             new StorageProperties.Azure("", "", ""),
             new StorageProperties.Gcp("", "", ""));
+    private final CreateAuditEntryUseCase createAuditEntry = mock(CreateAuditEntryUseCase.class);
 
     @Test
     void composesUploadFileUseCase() {
         assertThat(config.uploadFileUseCase(
                         repository, List.<StoragePort>of(), checksumGenerator, clock, transaction, mapper,
-                        properties))
+                        properties, createAuditEntry))
                 .isInstanceOf(UploadFileApplicationService.class);
     }
 
@@ -50,7 +52,7 @@ class StorageApplicationConfigTest {
 
     @Test
     void composesDeleteFileUseCase() {
-        assertThat(config.deleteFileUseCase(repository, List.<FileDeletePort>of(), transaction))
+        assertThat(config.deleteFileUseCase(repository, List.<FileDeletePort>of(), transaction, createAuditEntry))
                 .isInstanceOf(DeleteFileApplicationService.class);
     }
 

@@ -13,7 +13,7 @@ class MigrationContractTest {
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
 
     @Test
-    void containsOnlyTheEightOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheNineOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
                     .containsExactly(
@@ -24,7 +24,8 @@ class MigrationContractTest {
                             "V5__refresh_token_security.sql",
                             "V6__savings_group_schema.sql",
                             "V7__payment_gateway_orders.sql",
-                            "V8__storage_files.sql");
+                            "V8__storage_files.sql",
+                            "V9__audit_module.sql");
         }
     }
 
@@ -69,7 +70,8 @@ class MigrationContractTest {
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V5__refresh_token_security.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V6__savings_group_schema.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V7__payment_gateway_orders.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V8__storage_files.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V8__storage_files.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V9__audit_module.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -184,6 +186,22 @@ class MigrationContractTest {
                 .contains("version BIGINT NOT NULL DEFAULT 0")
                 .contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
                 .doesNotContain("ALTER TABLE")
+                .doesNotContain("DROP ");
+    }
+
+    @Test
+    void auditMigrationAddsAnAdditiveAuditEntriesTableOnly() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V9__audit_module.sql"));
+
+        assertThat(sql)
+                .contains("CREATE TABLE audit.audit_entries")
+                .contains("event_type IN (")
+                .contains("'LOGIN'")
+                .contains("'SYSTEM_EVENT'")
+                .contains("version BIGINT NOT NULL DEFAULT 0")
+                .contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
+                .doesNotContain("ALTER TABLE")
+                .doesNotContain("CREATE SCHEMA")
                 .doesNotContain("DROP ");
     }
 

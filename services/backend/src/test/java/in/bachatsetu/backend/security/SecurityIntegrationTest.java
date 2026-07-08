@@ -50,6 +50,7 @@ import org.springframework.web.bind.annotation.RestController;
     "bachatsetu.automation.enabled=false",
     "bachatsetu.payment.gateway.enabled=false",
     "bachatsetu.storage.enabled=false",
+    "bachatsetu.audit.rest.enabled=false",
     "spring.autoconfigure.exclude="
             + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
             + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"

@@ -74,6 +74,7 @@ class LayerDependencyArchitectureTest {
             .should().onlyDependOnClassesThat().resideInAnyPackage(
                     ArchitecturePackages.AUTH_INFRASTRUCTURE,
                     ArchitecturePackages.AUTH_APPLICATION_PORT,
+                    ArchitecturePackages.AUTH_APPLICATION_EVENT,
                     ArchitecturePackages.AUTH_TOKEN_APPLICATION_PORT,
                     "..auth.domain..",
                     "..shared..",
@@ -82,7 +83,7 @@ class LayerDependencyArchitectureTest {
                     "io.jsonwebtoken..",
                     "org.slf4j..",
                     "org.springframework..")
-            .because("authentication adapters implement only their owned outbound ports");
+            .because("authentication adapters implement only their owned outbound ports and events");
 
     @ArchTest
     static final ArchRule CONTROLLERS_MUST_NOT_DEPEND_ON_DOMAIN_OR_INFRASTRUCTURE = noClasses()

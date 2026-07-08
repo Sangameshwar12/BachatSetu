@@ -1,5 +1,8 @@
 package in.bachatsetu.backend.receipt.application.service;
 
+import in.bachatsetu.backend.audit.application.command.CreateAuditEntryCommand;
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
+import in.bachatsetu.backend.audit.domain.model.AuditEventType;
 import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
 import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
@@ -13,10 +16,13 @@ public final class GetReceiptPdfApplicationService implements GetReceiptPdfUseCa
 
     private final GetReceiptUseCase getReceipt;
     private final ReceiptPdfGenerator pdfGenerator;
+    private final CreateAuditEntryUseCase createAuditEntry;
 
-    public GetReceiptPdfApplicationService(GetReceiptUseCase getReceipt, ReceiptPdfGenerator pdfGenerator) {
+    public GetReceiptPdfApplicationService(
+            GetReceiptUseCase getReceipt, ReceiptPdfGenerator pdfGenerator, CreateAuditEntryUseCase createAuditEntry) {
         this.getReceipt = Objects.requireNonNull(getReceipt, "get receipt use case must not be null");
         this.pdfGenerator = Objects.requireNonNull(pdfGenerator, "pdf generator must not be null");
+        this.createAuditEntry = Objects.requireNonNull(createAuditEntry, "create audit entry use case must not be null");
     }
 
     @Override
@@ -26,6 +32,22 @@ public final class GetReceiptPdfApplicationService implements GetReceiptPdfUseCa
         ReceiptResult receipt = getReceipt.execute(tenantId, receiptId);
         byte[] content = pdfGenerator.generate(receipt);
         String fileName = receipt.number().replace("/", "-") + ".pdf";
+        auditPdfDownloaded(receipt);
         return new ReceiptPdfResult(content, fileName);
+    }
+
+    /**
+     * Best-effort: an audit failure must never fail a PDF that has already been rendered, so any exception is
+     * caught and discarded here rather than propagated.
+     */
+    private void auditPdfDownloaded(ReceiptResult receipt) {
+        try {
+            createAuditEntry.execute(new CreateAuditEntryCommand(
+                    new AggregateId(receipt.tenantId()), new AggregateId(receipt.memberId()),
+                    AuditEventType.PDF_DOWNLOADED, "receipt", "Receipt", new AggregateId(receipt.receiptId()),
+                    "PDF_DOWNLOADED", "receipt pdf downloaded", null, null, null));
+        } catch (RuntimeException exception) {
+            // Audit is best-effort: never let a recording failure affect an already-rendered PDF.
+        }
     }
 }

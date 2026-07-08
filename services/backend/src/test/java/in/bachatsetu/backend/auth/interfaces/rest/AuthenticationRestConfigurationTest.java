@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import in.bachatsetu.backend.auth.application.port.ClockPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
+import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
 import in.bachatsetu.backend.auth.application.service.GenerateOtpApplicationService;
@@ -34,12 +35,13 @@ class AuthenticationRestConfigurationTest {
         RandomGeneratorPort random = mock(RandomGeneratorPort.class);
         HashingPort hashing = mock(HashingPort.class);
         OtpSenderPort sender = mock(OtpSenderPort.class);
+        OtpEventPublisherPort eventPublisher = mock(OtpEventPublisherPort.class);
         OtpRequestValidator validator = config.otpRequestValidator(users);
         OtpPolicyService policy = config.otpPolicyService();
 
         assertThat(config.generateOtpUseCase(validator, verifications, policy, clock, random, hashing, sender))
                 .isInstanceOf(GenerateOtpApplicationService.class);
-        assertThat(config.verifyOtpUseCase(validator, verifications, clock, hashing))
+        assertThat(config.verifyOtpUseCase(validator, verifications, clock, hashing, eventPublisher))
                 .isInstanceOf(VerifyOtpApplicationService.class);
         assertThat(config.resendOtpUseCase(validator, verifications, policy, clock, random, hashing, sender))
                 .isInstanceOf(ResendOtpApplicationService.class);

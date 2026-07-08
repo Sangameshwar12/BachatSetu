@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.payment.application.command.UpdatePaymentStatusCommand;
 import in.bachatsetu.backend.payment.application.query.PaymentResult;
 import in.bachatsetu.backend.payment.application.usecase.GetPaymentUseCase;
@@ -43,6 +44,7 @@ class ProcessPaymentWebhookApplicationServiceTest {
     private UpdatePaymentStatusUseCase updatePaymentStatus;
     private ClockPort clock;
     private TransactionPort transaction;
+    private CreateAuditEntryUseCase createAuditEntry;
     private ProcessPaymentWebhookApplicationService service;
 
     @BeforeEach
@@ -54,8 +56,10 @@ class ProcessPaymentWebhookApplicationServiceTest {
         updatePaymentStatus = mock(UpdatePaymentStatusUseCase.class);
         clock = () -> NOW;
         transaction = new DirectTransactionPort();
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
         service = new ProcessPaymentWebhookApplicationService(
-                orderRepository, List.of(verifier), getPayment, updatePaymentStatus, clock, transaction);
+                orderRepository, List.of(verifier), getPayment, updatePaymentStatus, clock, transaction,
+                createAuditEntry);
     }
 
     @Test
@@ -75,6 +79,7 @@ class ProcessPaymentWebhookApplicationServiceTest {
         verify(updatePaymentStatus).execute(captor.capture());
         assertThat(captor.getValue().targetStatus()).isEqualTo(PaymentStatus.VERIFIED);
         verify(orderRepository).save(order);
+        verify(createAuditEntry).execute(any());
     }
 
     @Test
@@ -109,6 +114,7 @@ class ProcessPaymentWebhookApplicationServiceTest {
         ArgumentCaptor<UpdatePaymentStatusCommand> captor = ArgumentCaptor.forClass(UpdatePaymentStatusCommand.class);
         verify(updatePaymentStatus).execute(captor.capture());
         assertThat(captor.getValue().targetStatus()).isEqualTo(PaymentStatus.FAILED);
+        verify(createAuditEntry).execute(any());
     }
 
     @Test

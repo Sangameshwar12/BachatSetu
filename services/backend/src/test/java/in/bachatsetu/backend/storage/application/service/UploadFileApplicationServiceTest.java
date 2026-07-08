@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.storage.application.command.UploadFileCommand;
 import in.bachatsetu.backend.storage.application.mapper.StorageApplicationMapper;
@@ -36,6 +37,7 @@ class UploadFileApplicationServiceTest {
     private ClockPort clock;
     private TransactionPort transaction;
     private StorageApplicationMapper mapper;
+    private CreateAuditEntryUseCase createAuditEntry;
     private UploadFileApplicationService service;
 
     @BeforeEach
@@ -47,9 +49,10 @@ class UploadFileApplicationServiceTest {
         clock = () -> NOW;
         transaction = new DirectTransactionPort();
         mapper = new StorageApplicationMapper();
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
         service = new UploadFileApplicationService(
                 repository, List.of(storagePort), checksumGenerator, clock, transaction, mapper,
-                StorageProvider.LOCAL);
+                StorageProvider.LOCAL, createAuditEntry);
     }
 
     @Test
@@ -70,6 +73,7 @@ class UploadFileApplicationServiceTest {
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().checksum()).isEqualTo("checksum-1");
         assertThat(captor.getValue().size()).isEqualTo(content.length);
+        verify(createAuditEntry).execute(any());
     }
 
     @Test

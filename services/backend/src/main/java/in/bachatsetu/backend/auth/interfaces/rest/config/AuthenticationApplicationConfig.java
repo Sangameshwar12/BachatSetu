@@ -2,6 +2,7 @@ package in.bachatsetu.backend.auth.interfaces.rest.config;
 
 import in.bachatsetu.backend.auth.application.port.ClockPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
+import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
 import in.bachatsetu.backend.auth.application.service.GenerateOtpApplicationService;
@@ -67,8 +68,9 @@ public class AuthenticationApplicationConfig {
             OtpRequestValidator validator,
             OtpVerificationRepository repository,
             ClockPort clock,
-            HashingPort hashing) {
-        return new VerifyOtpApplicationService(validator, repository, clock, hashing);
+            HashingPort hashing,
+            OtpEventPublisherPort eventPublisher) {
+        return new VerifyOtpApplicationService(validator, repository, clock, hashing, eventPublisher);
     }
 
     @Bean

@@ -16,8 +16,10 @@ import in.bachatsetu.backend.auth.application.event.OtpSent;
 import in.bachatsetu.backend.auth.application.event.OtpVerified;
 import in.bachatsetu.backend.auth.application.exception.OtpApplicationException;
 import in.bachatsetu.backend.auth.application.exception.OtpFailureReason;
+import in.bachatsetu.backend.auth.application.event.OtpApplicationEvent;
 import in.bachatsetu.backend.auth.application.port.ClockPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
+import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
 import in.bachatsetu.backend.auth.application.query.OtpActionResult;
@@ -207,6 +209,7 @@ class OtpApplicationServiceTest {
         private final FakeHashingPort hashing = new FakeHashingPort();
         private final CapturingSender sender = new CapturingSender();
         private final QueueRandomGenerator random = new QueueRandomGenerator();
+        private final CapturingOtpEventPublisher eventPublisher = new CapturingOtpEventPublisher();
         private final OtpRequestValidator validator;
         private final GenerateOtpApplicationService generate;
         private final VerifyOtpApplicationService verify;
@@ -223,7 +226,7 @@ class OtpApplicationServiceTest {
             OtpPolicyService policy = new OtpPolicyService();
             generate = new GenerateOtpApplicationService(
                     validator, repository, policy, clock, random, hashing, sender);
-            verify = new VerifyOtpApplicationService(validator, repository, clock, hashing);
+            verify = new VerifyOtpApplicationService(validator, repository, clock, hashing, eventPublisher);
             resend = new ResendOtpApplicationService(
                     validator, repository, policy, clock, random, hashing, sender);
             invalidate = new InvalidateOtpApplicationService(validator, repository, clock);
@@ -298,6 +301,15 @@ class OtpApplicationServiceTest {
         @Override
         public void send(UserId userId, MobileNumber mobileNumber, OtpPurpose purpose, OtpCode code) {
             sentCodes.add(code);
+        }
+    }
+
+    private static final class CapturingOtpEventPublisher implements OtpEventPublisherPort {
+        private final List<OtpApplicationEvent> published = new ArrayList<>();
+
+        @Override
+        public void publish(OtpApplicationEvent event) {
+            published.add(event);
         }
     }
 

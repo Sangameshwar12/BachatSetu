@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.storage.interfaces.rest.config;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.storage.application.mapper.StorageApplicationMapper;
 import in.bachatsetu.backend.storage.application.port.ChecksumGeneratorPort;
 import in.bachatsetu.backend.storage.application.port.ClockPort;
@@ -48,10 +49,11 @@ public class StorageApplicationConfig {
             ClockPort clock,
             TransactionPort transaction,
             StorageApplicationMapper mapper,
-            StorageProperties properties) {
+            StorageProperties properties,
+            CreateAuditEntryUseCase createAuditEntry) {
         return new UploadFileApplicationService(
                 repository, storagePorts, checksumGenerator, clock, transaction, mapper,
-                properties.defaultProvider());
+                properties.defaultProvider(), createAuditEntry);
     }
 
     @Bean
@@ -62,8 +64,11 @@ public class StorageApplicationConfig {
 
     @Bean
     public DeleteFileUseCase deleteFileUseCase(
-            StorageRepository repository, List<FileDeletePort> deletePorts, TransactionPort transaction) {
-        return new DeleteFileApplicationService(repository, deletePorts, transaction);
+            StorageRepository repository,
+            List<FileDeletePort> deletePorts,
+            TransactionPort transaction,
+            CreateAuditEntryUseCase createAuditEntry) {
+        return new DeleteFileApplicationService(repository, deletePorts, transaction, createAuditEntry);
     }
 
     @Bean

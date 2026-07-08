@@ -1,5 +1,8 @@
 package in.bachatsetu.backend.paymentgateway.application.service;
 
+import in.bachatsetu.backend.audit.application.command.CreateAuditEntryCommand;
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
+import in.bachatsetu.backend.audit.domain.model.AuditEventType;
 import in.bachatsetu.backend.payment.application.command.UpdatePaymentStatusCommand;
 import in.bachatsetu.backend.payment.application.query.PaymentResult;
 import in.bachatsetu.backend.payment.application.usecase.GetPaymentUseCase;
@@ -39,6 +42,7 @@ public final class InitiateRefundApplicationService implements InitiateRefundUse
     private final ClockPort clock;
     private final TransactionPort transaction;
     private final PaymentGatewayApplicationSupport support;
+    private final CreateAuditEntryUseCase createAuditEntry;
 
     public InitiateRefundApplicationService(
             GatewayOrderRepository orderRepository,
@@ -48,7 +52,8 @@ public final class InitiateRefundApplicationService implements InitiateRefundUse
             UpdatePaymentStatusUseCase updatePaymentStatus,
             ClockPort clock,
             TransactionPort transaction,
-            PaymentGatewayApplicationMapper mapper) {
+            PaymentGatewayApplicationMapper mapper,
+            CreateAuditEntryUseCase createAuditEntry) {
         this.orderRepository = Objects.requireNonNull(orderRepository, "order repository must not be null");
         this.refundPorts = List.copyOf(Objects.requireNonNull(refundPorts, "refund ports must not be null"));
         this.getPayment = Objects.requireNonNull(getPayment, "get payment use case must not be null");
@@ -57,12 +62,15 @@ public final class InitiateRefundApplicationService implements InitiateRefundUse
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
         this.support = new PaymentGatewayApplicationSupport(orderRepository, eventPublisher, mapper);
+        this.createAuditEntry = Objects.requireNonNull(createAuditEntry, "create audit entry use case must not be null");
     }
 
     @Override
     public RefundResult execute(InitiateRefundCommand command) {
         Objects.requireNonNull(command, "refund command must not be null");
-        return transaction.execute(() -> refund(command));
+        RefundResult result = transaction.execute(() -> refund(command));
+        auditGatewayRefundInitiated(command);
+        return result;
     }
 
     private RefundResult refund(InitiateRefundCommand command) {
@@ -91,5 +99,20 @@ public final class InitiateRefundApplicationService implements InitiateRefundUse
                     command.actorId()));
         }
         return result;
+    }
+
+    /**
+     * Best-effort: an audit failure must never fail a refund that has already committed, so any exception is
+     * caught and discarded here rather than propagated.
+     */
+    private void auditGatewayRefundInitiated(InitiateRefundCommand command) {
+        try {
+            createAuditEntry.execute(new CreateAuditEntryCommand(
+                    command.tenantId(), command.actorId(), AuditEventType.GATEWAY_REFUND_INITIATED,
+                    "paymentgateway", "Payment", command.paymentId(), "GATEWAY_REFUND_INITIATED",
+                    "gateway refund initiated", null, null, null));
+        } catch (RuntimeException exception) {
+            // Audit is best-effort: never let a recording failure affect an already-initiated refund.
+        }
     }
 }

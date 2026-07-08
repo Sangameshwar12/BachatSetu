@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.receipt.application.command.CreateReceiptCommand;
 import in.bachatsetu.backend.receipt.application.exception.ReceiptNotFoundException;
 import in.bachatsetu.backend.receipt.application.mapper.ReceiptApplicationMapper;
@@ -57,6 +58,7 @@ class ReceiptApplicationServiceTest {
     private DomainEventPublisherPort publisher;
     private TransactionPort transaction;
     private ReceiptApplicationMapper mapper;
+    private CreateAuditEntryUseCase createAuditEntry;
 
     @BeforeEach
     void setUp() {
@@ -65,6 +67,7 @@ class ReceiptApplicationServiceTest {
         publisher = mock(DomainEventPublisherPort.class);
         transaction = directTransaction();
         mapper = new ReceiptApplicationMapper();
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
     }
 
     @Test
@@ -72,7 +75,7 @@ class ReceiptApplicationServiceTest {
         CreateReceiptCommand command = createCommand();
         when(repository.findByPaymentId(command.paymentId())).thenReturn(Optional.empty());
         CreateReceiptUseCase service =
-                new CreateReceiptApplicationService(repository, receiptFactory, publisher, transaction, mapper);
+                new CreateReceiptApplicationService(repository, receiptFactory, publisher, transaction, mapper, createAuditEntry);
 
         ReceiptResult result = service.execute(command);
 
@@ -81,13 +84,14 @@ class ReceiptApplicationServiceTest {
         assertThat(result.totalAmountPaise()).isEqualTo(500_000L);
         verify(repository).save(any(Receipt.class));
         assertPublishedEvents(ReceiptGenerated.class);
+        verify(createAuditEntry).execute(any());
     }
 
     @Test
     void generatesUniqueReceiptNumbersAcrossCalls() {
         when(repository.findByPaymentId(any())).thenReturn(Optional.empty());
         CreateReceiptUseCase service =
-                new CreateReceiptApplicationService(repository, receiptFactory, publisher, transaction, mapper);
+                new CreateReceiptApplicationService(repository, receiptFactory, publisher, transaction, mapper, createAuditEntry);
 
         ReceiptResult first = service.execute(createCommand());
         ReceiptResult second = service.execute(createCommand());
@@ -103,7 +107,7 @@ class ReceiptApplicationServiceTest {
         Receipt existing = newReceipt(command.paymentId());
         when(repository.findByPaymentId(command.paymentId())).thenReturn(Optional.of(existing));
         CreateReceiptUseCase service =
-                new CreateReceiptApplicationService(repository, receiptFactory, publisher, transaction, mapper);
+                new CreateReceiptApplicationService(repository, receiptFactory, publisher, transaction, mapper, createAuditEntry);
 
         ReceiptResult result = service.execute(command);
 
@@ -163,12 +167,13 @@ class ReceiptApplicationServiceTest {
         byte[] pdfBytes = {1, 2, 3, 4};
         when(getReceipt.execute(tenantId, receiptId)).thenReturn(receiptResult);
         when(pdfGenerator.generate(receiptResult)).thenReturn(pdfBytes);
-        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator);
+        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator, createAuditEntry);
 
         ReceiptPdfResult result = service.execute(tenantId, receiptId);
 
         assertThat(result.content()).containsExactly(pdfBytes);
         assertThat(result.fileName()).isEqualTo(receiptResult.number().replace("/", "-") + ".pdf");
+        verify(createAuditEntry).execute(any());
     }
 
     @Test
@@ -179,7 +184,7 @@ class ReceiptApplicationServiceTest {
         ReceiptPdfGenerator pdfGenerator = mock(ReceiptPdfGenerator.class);
         when(getReceipt.execute(tenantId, receiptId))
                 .thenThrow(new ReceiptNotFoundException("receipt does not exist"));
-        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator);
+        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(tenantId, receiptId))
                 .isInstanceOf(ReceiptNotFoundException.class);
@@ -189,22 +194,24 @@ class ReceiptApplicationServiceTest {
     void pdfServiceRejectsNullInputs() {
         GetReceiptUseCase getReceipt = mock(GetReceiptUseCase.class);
         ReceiptPdfGenerator pdfGenerator = mock(ReceiptPdfGenerator.class);
-        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator);
+        GetReceiptPdfUseCase service = new GetReceiptPdfApplicationService(getReceipt, pdfGenerator, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(null, AggregateId.newId()))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> service.execute(AggregateId.newId(), null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetReceiptPdfApplicationService(null, pdfGenerator))
+        assertThatThrownBy(() -> new GetReceiptPdfApplicationService(null, pdfGenerator, createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetReceiptPdfApplicationService(getReceipt, null))
+        assertThatThrownBy(() -> new GetReceiptPdfApplicationService(getReceipt, null, createAuditEntry))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new GetReceiptPdfApplicationService(getReceipt, pdfGenerator, null))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void rejectsNullUseCaseInputs() {
         assertThatThrownBy(() -> new CreateReceiptApplicationService(
-                        repository, receiptFactory, publisher, transaction, mapper)
+                        repository, receiptFactory, publisher, transaction, mapper, createAuditEntry)
                         .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetReceiptApplicationService(repository, transaction, mapper)
@@ -223,14 +230,20 @@ class ReceiptApplicationServiceTest {
 
     @Test
     void validatesRequiredServiceDependencies() {
-        assertThatThrownBy(() -> new CreateReceiptApplicationService(null, receiptFactory, publisher, transaction, mapper))
-                .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CreateReceiptApplicationService(repository, null, publisher, transaction, mapper))
-                .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new CreateReceiptApplicationService(repository, receiptFactory, publisher, null, mapper))
+        assertThatThrownBy(() -> new CreateReceiptApplicationService(
+                        null, receiptFactory, publisher, transaction, mapper, createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CreateReceiptApplicationService(
-                        repository, receiptFactory, publisher, transaction, null))
+                        repository, null, publisher, transaction, mapper, createAuditEntry))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CreateReceiptApplicationService(
+                        repository, receiptFactory, publisher, null, mapper, createAuditEntry))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CreateReceiptApplicationService(
+                        repository, receiptFactory, publisher, transaction, null, createAuditEntry))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CreateReceiptApplicationService(
+                        repository, receiptFactory, publisher, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetReceiptApplicationService(null, transaction, mapper))
                 .isInstanceOf(NullPointerException.class);

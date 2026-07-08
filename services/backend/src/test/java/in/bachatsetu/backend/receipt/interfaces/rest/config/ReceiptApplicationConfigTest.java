@@ -3,6 +3,7 @@ package in.bachatsetu.backend.receipt.interfaces.rest.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.receipt.application.mapper.ReceiptApplicationMapper;
 import in.bachatsetu.backend.receipt.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
@@ -26,10 +27,12 @@ class ReceiptApplicationConfigTest {
     private final DomainEventPublisherPort eventPublisher = mock(DomainEventPublisherPort.class);
     private final TransactionPort transaction = mock(TransactionPort.class);
     private final ReceiptPdfGenerator pdfGenerator = mock(ReceiptPdfGenerator.class);
+    private final CreateAuditEntryUseCase createAuditEntry = mock(CreateAuditEntryUseCase.class);
 
     @Test
     void composesCreateReceiptUseCase() {
-        assertThat(config.createReceiptUseCase(repository, receiptFactory, eventPublisher, transaction, mapper))
+        assertThat(config.createReceiptUseCase(
+                        repository, receiptFactory, eventPublisher, transaction, mapper, createAuditEntry))
                 .isInstanceOf(CreateReceiptApplicationService.class);
     }
 
@@ -49,7 +52,7 @@ class ReceiptApplicationConfigTest {
     void composesGetReceiptPdfUseCase() {
         GetReceiptUseCase getReceiptUseCase = config.getReceiptUseCase(repository, transaction, mapper);
 
-        assertThat(config.getReceiptPdfUseCase(getReceiptUseCase, pdfGenerator))
+        assertThat(config.getReceiptPdfUseCase(getReceiptUseCase, pdfGenerator, createAuditEntry))
                 .isInstanceOf(GetReceiptPdfApplicationService.class);
     }
 }

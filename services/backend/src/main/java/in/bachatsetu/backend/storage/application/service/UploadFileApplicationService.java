@@ -1,5 +1,8 @@
 package in.bachatsetu.backend.storage.application.service;
 
+import in.bachatsetu.backend.audit.application.command.CreateAuditEntryCommand;
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
+import in.bachatsetu.backend.audit.domain.model.AuditEventType;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.storage.application.command.UploadFileCommand;
 import in.bachatsetu.backend.storage.application.mapper.StorageApplicationMapper;
@@ -29,6 +32,7 @@ public final class UploadFileApplicationService implements UploadFileUseCase {
     private final TransactionPort transaction;
     private final StorageApplicationMapper mapper;
     private final StorageProvider defaultProvider;
+    private final CreateAuditEntryUseCase createAuditEntry;
 
     public UploadFileApplicationService(
             StorageRepository repository,
@@ -37,7 +41,8 @@ public final class UploadFileApplicationService implements UploadFileUseCase {
             ClockPort clock,
             TransactionPort transaction,
             StorageApplicationMapper mapper,
-            StorageProvider defaultProvider) {
+            StorageProvider defaultProvider,
+            CreateAuditEntryUseCase createAuditEntry) {
         this.repository = Objects.requireNonNull(repository, "repository must not be null");
         this.storagePorts = List.copyOf(Objects.requireNonNull(storagePorts, "storagePorts must not be null"));
         this.checksumGenerator = Objects.requireNonNull(checksumGenerator, "checksum generator must not be null");
@@ -45,12 +50,15 @@ public final class UploadFileApplicationService implements UploadFileUseCase {
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
         this.mapper = Objects.requireNonNull(mapper, "mapper must not be null");
         this.defaultProvider = Objects.requireNonNull(defaultProvider, "default provider must not be null");
+        this.createAuditEntry = Objects.requireNonNull(createAuditEntry, "create audit entry use case must not be null");
     }
 
     @Override
     public UploadFileResult execute(UploadFileCommand command) {
         Objects.requireNonNull(command, "upload command must not be null");
-        return transaction.execute(() -> upload(command));
+        UploadFileResult result = transaction.execute(() -> upload(command));
+        auditFileUploaded(command, result);
+        return result;
     }
 
     private UploadFileResult upload(UploadFileCommand command) {
@@ -64,5 +72,19 @@ public final class UploadFileApplicationService implements UploadFileUseCase {
                 content.length, checksum, command.actorId(), clock.now());
         repository.save(file);
         return mapper.toUploadResult(file);
+    }
+
+    /**
+     * Best-effort: an audit failure must never fail an upload that has already committed, so any exception is
+     * caught and discarded here rather than propagated.
+     */
+    private void auditFileUploaded(UploadFileCommand command, UploadFileResult result) {
+        try {
+            createAuditEntry.execute(new CreateAuditEntryCommand(
+                    command.tenantId(), command.actorId(), AuditEventType.FILE_UPLOADED, "storage", "StoredFile",
+                    new AggregateId(result.fileId()), "FILE_UPLOADED", "file uploaded", null, null, null));
+        } catch (RuntimeException exception) {
+            // Audit is best-effort: never let a recording failure affect an already-uploaded file.
+        }
     }
 }

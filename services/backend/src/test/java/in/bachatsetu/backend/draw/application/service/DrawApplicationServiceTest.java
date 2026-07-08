@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.draw.application.command.CloseDrawCommand;
 import in.bachatsetu.backend.draw.application.command.ConductDrawCommand;
 import in.bachatsetu.backend.draw.application.command.CreateDrawCommand;
@@ -70,6 +71,7 @@ class DrawApplicationServiceTest {
     private TransactionPort transaction;
     private DrawApplicationMapper mapper;
     private DrawAuthorizationService authorization;
+    private CreateAuditEntryUseCase createAuditEntry;
 
     @BeforeEach
     void setUp() {
@@ -81,6 +83,7 @@ class DrawApplicationServiceTest {
         transaction = directTransaction();
         mapper = new DrawApplicationMapper();
         authorization = new DrawAuthorizationService();
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
     }
 
     @Test
@@ -239,7 +242,7 @@ class DrawApplicationServiceTest {
         when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
         stubOwningGroup(draw.tenantId(), draw.groupId(), actorId);
         CloseDrawUseCase service = new CloseDrawApplicationService(
-                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization, createAuditEntry);
 
         DrawResult result = service.execute(new CloseDrawCommand(tenantId, draw.id(), winnerId, actorId));
 
@@ -259,7 +262,7 @@ class DrawApplicationServiceTest {
         when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
         stubOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
         CloseDrawUseCase service = new CloseDrawApplicationService(
-                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(
                         new CloseDrawCommand(tenantId, draw.id(), AggregateId.newId(), AggregateId.newId())))
@@ -276,7 +279,7 @@ class DrawApplicationServiceTest {
         when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
         stubOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
         CloseDrawUseCase service = new CloseDrawApplicationService(
-                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(
                         new CloseDrawCommand(tenantId, draw.id(), AggregateId.newId(), ownerId)))
@@ -291,7 +294,7 @@ class DrawApplicationServiceTest {
         AggregateId drawId = AggregateId.newId();
         when(repository.findById(tenantId, drawId)).thenReturn(Optional.empty());
         CloseDrawUseCase service = new CloseDrawApplicationService(
-                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(
                         new CloseDrawCommand(tenantId, drawId, AggregateId.newId(), AggregateId.newId())))
@@ -323,7 +326,8 @@ class DrawApplicationServiceTest {
                         .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseDrawApplicationService(
-                        repository, groupRepository, publisher, clock, transaction, mapper, authorization)
+                        repository, groupRepository, publisher, clock, transaction, mapper, authorization,
+                        createAuditEntry)
                         .execute(null))
                 .isInstanceOf(NullPointerException.class);
     }
@@ -373,22 +377,31 @@ class DrawApplicationServiceTest {
                         repository, groupRepository, publisher, clock, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseDrawApplicationService(
-                        null, groupRepository, publisher, clock, transaction, mapper, authorization))
+                        null, groupRepository, publisher, clock, transaction, mapper, authorization,
+                        createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseDrawApplicationService(
-                        repository, groupRepository, null, clock, transaction, mapper, authorization))
+                        repository, groupRepository, null, clock, transaction, mapper, authorization,
+                        createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseDrawApplicationService(
-                        repository, groupRepository, publisher, null, transaction, mapper, authorization))
+                        repository, groupRepository, publisher, null, transaction, mapper, authorization,
+                        createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseDrawApplicationService(
-                        repository, groupRepository, publisher, clock, null, mapper, authorization))
+                        repository, groupRepository, publisher, clock, null, mapper, authorization,
+                        createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseDrawApplicationService(
-                        repository, groupRepository, publisher, clock, transaction, null, authorization))
+                        repository, groupRepository, publisher, clock, transaction, null, authorization,
+                        createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CloseDrawApplicationService(
-                        repository, groupRepository, publisher, clock, transaction, mapper, null))
+                        repository, groupRepository, publisher, clock, transaction, mapper, null,
+                        createAuditEntry))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CloseDrawApplicationService(
+                        repository, groupRepository, publisher, clock, transaction, mapper, authorization, null))
                 .isInstanceOf(NullPointerException.class);
     }
 

@@ -3,6 +3,7 @@ package in.bachatsetu.backend.paymentgateway.interfaces.rest.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.payment.application.usecase.GetPaymentUseCase;
 import in.bachatsetu.backend.payment.application.usecase.UpdatePaymentStatusUseCase;
 import in.bachatsetu.backend.paymentgateway.application.mapper.PaymentGatewayApplicationMapper;
@@ -31,6 +32,7 @@ class PaymentGatewayApplicationConfigTest {
     private final DomainEventPublisherPort eventPublisher = mock(DomainEventPublisherPort.class);
     private final ClockPort clock = mock(ClockPort.class);
     private final TransactionPort transaction = mock(TransactionPort.class);
+    private final CreateAuditEntryUseCase createAuditEntry = mock(CreateAuditEntryUseCase.class);
     private final PaymentGatewayProperties properties = new PaymentGatewayProperties(
             true, GatewayType.RAZORPAY,
             new PaymentGatewayProperties.Razorpay("", "", ""),
@@ -49,7 +51,7 @@ class PaymentGatewayApplicationConfigTest {
     void composesProcessPaymentWebhookUseCase() {
         assertThat(config.processPaymentWebhookUseCase(
                         orderRepository, List.<PaymentWebhookVerifierPort>of(), getPayment, updatePaymentStatus,
-                        clock, transaction))
+                        clock, transaction, createAuditEntry))
                 .isInstanceOf(ProcessPaymentWebhookApplicationService.class);
     }
 
@@ -65,7 +67,7 @@ class PaymentGatewayApplicationConfigTest {
     void composesInitiateRefundUseCase() {
         assertThat(config.initiateRefundUseCase(
                         orderRepository, List.<PaymentRefundPort>of(), eventPublisher, getPayment,
-                        updatePaymentStatus, clock, transaction, mapper))
+                        updatePaymentStatus, clock, transaction, mapper, createAuditEntry))
                 .isInstanceOf(InitiateRefundApplicationService.class);
     }
 }

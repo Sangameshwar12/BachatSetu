@@ -10,6 +10,14 @@
     <rule ref="category/java/codestyle.xml/UnnecessaryImport"/>
     <rule ref="category/java/errorprone.xml/BrokenNullCheck"/>
     <rule ref="category/java/errorprone.xml/CloseResource"/>
-    <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
+    <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+        <properties>
+            <!-- Best-effort audit recording (see docs/application/audit.md) intentionally swallows a
+                 caught exception with only an explanatory comment: application-layer code may not use a
+                 logging framework (see LayerDependencyArchitectureTest), so a comment is the only allowed
+                 explanation. -->
+            <property name="allowCommentedBlocks" value="true"/>
+        </properties>
+    </rule>
     <rule ref="category/java/errorprone.xml/ReturnFromFinallyBlock"/>
 </ruleset>

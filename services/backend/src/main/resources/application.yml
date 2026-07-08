@@ -177,3 +177,6 @@ bachatsetu:
       bucket: ${STORAGE_GCP_BUCKET:}
       project-id: ${STORAGE_GCP_PROJECT_ID:}
       credentials-json: ${STORAGE_GCP_CREDENTIALS_JSON:}
+  audit:
+    rest:
+      enabled: ${AUDIT_REST_ENABLED:true}

@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.receipt.interfaces.rest.config;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.receipt.application.mapper.ReceiptApplicationMapper;
 import in.bachatsetu.backend.receipt.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.receipt.application.port.ReceiptPdfGenerator;
@@ -47,8 +48,10 @@ public class ReceiptApplicationConfig {
             ReceiptFactory receiptFactory,
             DomainEventPublisherPort eventPublisher,
             TransactionPort transaction,
-            ReceiptApplicationMapper mapper) {
-        return new CreateReceiptApplicationService(repository, receiptFactory, eventPublisher, transaction, mapper);
+            ReceiptApplicationMapper mapper,
+            CreateAuditEntryUseCase createAuditEntry) {
+        return new CreateReceiptApplicationService(
+                repository, receiptFactory, eventPublisher, transaction, mapper, createAuditEntry);
     }
 
     @Bean
@@ -70,7 +73,8 @@ public class ReceiptApplicationConfig {
     @Bean
     public GetReceiptPdfUseCase getReceiptPdfUseCase(
             GetReceiptUseCase getReceiptUseCase,
-            ReceiptPdfGenerator pdfGenerator) {
-        return new GetReceiptPdfApplicationService(getReceiptUseCase, pdfGenerator);
+            ReceiptPdfGenerator pdfGenerator,
+            CreateAuditEntryUseCase createAuditEntry) {
+        return new GetReceiptPdfApplicationService(getReceiptUseCase, pdfGenerator, createAuditEntry);
     }
 }

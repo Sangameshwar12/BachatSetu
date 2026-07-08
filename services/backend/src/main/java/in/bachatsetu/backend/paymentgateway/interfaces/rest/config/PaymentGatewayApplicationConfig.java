@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.paymentgateway.interfaces.rest.config;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.payment.application.usecase.GetPaymentUseCase;
 import in.bachatsetu.backend.payment.application.usecase.UpdatePaymentStatusUseCase;
 import in.bachatsetu.backend.paymentgateway.application.mapper.PaymentGatewayApplicationMapper;
@@ -67,9 +68,10 @@ public class PaymentGatewayApplicationConfig {
             GetPaymentUseCase getPayment,
             UpdatePaymentStatusUseCase updatePaymentStatus,
             ClockPort clock,
-            TransactionPort transaction) {
+            TransactionPort transaction,
+            CreateAuditEntryUseCase createAuditEntry) {
         return new ProcessPaymentWebhookApplicationService(
-                orderRepository, verifiers, getPayment, updatePaymentStatus, clock, transaction);
+                orderRepository, verifiers, getPayment, updatePaymentStatus, clock, transaction, createAuditEntry);
     }
 
     @Bean
@@ -96,9 +98,10 @@ public class PaymentGatewayApplicationConfig {
             UpdatePaymentStatusUseCase updatePaymentStatus,
             ClockPort clock,
             TransactionPort transaction,
-            PaymentGatewayApplicationMapper mapper) {
+            PaymentGatewayApplicationMapper mapper,
+            CreateAuditEntryUseCase createAuditEntry) {
         return new InitiateRefundApplicationService(
                 orderRepository, refundPorts, eventPublisher, getPayment, updatePaymentStatus, clock, transaction,
-                mapper);
+                mapper, createAuditEntry);
     }
 }

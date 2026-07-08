@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.notification.interfaces.rest.config;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.notification.application.mapper.NotificationApplicationMapper;
 import in.bachatsetu.backend.notification.application.port.ClockPort;
 import in.bachatsetu.backend.notification.application.port.DomainEventPublisherPort;
@@ -58,7 +59,8 @@ public class NotificationApplicationConfig {
             EmailSender emailSender,
             SmsSender smsSender,
             WhatsappSender whatsappSender,
-            InAppNotificationSender inAppNotificationSender) {
+            InAppNotificationSender inAppNotificationSender,
+            CreateAuditEntryUseCase createAuditEntry) {
         return new CreateNotificationApplicationService(
                 repository,
                 eventPublisher,
@@ -69,7 +71,8 @@ public class NotificationApplicationConfig {
                 emailSender,
                 smsSender,
                 whatsappSender,
-                inAppNotificationSender);
+                inAppNotificationSender,
+                createAuditEntry);
     }
 
     @Bean

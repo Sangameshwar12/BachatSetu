@@ -3,6 +3,7 @@ package in.bachatsetu.backend.payment.interfaces.rest.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.payment.application.mapper.PaymentApplicationMapper;
 import in.bachatsetu.backend.payment.application.port.ClockPort;
 import in.bachatsetu.backend.payment.application.port.DomainEventPublisherPort;
@@ -25,6 +26,7 @@ class PaymentApplicationConfigTest {
     private final DomainEventPublisherPort eventPublisher = mock(DomainEventPublisherPort.class);
     private final ClockPort clock = mock(ClockPort.class);
     private final TransactionPort transaction = mock(TransactionPort.class);
+    private final CreateAuditEntryUseCase createAuditEntry = mock(CreateAuditEntryUseCase.class);
 
     @Test
     void composesCreatePaymentUseCase() {
@@ -46,7 +48,8 @@ class PaymentApplicationConfigTest {
 
     @Test
     void composesUpdatePaymentStatusUseCase() {
-        assertThat(config.updatePaymentStatusUseCase(repository, eventPublisher, clock, transaction, mapper))
+        assertThat(config.updatePaymentStatusUseCase(
+                        repository, eventPublisher, clock, transaction, mapper, createAuditEntry))
                 .isInstanceOf(UpdatePaymentStatusApplicationService.class);
     }
 }

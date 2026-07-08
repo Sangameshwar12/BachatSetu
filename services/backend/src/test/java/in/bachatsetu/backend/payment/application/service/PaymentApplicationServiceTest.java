@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.payment.application.command.CreatePaymentCommand;
 import in.bachatsetu.backend.payment.application.command.UpdatePaymentStatusCommand;
 import in.bachatsetu.backend.payment.application.exception.PaymentNotFoundException;
@@ -61,6 +62,7 @@ class PaymentApplicationServiceTest {
     private ClockPort clock;
     private TransactionPort transaction;
     private PaymentApplicationMapper mapper;
+    private CreateAuditEntryUseCase createAuditEntry;
 
     @BeforeEach
     void setUp() {
@@ -70,6 +72,7 @@ class PaymentApplicationServiceTest {
         clock = () -> NOW.plusSeconds(10);
         transaction = directTransaction();
         mapper = new PaymentApplicationMapper();
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
     }
 
     @Test
@@ -151,7 +154,7 @@ class PaymentApplicationServiceTest {
         Payment payment = newPayment(AggregateId.newId());
         when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
         UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
 
         PaymentResult result = service.execute(new UpdatePaymentStatusCommand(
                 tenantId, payment.id(), PaymentStatus.PENDING_PROVIDER, null, null, payment.tenantId()));
@@ -167,7 +170,7 @@ class PaymentApplicationServiceTest {
         Payment payment = newPayment(AggregateId.newId());
         when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
         UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
         ProviderReference reference = new ProviderReference("test-provider", "txn-001");
 
         PaymentResult result = service.execute(new UpdatePaymentStatusCommand(
@@ -176,6 +179,37 @@ class PaymentApplicationServiceTest {
         assertThat(result.status()).isEqualTo("VERIFIED");
         assertThat(result.reconciliationStatus()).isEqualTo("MATCHED");
         assertPublishedEvents(PaymentStatusChanged.class);
+        verify(createAuditEntry).execute(any());
+    }
+
+    @Test
+    void doesNotAuditNonVerifiedStatusTransitions() {
+        AggregateId tenantId = AggregateId.newId();
+        Payment payment = newPayment(AggregateId.newId());
+        when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
+        UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
+
+        service.execute(new UpdatePaymentStatusCommand(
+                tenantId, payment.id(), PaymentStatus.PENDING_PROVIDER, null, null, payment.tenantId()));
+
+        verify(createAuditEntry, never()).execute(any());
+    }
+
+    @Test
+    void anAuditFailureDoesNotFailAnAlreadyCommittedVerification() {
+        AggregateId tenantId = AggregateId.newId();
+        Payment payment = newPayment(AggregateId.newId());
+        when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
+        when(createAuditEntry.execute(any())).thenThrow(new RuntimeException("audit backend unavailable"));
+        UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
+        ProviderReference reference = new ProviderReference("test-provider", "txn-001");
+
+        PaymentResult result = service.execute(new UpdatePaymentStatusCommand(
+                tenantId, payment.id(), PaymentStatus.VERIFIED, reference, null, payment.tenantId()));
+
+        assertThat(result.status()).isEqualTo("VERIFIED");
     }
 
     @Test
@@ -184,7 +218,7 @@ class PaymentApplicationServiceTest {
         Payment payment = newPayment(AggregateId.newId());
         when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
         UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
 
         PaymentResult result = service.execute(new UpdatePaymentStatusCommand(
                 tenantId, payment.id(), PaymentStatus.FAILED, null, "provider-declined", payment.tenantId()));
@@ -201,7 +235,7 @@ class PaymentApplicationServiceTest {
         payment.pullDomainEvents();
         when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
         UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
 
         PaymentResult result = service.execute(new UpdatePaymentStatusCommand(
                 tenantId, payment.id(), PaymentStatus.REFUNDED, null, null, payment.tenantId()));
@@ -217,7 +251,7 @@ class PaymentApplicationServiceTest {
         Payment payment = newPayment(AggregateId.newId());
         when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
         UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(new UpdatePaymentStatusCommand(
                         tenantId, payment.id(), PaymentStatus.CANCELLED, null, null, payment.tenantId())))
@@ -235,7 +269,7 @@ class PaymentApplicationServiceTest {
         payment.pullDomainEvents();
         when(repository.findById(tenantId, payment.id())).thenReturn(Optional.of(payment));
         UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(new UpdatePaymentStatusCommand(
                         tenantId, payment.id(), PaymentStatus.FAILED, null, "code", payment.tenantId())))
@@ -250,7 +284,7 @@ class PaymentApplicationServiceTest {
         AggregateId paymentId = AggregateId.newId();
         when(repository.findById(tenantId, paymentId)).thenReturn(Optional.empty());
         UpdatePaymentStatusUseCase service = new UpdatePaymentStatusApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, createAuditEntry);
 
         assertThatThrownBy(() -> service.execute(new UpdatePaymentStatusCommand(
                         tenantId, paymentId, PaymentStatus.VERIFIED, new ProviderReference("p", "t"), null,
@@ -279,7 +313,7 @@ class PaymentApplicationServiceTest {
                         .execute(AggregateId.newId(), null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new UpdatePaymentStatusApplicationService(
-                        repository, publisher, clock, transaction, mapper)
+                        repository, publisher, clock, transaction, mapper, createAuditEntry)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
     }
@@ -311,19 +345,22 @@ class PaymentApplicationServiceTest {
         assertThatThrownBy(() -> new ListPaymentsApplicationService(repository, transaction, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new UpdatePaymentStatusApplicationService(
-                        null, publisher, clock, transaction, mapper))
+                        null, publisher, clock, transaction, mapper, createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new UpdatePaymentStatusApplicationService(
-                        repository, null, clock, transaction, mapper))
+                        repository, null, clock, transaction, mapper, createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new UpdatePaymentStatusApplicationService(
-                        repository, publisher, null, transaction, mapper))
+                        repository, publisher, null, transaction, mapper, createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new UpdatePaymentStatusApplicationService(
-                        repository, publisher, clock, null, mapper))
+                        repository, publisher, clock, null, mapper, createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new UpdatePaymentStatusApplicationService(
-                        repository, publisher, clock, transaction, null))
+                        repository, publisher, clock, transaction, null, createAuditEntry))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new UpdatePaymentStatusApplicationService(
+                        repository, publisher, clock, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
     }
 

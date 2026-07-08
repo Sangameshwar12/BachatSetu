@@ -3,6 +3,7 @@ package in.bachatsetu.backend.notification.interfaces.rest.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.notification.application.mapper.NotificationApplicationMapper;
 import in.bachatsetu.backend.notification.application.port.ClockPort;
 import in.bachatsetu.backend.notification.application.port.DomainEventPublisherPort;
@@ -33,12 +34,13 @@ class NotificationApplicationConfigTest {
     private final SmsSender smsSender = mock(SmsSender.class);
     private final WhatsappSender whatsappSender = mock(WhatsappSender.class);
     private final InAppNotificationSender inAppNotificationSender = mock(InAppNotificationSender.class);
+    private final CreateAuditEntryUseCase createAuditEntry = mock(CreateAuditEntryUseCase.class);
 
     @Test
     void composesCreateNotificationUseCase() {
         assertThat(config.createNotificationUseCase(
                         repository, eventPublisher, clock, transaction, mapper, renderer,
-                        emailSender, smsSender, whatsappSender, inAppNotificationSender))
+                        emailSender, smsSender, whatsappSender, inAppNotificationSender, createAuditEntry))
                 .isInstanceOf(CreateNotificationApplicationService.class);
     }
 

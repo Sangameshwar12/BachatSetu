@@ -3,6 +3,7 @@ package in.bachatsetu.backend.draw.interfaces.rest.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.draw.application.mapper.DrawApplicationMapper;
 import in.bachatsetu.backend.draw.application.port.ClockPort;
 import in.bachatsetu.backend.draw.application.port.DomainEventPublisherPort;
@@ -30,6 +31,7 @@ class DrawApplicationConfigTest {
     private final ClockPort clock = mock(ClockPort.class);
     private final TransactionPort transaction = mock(TransactionPort.class);
     private final DrawAuthorizationService authorization = config.drawAuthorizationService();
+    private final CreateAuditEntryUseCase createAuditEntry = mock(CreateAuditEntryUseCase.class);
 
     @Test
     void composesDrawAuthorizationService() {
@@ -65,7 +67,8 @@ class DrawApplicationConfigTest {
     @Test
     void composesCloseDrawUseCase() {
         assertThat(config.closeDrawUseCase(
-                        repository, groupRepository, eventPublisher, clock, transaction, mapper, authorization))
+                        repository, groupRepository, eventPublisher, clock, transaction, mapper, authorization,
+                        createAuditEntry))
                 .isInstanceOf(CloseDrawApplicationService.class);
     }
 }

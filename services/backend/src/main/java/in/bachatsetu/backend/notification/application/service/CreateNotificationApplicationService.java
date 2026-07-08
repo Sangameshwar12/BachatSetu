@@ -1,5 +1,8 @@
 package in.bachatsetu.backend.notification.application.service;
 
+import in.bachatsetu.backend.audit.application.command.CreateAuditEntryCommand;
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
+import in.bachatsetu.backend.audit.domain.model.AuditEventType;
 import in.bachatsetu.backend.notification.application.command.CreateNotificationCommand;
 import in.bachatsetu.backend.notification.application.exception.NotificationDeliveryFailedException;
 import in.bachatsetu.backend.notification.application.mapper.NotificationApplicationMapper;
@@ -46,6 +49,7 @@ public final class CreateNotificationApplicationService implements CreateNotific
     private final WhatsappSender whatsappSender;
     private final InAppNotificationSender inAppNotificationSender;
     private final NotificationApplicationSupport support;
+    private final CreateAuditEntryUseCase createAuditEntry;
 
     public CreateNotificationApplicationService(
             NotificationRepository repository,
@@ -57,7 +61,8 @@ public final class CreateNotificationApplicationService implements CreateNotific
             EmailSender emailSender,
             SmsSender smsSender,
             WhatsappSender whatsappSender,
-            InAppNotificationSender inAppNotificationSender) {
+            InAppNotificationSender inAppNotificationSender,
+            CreateAuditEntryUseCase createAuditEntry) {
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
         this.renderer = Objects.requireNonNull(renderer, "renderer must not be null");
@@ -68,12 +73,15 @@ public final class CreateNotificationApplicationService implements CreateNotific
                 Objects.requireNonNull(inAppNotificationSender, "in-app sender must not be null");
         this.support = new NotificationApplicationSupport(
                 Objects.requireNonNull(repository, "repository must not be null"), eventPublisher, mapper);
+        this.createAuditEntry = Objects.requireNonNull(createAuditEntry, "create audit entry use case must not be null");
     }
 
     @Override
     public NotificationResult execute(CreateNotificationCommand command) {
         Objects.requireNonNull(command, "create command must not be null");
-        return transaction.execute(() -> create(command));
+        NotificationResult result = transaction.execute(() -> create(command));
+        auditNotificationSent(result);
+        return result;
     }
 
     private NotificationResult create(CreateNotificationCommand command) {
@@ -109,6 +117,22 @@ public final class CreateNotificationApplicationService implements CreateNotific
             };
         } catch (RuntimeException exception) {
             throw new NotificationDeliveryFailedException("failed to dispatch notification", exception);
+        }
+    }
+
+    /**
+     * Best-effort: an audit failure must never fail a notification that has already been sent and committed,
+     * so any exception is caught and discarded here rather than propagated.
+     */
+    private void auditNotificationSent(NotificationResult result) {
+        try {
+            createAuditEntry.execute(new CreateAuditEntryCommand(
+                    new AggregateId(result.tenantId()), new AggregateId(result.recipientUserId()),
+                    AuditEventType.NOTIFICATION_SENT, "notification", "Notification",
+                    new AggregateId(result.notificationId()), "NOTIFICATION_SENT", "notification sent", null, null,
+                    null));
+        } catch (RuntimeException exception) {
+            // Audit is best-effort: never let a recording failure affect an already-sent notification.
         }
     }
 }

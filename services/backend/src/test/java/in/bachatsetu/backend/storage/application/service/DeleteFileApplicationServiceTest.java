@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.storage.application.exception.StoredFileNotFoundException;
 import in.bachatsetu.backend.storage.application.port.FileDeletePort;
@@ -26,6 +27,7 @@ class DeleteFileApplicationServiceTest {
 
     private StorageRepository repository;
     private FileDeletePort deletePort;
+    private CreateAuditEntryUseCase createAuditEntry;
     private DeleteFileApplicationService service;
 
     @BeforeEach
@@ -33,7 +35,9 @@ class DeleteFileApplicationServiceTest {
         repository = mock(StorageRepository.class);
         deletePort = mock(FileDeletePort.class);
         when(deletePort.supportedProvider()).thenReturn(StorageProvider.LOCAL);
-        service = new DeleteFileApplicationService(repository, List.of(deletePort), new DirectTransactionPort());
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
+        service = new DeleteFileApplicationService(
+                repository, List.of(deletePort), new DirectTransactionPort(), createAuditEntry);
     }
 
     @Test
@@ -46,6 +50,7 @@ class DeleteFileApplicationServiceTest {
 
         verify(deletePort).delete(file.path());
         verify(repository).delete(tenantId, file.id());
+        verify(createAuditEntry).execute(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

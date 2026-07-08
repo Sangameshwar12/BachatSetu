@@ -10,6 +10,7 @@ import in.bachatsetu.backend.auth.application.exception.OtpApplicationException;
 import in.bachatsetu.backend.auth.application.exception.OtpFailureReason;
 import in.bachatsetu.backend.auth.application.port.ClockPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
+import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.query.OtpActionResult;
 import in.bachatsetu.backend.auth.application.usecase.VerifyOtpUseCase;
 import in.bachatsetu.backend.auth.application.validation.OtpRequestValidator;
@@ -27,16 +28,19 @@ public final class VerifyOtpApplicationService implements VerifyOtpUseCase {
     private final OtpVerificationRepository repository;
     private final ClockPort clock;
     private final HashingPort hashing;
+    private final OtpEventPublisherPort eventPublisher;
 
     public VerifyOtpApplicationService(
             OtpRequestValidator validator,
             OtpVerificationRepository repository,
             ClockPort clock,
-            HashingPort hashing) {
+            HashingPort hashing,
+            OtpEventPublisherPort eventPublisher) {
         this.validator = Objects.requireNonNull(validator, "OTP validator must not be null");
         this.repository = Objects.requireNonNull(repository, "OTP repository must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.hashing = Objects.requireNonNull(hashing, "hashing port must not be null");
+        this.eventPublisher = Objects.requireNonNull(eventPublisher, "event publisher must not be null");
     }
 
     @Override
@@ -72,6 +76,7 @@ public final class VerifyOtpApplicationService implements VerifyOtpUseCase {
     }
 
     private OtpActionResult result(OtpVerification verification, OtpApplicationEvent event) {
+        eventPublisher.publish(event);
         return OtpActionResult.from(verification, List.of(event));
     }
 }

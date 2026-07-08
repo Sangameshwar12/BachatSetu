@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.payment.application.query.PaymentResult;
 import in.bachatsetu.backend.payment.application.usecase.GetPaymentUseCase;
 import in.bachatsetu.backend.payment.application.usecase.UpdatePaymentStatusUseCase;
@@ -38,6 +39,7 @@ class InitiateRefundApplicationServiceTest {
     private PaymentRefundPort refundPort;
     private GetPaymentUseCase getPayment;
     private UpdatePaymentStatusUseCase updatePaymentStatus;
+    private CreateAuditEntryUseCase createAuditEntry;
     private InitiateRefundApplicationService service;
 
     @BeforeEach
@@ -47,9 +49,11 @@ class InitiateRefundApplicationServiceTest {
         when(refundPort.supportedProvider()).thenReturn(GatewayType.RAZORPAY);
         getPayment = mock(GetPaymentUseCase.class);
         updatePaymentStatus = mock(UpdatePaymentStatusUseCase.class);
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
         service = new InitiateRefundApplicationService(
                 orderRepository, List.of(refundPort), mock(DomainEventPublisherPort.class), getPayment,
-                updatePaymentStatus, () -> NOW, new DirectTransactionPort(), new PaymentGatewayApplicationMapper());
+                updatePaymentStatus, () -> NOW, new DirectTransactionPort(), new PaymentGatewayApplicationMapper(),
+                createAuditEntry);
     }
 
     @Test
@@ -68,6 +72,7 @@ class InitiateRefundApplicationServiceTest {
         assertThat(result.successful()).isTrue();
         verify(updatePaymentStatus).execute(any());
         verify(orderRepository).save(order);
+        verify(createAuditEntry).execute(any());
     }
 
     @Test

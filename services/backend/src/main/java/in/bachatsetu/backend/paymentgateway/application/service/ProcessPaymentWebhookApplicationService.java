@@ -1,5 +1,8 @@
 package in.bachatsetu.backend.paymentgateway.application.service;
 
+import in.bachatsetu.backend.audit.application.command.CreateAuditEntryCommand;
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
+import in.bachatsetu.backend.audit.domain.model.AuditEventType;
 import in.bachatsetu.backend.payment.application.command.UpdatePaymentStatusCommand;
 import in.bachatsetu.backend.payment.application.query.PaymentResult;
 import in.bachatsetu.backend.payment.application.usecase.GetPaymentUseCase;
@@ -20,6 +23,7 @@ import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Verifies and processes one inbound gateway webhook call: signature verification is mandatory and happens
@@ -41,6 +45,7 @@ public final class ProcessPaymentWebhookApplicationService implements ProcessPay
     private final UpdatePaymentStatusUseCase updatePaymentStatus;
     private final ClockPort clock;
     private final TransactionPort transaction;
+    private final CreateAuditEntryUseCase createAuditEntry;
 
     public ProcessPaymentWebhookApplicationService(
             GatewayOrderRepository orderRepository,
@@ -48,7 +53,8 @@ public final class ProcessPaymentWebhookApplicationService implements ProcessPay
             GetPaymentUseCase getPayment,
             UpdatePaymentStatusUseCase updatePaymentStatus,
             ClockPort clock,
-            TransactionPort transaction) {
+            TransactionPort transaction,
+            CreateAuditEntryUseCase createAuditEntry) {
         this.orderRepository = Objects.requireNonNull(orderRepository, "order repository must not be null");
         this.verifiers = List.copyOf(Objects.requireNonNull(verifiers, "verifiers must not be null"));
         this.getPayment = Objects.requireNonNull(getPayment, "get payment use case must not be null");
@@ -56,6 +62,7 @@ public final class ProcessPaymentWebhookApplicationService implements ProcessPay
                 Objects.requireNonNull(updatePaymentStatus, "update payment status use case must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
+        this.createAuditEntry = Objects.requireNonNull(createAuditEntry, "create audit entry use case must not be null");
     }
 
     @Override
@@ -66,16 +73,24 @@ public final class ProcessPaymentWebhookApplicationService implements ProcessPay
             throw new InvalidWebhookSignatureException(
                     "webhook signature verification failed for " + command.provider());
         }
-        return transaction.execute(() -> process(command));
+        AtomicReference<AggregateId> tenantIdHolder = new AtomicReference<>();
+        AtomicReference<AggregateId> actorIdHolder = new AtomicReference<>();
+        PaymentStatusResult result = transaction.execute(() -> process(command, tenantIdHolder, actorIdHolder));
+        auditGatewayWebhookProcessed(tenantIdHolder.get(), actorIdHolder.get(), result);
+        return result;
     }
 
-    private PaymentStatusResult process(ProcessWebhookCommand command) {
+    private PaymentStatusResult process(
+            ProcessWebhookCommand command, AtomicReference<AggregateId> tenantIdHolder,
+            AtomicReference<AggregateId> actorIdHolder) {
         GatewayOrder order = orderRepository.findByProviderOrderId(command.provider(), command.providerOrderId())
                 .orElseThrow(() -> new GatewayOrderNotFoundException(
                         "no payment is associated with provider order " + command.providerOrderId()));
         PaymentResult payment = getPayment.execute(order.tenantId(), order.paymentId());
         AggregateId actorId = new AggregateId(payment.memberId());
         Instant now = clock.now();
+        tenantIdHolder.set(order.tenantId());
+        actorIdHolder.set(actorId);
 
         order.updateProviderStatus(command.status(), actorId, now);
         orderRepository.save(order);
@@ -95,5 +110,20 @@ public final class ProcessPaymentWebhookApplicationService implements ProcessPay
         return new PaymentStatusResult(
                 order.paymentId().value(), command.provider(), command.providerOrderId(),
                 command.status(), command.successful(), !command.successful());
+    }
+
+    /**
+     * Best-effort: an audit failure must never fail a webhook that has already been processed and committed,
+     * so any exception is caught and discarded here rather than propagated.
+     */
+    private void auditGatewayWebhookProcessed(AggregateId tenantId, AggregateId actorId, PaymentStatusResult result) {
+        try {
+            createAuditEntry.execute(new CreateAuditEntryCommand(
+                    tenantId, actorId, AuditEventType.GATEWAY_WEBHOOK_PROCESSED, "paymentgateway", "Payment",
+                    new AggregateId(result.paymentId()), "GATEWAY_WEBHOOK_PROCESSED", "gateway webhook processed",
+                    null, null, null));
+        } catch (RuntimeException exception) {
+            // Audit is best-effort: never let a recording failure affect an already-processed webhook.
+        }
     }
 }

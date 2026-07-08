@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.notification.application.command.CreateNotificationCommand;
 import in.bachatsetu.backend.notification.application.command.MarkNotificationDeliveredCommand;
 import in.bachatsetu.backend.notification.application.command.MarkNotificationFailedCommand;
@@ -63,6 +64,7 @@ class NotificationApplicationServiceTest {
     private SmsSender smsSender;
     private WhatsappSender whatsappSender;
     private InAppNotificationSender inAppNotificationSender;
+    private CreateAuditEntryUseCase createAuditEntry;
 
     @BeforeEach
     void setUp() {
@@ -76,6 +78,7 @@ class NotificationApplicationServiceTest {
         smsSender = mock(SmsSender.class);
         whatsappSender = mock(WhatsappSender.class);
         inAppNotificationSender = mock(InAppNotificationSender.class);
+        createAuditEntry = mock(CreateAuditEntryUseCase.class);
         when(emailSender.send(any(), any())).thenReturn("EMAIL-provider-id");
         when(smsSender.send(any(), any())).thenReturn("SMS-provider-id");
         when(whatsappSender.send(any(), any())).thenReturn("WHATSAPP-provider-id");
@@ -95,6 +98,7 @@ class NotificationApplicationServiceTest {
         verify(repository).save(any(Notification.class));
         verify(emailSender).send(any(), any());
         assertPublishedEventsInclude(NotificationQueued.class);
+        verify(createAuditEntry).execute(any());
     }
 
     @Test
@@ -276,18 +280,22 @@ class NotificationApplicationServiceTest {
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CreateNotificationApplicationService(
                         null, publisher, clock, transaction, mapper, renderer,
-                        emailSender, smsSender, whatsappSender, inAppNotificationSender))
+                        emailSender, smsSender, whatsappSender, inAppNotificationSender, createAuditEntry))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CreateNotificationApplicationService(
                         repository, publisher, null, transaction, mapper, renderer,
-                        emailSender, smsSender, whatsappSender, inAppNotificationSender))
+                        emailSender, smsSender, whatsappSender, inAppNotificationSender, createAuditEntry))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CreateNotificationApplicationService(
+                        repository, publisher, clock, transaction, mapper, renderer,
+                        emailSender, smsSender, whatsappSender, inAppNotificationSender, null))
                 .isInstanceOf(NullPointerException.class);
     }
 
     private CreateNotificationUseCase createService() {
         return new CreateNotificationApplicationService(
                 repository, publisher, clock, transaction, mapper, renderer,
-                emailSender, smsSender, whatsappSender, inAppNotificationSender);
+                emailSender, smsSender, whatsappSender, inAppNotificationSender, createAuditEntry);
     }
 
     private Notification newNotification() {

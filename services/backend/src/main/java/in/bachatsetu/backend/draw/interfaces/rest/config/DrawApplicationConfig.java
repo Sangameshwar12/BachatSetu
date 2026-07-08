@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.draw.interfaces.rest.config;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.draw.application.mapper.DrawApplicationMapper;
 import in.bachatsetu.backend.draw.application.port.ClockPort;
 import in.bachatsetu.backend.draw.application.port.DomainEventPublisherPort;
@@ -100,8 +101,10 @@ public class DrawApplicationConfig {
             ClockPort clock,
             TransactionPort transaction,
             DrawApplicationMapper mapper,
-            DrawAuthorizationService authorization) {
+            DrawAuthorizationService authorization,
+            CreateAuditEntryUseCase createAuditEntry) {
         return new CloseDrawApplicationService(
-                repository, groupRepository, eventPublisher, clock, transaction, mapper, authorization);
+                repository, groupRepository, eventPublisher, clock, transaction, mapper, authorization,
+                createAuditEntry);
     }
 }

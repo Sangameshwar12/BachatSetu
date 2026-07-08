@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.payment.interfaces.rest.config;
 
+import in.bachatsetu.backend.audit.application.usecase.CreateAuditEntryUseCase;
 import in.bachatsetu.backend.payment.application.mapper.PaymentApplicationMapper;
 import in.bachatsetu.backend.payment.application.port.ClockPort;
 import in.bachatsetu.backend.payment.application.port.DomainEventPublisherPort;
@@ -73,7 +74,9 @@ public class PaymentApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            PaymentApplicationMapper mapper) {
-        return new UpdatePaymentStatusApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            PaymentApplicationMapper mapper,
+            CreateAuditEntryUseCase createAuditEntry) {
+        return new UpdatePaymentStatusApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, createAuditEntry);
     }
 }

@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
     "bachatsetu.automation.enabled=false",
     "bachatsetu.payment.gateway.enabled=false",
     "bachatsetu.storage.enabled=false",
+    "bachatsetu.audit.rest.enabled=false",
     "spring.autoconfigure.exclude="
             + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
             + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
