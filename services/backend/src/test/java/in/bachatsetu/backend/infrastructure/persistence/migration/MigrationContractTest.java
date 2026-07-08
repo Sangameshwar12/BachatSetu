@@ -13,7 +13,7 @@ class MigrationContractTest {
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
 
     @Test
-    void containsOnlyTheSevenOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheEightOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
                     .containsExactly(
@@ -23,7 +23,8 @@ class MigrationContractTest {
                             "V4__secure_otp_authentication.sql",
                             "V5__refresh_token_security.sql",
                             "V6__savings_group_schema.sql",
-                            "V7__payment_gateway_orders.sql");
+                            "V7__payment_gateway_orders.sql",
+                            "V8__storage_files.sql");
         }
     }
 
@@ -67,7 +68,8 @@ class MigrationContractTest {
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V4__secure_otp_authentication.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V5__refresh_token_security.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V6__savings_group_schema.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V7__payment_gateway_orders.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V7__payment_gateway_orders.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V8__storage_files.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -168,6 +170,20 @@ class MigrationContractTest {
                 .contains("version BIGINT NOT NULL DEFAULT 0")
                 .contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
                 .doesNotContain("ALTER TABLE finance.payments")
+                .doesNotContain("DROP ");
+    }
+
+    @Test
+    void storageMigrationAddsAnAdditiveStoredFilesTableOnly() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V8__storage_files.sql"));
+
+        assertThat(sql)
+                .contains("CREATE SCHEMA IF NOT EXISTS storage")
+                .contains("CREATE TABLE storage.stored_files")
+                .contains("provider IN ('LOCAL', 'AWS_S3', 'AZURE_BLOB', 'GOOGLE_CLOUD_STORAGE')")
+                .contains("version BIGINT NOT NULL DEFAULT 0")
+                .contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
+                .doesNotContain("ALTER TABLE")
                 .doesNotContain("DROP ");
     }
 

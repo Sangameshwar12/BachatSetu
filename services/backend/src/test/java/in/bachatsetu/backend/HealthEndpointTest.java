@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
             "bachatsetu.auction.rest.enabled=false",
             "bachatsetu.automation.enabled=false",
             "bachatsetu.payment.gateway.enabled=false",
+            "bachatsetu.storage.enabled=false",
             "spring.autoconfigure.exclude="
                     + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"

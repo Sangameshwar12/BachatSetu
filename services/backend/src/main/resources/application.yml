@@ -140,6 +140,8 @@ bachatsetu:
   receipt:
     rest:
       enabled: ${RECEIPT_REST_ENABLED:true}
+    storage-upload:
+      enabled: ${RECEIPT_STORAGE_UPLOAD_ENABLED:false}
   notification:
     rest:
       enabled: ${NOTIFICATION_REST_ENABLED:true}
@@ -157,3 +159,21 @@ bachatsetu:
       cron: ${AUTOMATION_OVERDUE_REMINDER_CRON:0 30 9 * * *}
     cleanup:
       cron: ${AUTOMATION_CLEANUP_CRON:0 0 3 * * *}
+  storage:
+    enabled: ${STORAGE_ENABLED:true}
+    default-provider: ${STORAGE_DEFAULT_PROVIDER:LOCAL}
+    local:
+      path: ${STORAGE_LOCAL_PATH:./data/storage}
+    aws:
+      bucket: ${STORAGE_AWS_BUCKET:}
+      region: ${STORAGE_AWS_REGION:}
+      access-key-id: ${STORAGE_AWS_ACCESS_KEY_ID:}
+      secret-access-key: ${STORAGE_AWS_SECRET_ACCESS_KEY:}
+    azure:
+      account-name: ${STORAGE_AZURE_ACCOUNT_NAME:}
+      account-key: ${STORAGE_AZURE_ACCOUNT_KEY:}
+      container-name: ${STORAGE_AZURE_CONTAINER_NAME:}
+    gcp:
+      bucket: ${STORAGE_GCP_BUCKET:}
+      project-id: ${STORAGE_GCP_PROJECT_ID:}
+      credentials-json: ${STORAGE_GCP_CREDENTIALS_JSON:}

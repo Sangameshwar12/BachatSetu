@@ -9,8 +9,10 @@ import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.receipt.application.command.CreateReceiptCommand;
 import in.bachatsetu.backend.receipt.application.query.ReceiptLineResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfStorageResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptSummary;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfStorageUrlUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
@@ -21,6 +23,7 @@ import in.bachatsetu.backend.receipt.domain.port.SortDirection;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.CreateReceiptRequest;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.PageResponse;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptLineRequest;
+import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptPdfStorageUrlResponse;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptResponse;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptSummaryResponse;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -85,6 +88,33 @@ class ReceiptApiMapperTest {
 
         assertThat(result.fileName()).isEqualTo(expected.fileName());
         assertThat(result.content()).containsExactly(expected.content());
+    }
+
+    @Test
+    void getReceiptPdfStorageUrlDelegatesToUseCaseWithParsedIdentifiersAndActor() {
+        AuthenticatedUser currentUser = authenticatedUser();
+        UUID receiptId = UUID.randomUUID();
+        UUID fileId = UUID.randomUUID();
+        ReceiptPdfStorageResult expected = new ReceiptPdfStorageResult(fileId, "/api/v1/storage/files/" + fileId + "/download");
+        GetReceiptPdfStorageUrlUseCase useCase = (tenantId, id, actorId) -> {
+            assertThat(tenantId).isEqualTo(currentUser.tenantId());
+            assertThat(id.value()).isEqualTo(receiptId);
+            assertThat(actorId).isEqualTo(currentUser.userId().toAggregateId());
+            return expected;
+        };
+
+        assertThat(mapper.getReceiptPdfStorageUrl(useCase, currentUser, receiptId.toString())).isEqualTo(expected);
+    }
+
+    @Test
+    void mapsStorageUrlResultToResponse() {
+        UUID fileId = UUID.randomUUID();
+        ReceiptPdfStorageResult result = new ReceiptPdfStorageResult(fileId, "/api/v1/storage/files/" + fileId + "/download");
+
+        ReceiptPdfStorageUrlResponse response = mapper.toStorageUrlResponse(result);
+
+        assertThat(response.fileId()).isEqualTo(fileId.toString());
+        assertThat(response.downloadUrl()).isEqualTo("/api/v1/storage/files/" + fileId + "/download");
     }
 
     @Test

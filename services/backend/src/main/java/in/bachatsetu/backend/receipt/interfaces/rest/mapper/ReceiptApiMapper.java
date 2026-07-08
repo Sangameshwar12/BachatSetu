@@ -4,8 +4,10 @@ import in.bachatsetu.backend.auth.application.security.AuthenticatedUser;
 import in.bachatsetu.backend.receipt.application.command.CreateReceiptCommand;
 import in.bachatsetu.backend.receipt.application.query.ReceiptLineResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptPdfResult;
+import in.bachatsetu.backend.receipt.application.query.ReceiptPdfStorageResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptResult;
 import in.bachatsetu.backend.receipt.application.query.ReceiptSummary;
+import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfStorageUrlUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptPdfUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.GetReceiptUseCase;
 import in.bachatsetu.backend.receipt.application.usecase.ListReceiptsUseCase;
@@ -20,6 +22,7 @@ import in.bachatsetu.backend.receipt.interfaces.rest.dto.CreateReceiptRequest;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.PageResponse;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptLineRequest;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptLineResponse;
+import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptPdfStorageUrlResponse;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptResponse;
 import in.bachatsetu.backend.receipt.interfaces.rest.dto.ReceiptSummaryResponse;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -56,6 +59,20 @@ public class ReceiptApiMapper {
         Objects.requireNonNull(currentUser, "current user must not be null");
         Objects.requireNonNull(receiptId, "receipt id must not be null");
         return useCase.execute(currentUser.tenantId(), AggregateId.from(receiptId));
+    }
+
+    public ReceiptPdfStorageResult getReceiptPdfStorageUrl(
+            GetReceiptPdfStorageUrlUseCase useCase, AuthenticatedUser currentUser, String receiptId) {
+        Objects.requireNonNull(useCase, "use case must not be null");
+        Objects.requireNonNull(currentUser, "current user must not be null");
+        Objects.requireNonNull(receiptId, "receipt id must not be null");
+        return useCase.execute(
+                currentUser.tenantId(), AggregateId.from(receiptId), currentUser.userId().toAggregateId());
+    }
+
+    public ReceiptPdfStorageUrlResponse toStorageUrlResponse(ReceiptPdfStorageResult result) {
+        Objects.requireNonNull(result, "result must not be null");
+        return new ReceiptPdfStorageUrlResponse(result.fileId().toString(), result.downloadUrl());
     }
 
     public ReceiptResponse toResponse(ReceiptResult result) {
