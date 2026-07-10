@@ -82,6 +82,14 @@ public class SavingsGroupRepositoryAdapter implements SavingsGroupRepository, Gr
     }
 
     @Override
+    public List<SavingsGroup> findByOwnerId(AggregateId tenantId, AggregateId ownerId) {
+        Objects.requireNonNull(tenantId, "tenant id must not be null");
+        Objects.requireNonNull(ownerId, "owner id must not be null");
+        return repository.findAllByTenantIdAndOrganizer_IdAndDeletedFalse(tenantId.value(), ownerId.value())
+                .stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     public GroupPage<SavingsGroup> findPage(AggregateId tenantId, GroupPageRequest pageRequest) {
         Objects.requireNonNull(tenantId, "tenant id must not be null");
         Objects.requireNonNull(pageRequest, "page request must not be null");

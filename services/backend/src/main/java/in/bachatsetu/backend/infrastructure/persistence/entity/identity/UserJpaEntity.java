@@ -81,6 +81,25 @@ public class UserJpaEntity extends BaseJpaEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<RoleJpaEntity> roles = new LinkedHashSet<>();
 
+    @Size(max = 100)
+    @Column(name = "city", length = 100)
+    private String city;
+
+    @Size(max = 100)
+    @Column(name = "state", length = 100)
+    private String state;
+
+    @Column(name = "photo_file_id")
+    private UUID photoFileId;
+
+    @NotNull
+    @Column(name = "notifications_enabled", nullable = false)
+    private boolean notificationsEnabled = true;
+
+    @NotNull
+    @Column(name = "onboarded", nullable = false)
+    private boolean onboarded;
+
     protected UserJpaEntity() {
     }
 
@@ -124,5 +143,21 @@ public class UserJpaEntity extends BaseJpaEntity {
         authenticationStatus = authStatus;
         roles.clear();
         roles.addAll(assignedRoles);
+    }
+
+    public String getCity() { return city; }
+    public String getState() { return state; }
+    public UUID getPhotoFileId() { return photoFileId; }
+    public boolean isNotificationsEnabled() { return notificationsEnabled; }
+    public boolean isOnboarded() { return onboarded; }
+
+    public void completeOnboarding(
+            String onboardingCity, String onboardingState, UUID onboardingPhotoFileId,
+            boolean onboardingNotificationsEnabled) {
+        city = onboardingCity;
+        state = onboardingState;
+        photoFileId = onboardingPhotoFileId;
+        notificationsEnabled = onboardingNotificationsEnabled;
+        onboarded = true;
     }
 }

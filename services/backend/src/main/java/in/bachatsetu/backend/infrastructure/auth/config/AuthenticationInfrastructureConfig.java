@@ -1,11 +1,15 @@
 package in.bachatsetu.backend.infrastructure.auth.config;
 
 import in.bachatsetu.backend.auth.application.port.ClockPort;
+import in.bachatsetu.backend.auth.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
+import in.bachatsetu.backend.auth.application.port.PasswordHashGeneratorPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.infrastructure.auth.adapter.ApplicationEventDomainEventPublisherAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.ApplicationEventOtpPublisherAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.BCryptHashingAdapter;
+import in.bachatsetu.backend.infrastructure.auth.adapter.RandomPasswordHashGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SecureRandomGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SystemClockAdapter;
 import java.security.SecureRandom;
@@ -57,5 +61,16 @@ public class AuthenticationInfrastructureConfig {
     @Bean
     OtpEventPublisherPort applicationEventOtpPublisherAdapter(ApplicationEventPublisher publisher) {
         return new ApplicationEventOtpPublisherAdapter(publisher);
+    }
+
+    @Bean
+    PasswordHashGeneratorPort randomPasswordHashGeneratorAdapter(
+            BCryptPasswordEncoder otpPasswordEncoder, SecureRandom authenticationSecureRandom) {
+        return new RandomPasswordHashGeneratorAdapter(otpPasswordEncoder, authenticationSecureRandom);
+    }
+
+    @Bean
+    DomainEventPublisherPort applicationEventDomainEventPublisherAdapter(ApplicationEventPublisher publisher) {
+        return new ApplicationEventDomainEventPublisherAdapter(publisher);
     }
 }

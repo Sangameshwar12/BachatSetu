@@ -84,6 +84,13 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     }
 
     @Override
+    public List<Notification> findRecentForRecipient(AggregateId tenantId, AggregateId recipientUserId) {
+        return repository.findTop5ByTenantIdAndUser_IdAndDeletedFalseOrderByCreatedAtDesc(
+                        tenantId.value(), recipientUserId.value())
+                .stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     @Transactional
     public void save(Notification notification) {
         RepositoryOperations.execute(() -> {

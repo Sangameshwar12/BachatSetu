@@ -1,6 +1,7 @@
 package in.bachatsetu.backend.auth.domain.model;
 
 import in.bachatsetu.backend.auth.domain.event.PasswordChanged;
+import in.bachatsetu.backend.auth.domain.event.UserActivated;
 import in.bachatsetu.backend.auth.domain.event.UserRegistered;
 import in.bachatsetu.backend.auth.domain.exception.IdentityDomainException;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -88,6 +89,16 @@ public final class User extends BaseAggregateRoot {
             AuditInfo auditInfo,
             long version) {
         return new User(userId, email, mobileNumber, passwordHash, status, roleIds, auditInfo, version);
+    }
+
+    /** Activates a pending-verification user once their registration OTP has been verified. */
+    public void activate(AggregateId actorId, Instant activatedAt) {
+        if (status != UserStatus.PENDING_VERIFICATION) {
+            throw new IdentityDomainException("only a pending-verification user can be activated");
+        }
+        status = UserStatus.ACTIVE;
+        markChanged(actorId, activatedAt);
+        registerEvent(new UserActivated(UUID.randomUUID(), userId, activatedAt));
     }
 
     /** Assigns a role once. */

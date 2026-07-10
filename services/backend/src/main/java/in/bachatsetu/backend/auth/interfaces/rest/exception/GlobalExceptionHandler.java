@@ -1,6 +1,7 @@
 package in.bachatsetu.backend.auth.interfaces.rest.exception;
 
 import in.bachatsetu.backend.auth.application.exception.OtpApplicationException;
+import in.bachatsetu.backend.auth.application.signup.exception.SignupApplicationException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.time.Instant;
@@ -78,6 +79,50 @@ public class GlobalExceptionHandler {
                     HttpStatus.TOO_MANY_REQUESTS,
                     "otp-resend-limit-exceeded",
                     "OTP resend limit exceeded",
+                    exception.getMessage(),
+                    request);
+        };
+    }
+
+    @ExceptionHandler(SignupApplicationException.class)
+    ResponseEntity<ProblemDetail> handleSignupFailure(
+            SignupApplicationException exception,
+            HttpServletRequest request) {
+        return switch (exception.reason()) {
+            case TERMS_NOT_ACCEPTED -> response(
+                    HttpStatus.BAD_REQUEST,
+                    "terms-not-accepted",
+                    "Terms not accepted",
+                    exception.getMessage(),
+                    request);
+            case MOBILE_ALREADY_REGISTERED -> response(
+                    HttpStatus.CONFLICT,
+                    "mobile-already-registered",
+                    "Mobile number already registered",
+                    exception.getMessage(),
+                    request);
+            case EMAIL_ALREADY_REGISTERED -> response(
+                    HttpStatus.CONFLICT,
+                    "email-already-registered",
+                    "Email already registered",
+                    exception.getMessage(),
+                    request);
+            case OTP_EXPIRED -> response(
+                    HttpStatus.GONE,
+                    "otp-expired",
+                    "OTP expired",
+                    exception.getMessage(),
+                    request);
+            case OTP_INVALID -> response(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "otp-invalid",
+                    "OTP invalid",
+                    exception.getMessage(),
+                    request);
+            case OTP_ATTEMPTS_EXCEEDED -> response(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "otp-verification-limit-exceeded",
+                    "OTP verification limit exceeded",
                     exception.getMessage(),
                     request);
         };

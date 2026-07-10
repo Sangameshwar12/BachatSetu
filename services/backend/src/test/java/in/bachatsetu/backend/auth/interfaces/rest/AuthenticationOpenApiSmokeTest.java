@@ -18,8 +18,12 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(properties = {
     "bachatsetu.persistence.auditing.enabled=false",
     "bachatsetu.persistence.repositories.enabled=false",
+    "bachatsetu.authentication.token.enabled=false",
     "bachatsetu.group.rest.enabled=false",
     "bachatsetu.member.rest.enabled=false",
+    "bachatsetu.user.rest.enabled=false",
+    "bachatsetu.invitation.rest.enabled=false",
+    "bachatsetu.dashboard.rest.enabled=false",
     "bachatsetu.payment.rest.enabled=false",
     "bachatsetu.draw.rest.enabled=false",
     "bachatsetu.receipt.rest.enabled=false",
@@ -29,6 +33,9 @@ import org.springframework.test.web.servlet.MockMvc;
     "bachatsetu.payment.gateway.enabled=false",
     "bachatsetu.storage.enabled=false",
     "bachatsetu.audit.rest.enabled=false",
+    "bachatsetu.admin.enabled=false",
+    "bachatsetu.admin.analytics.enabled=false",
+    "bachatsetu.admin.platform-config.enabled=false",
     "spring.autoconfigure.exclude="
             + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
             + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"

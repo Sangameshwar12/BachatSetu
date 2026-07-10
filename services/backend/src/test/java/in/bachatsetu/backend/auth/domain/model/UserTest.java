@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import in.bachatsetu.backend.auth.domain.event.PasswordChanged;
+import in.bachatsetu.backend.auth.domain.event.UserActivated;
 import in.bachatsetu.backend.auth.domain.event.UserRegistered;
 import in.bachatsetu.backend.auth.domain.exception.IdentityDomainException;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -57,6 +58,22 @@ class UserTest {
         PasswordChanged changed = (PasswordChanged) user.domainEvents().getLast();
         assertThat(changed.aggregateId()).isEqualTo(userId.toAggregateId());
         assertThatThrownBy(() -> user.changePassword(secondHash, actorId, NOW.plusSeconds(3)))
+                .isInstanceOf(IdentityDomainException.class);
+    }
+
+    @Test
+    void activatesAPendingVerificationUserExactlyOnce() {
+        UserId userId = UserId.newId();
+        AggregateId actorId = AggregateId.newId();
+        User user = newUser(userId, actorId);
+
+        user.activate(actorId, NOW.plusSeconds(1));
+
+        assertThat(user.status()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(user.domainEvents()).anyMatch(UserActivated.class::isInstance);
+        UserActivated activated = (UserActivated) user.domainEvents().getLast();
+        assertThat(activated.aggregateId()).isEqualTo(userId.toAggregateId());
+        assertThatThrownBy(() -> user.activate(actorId, NOW.plusSeconds(2)))
                 .isInstanceOf(IdentityDomainException.class);
     }
 

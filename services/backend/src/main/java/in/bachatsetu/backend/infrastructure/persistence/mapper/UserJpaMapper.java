@@ -22,6 +22,9 @@ public interface UserJpaMapper {
         if (email == null && phone == null) {
             throw new PersistenceMappingException("persisted user has no contact method");
         }
+        in.bachatsetu.backend.shared.domain.AggregateId photoFileId = entity.getPhotoFileId() == null
+                ? null
+                : new in.bachatsetu.backend.shared.domain.AggregateId(entity.getPhotoFileId());
         return new UserProfile(
                 JpaMappingSupport.id(entity.getId()),
                 new PersonName(entity.getGivenName(), entity.getFamilyName()),
@@ -30,6 +33,11 @@ public interface UserJpaMapper {
                 entity.getPreferredLanguage(),
                 entity.getStatus(),
                 List.of(),
+                entity.getCity(),
+                entity.getState(),
+                photoFileId,
+                entity.isNotificationsEnabled(),
+                entity.isOnboarded(),
                 JpaMappingSupport.auditInfo(entity),
                 entity.getVersion());
     }
@@ -40,7 +48,7 @@ public interface UserJpaMapper {
         }
         String email = domain.contact().email() == null ? null : domain.contact().email().value();
         String phone = domain.contact().phoneNumber() == null ? null : domain.contact().phoneNumber().value();
-        return new UserJpaEntity(
+        UserJpaEntity entity = new UserJpaEntity(
                 domain.id().value(),
                 tenantId,
                 domain.name().givenName(),
@@ -49,5 +57,12 @@ public interface UserJpaMapper {
                 phone,
                 domain.status(),
                 domain.preferredLanguage());
+        if (domain.onboarded()) {
+            entity.completeOnboarding(
+                    domain.city(), domain.state(),
+                    domain.photoFileId() == null ? null : domain.photoFileId().value(),
+                    domain.notificationsEnabled());
+        }
+        return entity;
     }
 }

@@ -21,5 +21,8 @@ public interface PaymentRepository {
 
     Optional<Payment> findByProviderReference(ProviderReference providerReference);
 
+    /** Most recent payment a given member has made toward a given group, if any. */
+    Optional<Payment> findLatestByGroupAndMember(AggregateId tenantId, AggregateId groupId, AggregateId memberId);
+
     void save(Payment payment);
 }

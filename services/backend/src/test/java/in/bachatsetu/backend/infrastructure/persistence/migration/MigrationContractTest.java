@@ -5,17 +5,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MigrationContractTest {
 
     private static final Path MIGRATION_DIRECTORY = Path.of("src/main/resources/db/migration");
+    private static final Comparator<String> BY_MIGRATION_VERSION = Comparator.comparingInt(
+            fileName -> Integer.parseInt(fileName.substring(1, fileName.indexOf("__"))));
 
     @Test
-    void containsOnlyTheNineOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheThirteenOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
-            assertThat(files.map(path -> path.getFileName().toString()).sorted().toList())
+            assertThat(files.map(path -> path.getFileName().toString()).sorted(BY_MIGRATION_VERSION).toList())
                     .containsExactly(
                             "V1__initial_schema.sql",
                             "V2__seed_roles_permissions.sql",
@@ -25,7 +28,11 @@ class MigrationContractTest {
                             "V6__savings_group_schema.sql",
                             "V7__payment_gateway_orders.sql",
                             "V8__storage_files.sql",
-                            "V9__audit_module.sql");
+                            "V9__audit_module.sql",
+                            "V10__admin_analytics_audit_event.sql",
+                            "V11__platform_configuration.sql",
+                            "V12__signup_and_profile_onboarding.sql",
+                            "V13__group_invitations.sql");
         }
     }
 
@@ -71,7 +78,11 @@ class MigrationContractTest {
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V6__savings_group_schema.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V7__payment_gateway_orders.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V8__storage_files.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V9__audit_module.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V9__audit_module.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V10__admin_analytics_audit_event.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V11__platform_configuration.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V12__signup_and_profile_onboarding.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V13__group_invitations.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -198,6 +209,85 @@ class MigrationContractTest {
                 .contains("event_type IN (")
                 .contains("'LOGIN'")
                 .contains("'SYSTEM_EVENT'")
+                .contains("version BIGINT NOT NULL DEFAULT 0")
+                .contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
+                .doesNotContain("ALTER TABLE")
+                .doesNotContain("CREATE SCHEMA")
+                .doesNotContain("DROP ");
+    }
+
+    @Test
+    void adminAnalyticsMigrationOnlyWidensTheAuditEventTypeConstraint() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V10__admin_analytics_audit_event.sql"));
+
+        assertThat(sql)
+                .contains("DROP CONSTRAINT ck_audit_entries_event_type")
+                .contains("ADD CONSTRAINT ck_audit_entries_event_type CHECK (event_type IN (")
+                .contains("'ADMIN_ANALYTICS_VIEWED'")
+                .contains("'LOGIN'")
+                .contains("'SYSTEM_EVENT'")
+                .doesNotContain("CREATE TABLE")
+                .doesNotContain("CREATE SCHEMA")
+                .doesNotContain("DROP TABLE");
+    }
+
+    @Test
+    void platformConfigurationMigrationCreatesAnAdditiveSchemaAndSeedsDefaults() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V11__platform_configuration.sql"));
+
+        assertThat(sql)
+                .contains("CREATE SCHEMA IF NOT EXISTS config")
+                .contains("CREATE TABLE config.platform_configuration")
+                .contains("CREATE TABLE config.feature_flags")
+                .contains("CREATE TABLE config.platform_limits")
+                .contains("ck_platform_configuration_singleton CHECK (id = 1)")
+                .contains("'AUTHENTICATION'")
+                .contains("'SIGNUP'")
+                .contains("'MAX_GROUPS'")
+                .contains("ON CONFLICT (id) DO NOTHING")
+                .contains("ON CONFLICT (feature_key) DO NOTHING")
+                .contains("ON CONFLICT (limit_key) DO NOTHING")
+                .contains("DROP CONSTRAINT ck_audit_entries_event_type")
+                .contains("'PLATFORM_CONFIGURATION_UPDATED'")
+                .contains("'FEATURE_FLAG_UPDATED'")
+                .contains("'SYSTEM_LIMIT_UPDATED'")
+                .doesNotContain("ALTER TABLE community")
+                .doesNotContain("ALTER TABLE finance")
+                .doesNotContain("DROP TABLE");
+    }
+
+    @Test
+    void signupAndProfileOnboardingMigrationOnlyAddsColumnsAndWidensTheAuditConstraint() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V12__signup_and_profile_onboarding.sql"));
+
+        assertThat(sql)
+                .contains("ALTER TABLE identity.users")
+                .contains("ADD COLUMN city VARCHAR(100)")
+                .contains("ADD COLUMN state VARCHAR(100)")
+                .contains("ADD COLUMN photo_file_id UUID")
+                .contains("ADD COLUMN notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE")
+                .contains("ADD COLUMN onboarded BOOLEAN NOT NULL DEFAULT FALSE")
+                .contains("DROP CONSTRAINT ck_audit_entries_event_type")
+                .contains("'USER_REGISTERED'")
+                .contains("'PROFILE_COMPLETED'")
+                .contains("'INVITATION_CREATED'")
+                .contains("'INVITATION_REVOKED'")
+                .contains("'GROUP_JOINED'")
+                .contains("'QR_JOINED'")
+                .contains("'LINK_JOINED'")
+                .doesNotContain("CREATE TABLE")
+                .doesNotContain("DROP TABLE");
+    }
+
+    @Test
+    void groupInvitationsMigrationAddsAnAdditiveTableOnly() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V13__group_invitations.sql"));
+
+        assertThat(sql)
+                .contains("CREATE TABLE community.group_invitations")
+                .contains("invitation_type IN ('QR', 'CODE', 'LINK')")
+                .contains("status IN ('ACTIVE', 'USED', 'EXPIRED', 'CANCELLED')")
+                .contains("uk_group_invitations_active_per_group")
                 .contains("version BIGINT NOT NULL DEFAULT 0")
                 .contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
                 .doesNotContain("ALTER TABLE")

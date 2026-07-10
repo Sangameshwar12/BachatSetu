@@ -83,7 +83,7 @@ bachatsetu:
     rest:
       enabled: ${AUTH_REST_ENABLED:true}
     token:
-      enabled: ${AUTH_TOKEN_ENABLED:false}
+      enabled: ${AUTH_TOKEN_ENABLED:true}
       access-token-expiry: ${AUTH_ACCESS_TOKEN_EXPIRY:15m}
       refresh-token-expiry: ${AUTH_REFRESH_TOKEN_EXPIRY:30d}
       issuer: ${AUTH_JWT_ISSUER:bachatsetu}
@@ -104,6 +104,7 @@ bachatsetu:
         - /swagger-ui.html
         - /api/v1/auth/**
         - /api/v1/payments/webhooks/**
+        - /api/v1/join/**
       cors:
         allowed-origins: ${AUTH_CORS_ALLOWED_ORIGINS:http://localhost:3000}
         allowed-methods: ${AUTH_CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
@@ -117,6 +118,16 @@ bachatsetu:
   member:
     rest:
       enabled: ${MEMBER_REST_ENABLED:true}
+  user:
+    rest:
+      enabled: ${USER_REST_ENABLED:true}
+  invitation:
+    validity: ${INVITATION_VALIDITY:P7D}
+    rest:
+      enabled: ${INVITATION_REST_ENABLED:true}
+  dashboard:
+    rest:
+      enabled: ${DASHBOARD_REST_ENABLED:true}
   payment:
     rest:
       enabled: ${PAYMENT_REST_ENABLED:true}
@@ -180,3 +191,11 @@ bachatsetu:
   audit:
     rest:
       enabled: ${AUDIT_REST_ENABLED:true}
+  admin:
+    enabled: ${ADMIN_ENABLED:true}
+    page-size-default: ${ADMIN_PAGE_SIZE_DEFAULT:20}
+    page-size-max: ${ADMIN_PAGE_SIZE_MAX:100}
+    analytics:
+      enabled: ${ADMIN_ANALYTICS_ENABLED:true}
+    platform-config:
+      enabled: ${ADMIN_PLATFORM_CONFIG_ENABLED:true}

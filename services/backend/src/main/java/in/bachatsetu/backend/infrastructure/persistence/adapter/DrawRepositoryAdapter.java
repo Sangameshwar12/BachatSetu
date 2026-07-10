@@ -107,6 +107,13 @@ public class DrawRepositoryAdapter implements DrawRepository {
     }
 
     @Override
+    public Optional<Draw> findNextScheduledByGroup(AggregateId tenantId, AggregateId groupId) {
+        return repository.findFirstByTenantIdAndGroup_IdAndStatusAndDeletedFalseOrderByScheduledAtAsc(
+                        tenantId.value(), groupId.value(), DrawStatus.SCHEDULED)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public List<Draw> findDueScheduled(Instant cutoff) {
         return repository.findAllByStatusAndScheduledAtLessThanEqualAndDeletedFalse(DrawStatus.SCHEDULED, cutoff)
                 .stream().map(mapper::toDomain).toList();

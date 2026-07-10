@@ -1,11 +1,17 @@
 package in.bachatsetu.backend.security.config;
 
+import in.bachatsetu.backend.admin.application.configuration.service.FeatureFlagQueryService;
+import in.bachatsetu.backend.admin.application.configuration.service.MaintenanceStatusQueryService;
 import in.bachatsetu.backend.auth.application.security.CurrentUserProvider;
 import in.bachatsetu.backend.auth.application.token.usecase.ValidateAccessTokenUseCase;
 import in.bachatsetu.backend.security.context.CurrentUserService;
+import in.bachatsetu.backend.security.filter.FeatureFlagEnforcementFilter;
 import in.bachatsetu.backend.security.filter.JwtAuthenticationFilter;
+import in.bachatsetu.backend.security.filter.MaintenanceModeFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,5 +55,19 @@ public class SecurityBeansConfiguration {
                 validatorProvider::getIfAvailable,
                 properties,
                 authenticationEntryPoint);
+    }
+
+    @Bean
+    MaintenanceModeFilter maintenanceModeFilter(
+            ObjectProvider<MaintenanceStatusQueryService> statusServiceProvider,
+            @Qualifier("securityClock") Clock clock,
+            ObjectMapper objectMapper) {
+        return new MaintenanceModeFilter(statusServiceProvider::getIfAvailable, clock, objectMapper);
+    }
+
+    @Bean
+    FeatureFlagEnforcementFilter featureFlagEnforcementFilter(
+            ObjectProvider<FeatureFlagQueryService> featureFlagServiceProvider, ObjectMapper objectMapper) {
+        return new FeatureFlagEnforcementFilter(featureFlagServiceProvider::getIfAvailable, objectMapper);
     }
 }

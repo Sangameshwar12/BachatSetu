@@ -24,6 +24,14 @@ public interface DrawSpringDataRepository extends BaseJpaRepository<DrawJpaEntit
 
     Optional<DrawJpaEntity> findByCycle_IdAndDeletedFalse(UUID cycleId);
 
+    Optional<DrawJpaEntity> findFirstByTenantIdAndGroup_IdAndStatusAndDeletedFalseOrderByScheduledAtAsc(
+            UUID tenantId, UUID groupId, DrawStatus status);
+
     List<DrawJpaEntity> findAllByStatusAndScheduledAtLessThanEqualAndDeletedFalse(
             DrawStatus status, Instant scheduledAt);
+
+    /** Cross-tenant totals for platform analytics only. */
+    long countByDeletedFalse();
+
+    long countByStatusAndDeletedFalse(DrawStatus status);
 }

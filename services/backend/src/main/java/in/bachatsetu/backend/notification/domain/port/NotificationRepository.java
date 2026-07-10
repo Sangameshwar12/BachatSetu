@@ -4,6 +4,7 @@ import in.bachatsetu.backend.notification.domain.model.Notification;
 import in.bachatsetu.backend.notification.domain.model.NotificationCategory;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface NotificationRepository {
@@ -19,6 +20,9 @@ public interface NotificationRepository {
      * one reminder of the same kind for the same recipient on the same day. */
     boolean existsForRecipientSince(
             AggregateId tenantId, AggregateId recipientUserId, NotificationCategory category, Instant since);
+
+    /** The 5 most recently created notifications for a given recipient, newest first. */
+    List<Notification> findRecentForRecipient(AggregateId tenantId, AggregateId recipientUserId);
 
     void save(Notification notification);
 }

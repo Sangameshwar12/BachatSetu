@@ -26,7 +26,8 @@ class PersistenceArchitectureTest {
                         return;
                     }
                     boolean implementsPort = adapter.getAllRawInterfaces().stream()
-                            .anyMatch(type -> type.getPackageName().contains(".domain.port")
+                            .anyMatch(type -> type.getPackageName().contains(".domain.")
+                                    && type.getPackageName().endsWith(".port")
                                     && type.getSimpleName().endsWith("Repository"));
                     String message = adapter.getName() + " must implement a domain repository port";
                     events.add(new SimpleConditionEvent(adapter, implementsPort, message));

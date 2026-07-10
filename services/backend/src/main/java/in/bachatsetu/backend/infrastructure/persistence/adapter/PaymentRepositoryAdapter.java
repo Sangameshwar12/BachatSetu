@@ -89,6 +89,14 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
     }
 
     @Override
+    public Optional<Payment> findLatestByGroupAndMember(
+            AggregateId tenantId, AggregateId groupId, AggregateId memberId) {
+        return repository.findFirstByTenantIdAndGroup_IdAndPayer_IdAndDeletedFalseOrderByCreatedAtDesc(
+                        tenantId.value(), groupId.value(), memberId.value())
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<Payment> findByProviderReference(ProviderReference providerReference) {
         return repository.findByProviderNameAndProviderPaymentReferenceAndDeletedFalse(
                         providerReference.provider(), providerReference.transactionId())

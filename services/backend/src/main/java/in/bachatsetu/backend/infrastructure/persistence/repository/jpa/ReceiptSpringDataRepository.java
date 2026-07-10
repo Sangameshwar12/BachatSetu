@@ -11,6 +11,8 @@ public interface ReceiptSpringDataRepository extends BaseJpaRepository<ReceiptJp
 
     Optional<ReceiptJpaEntity> findByTenantIdAndIdAndDeletedFalse(UUID tenantId, UUID id);
 
+    long countByDeletedFalse();
+
     Page<ReceiptJpaEntity> findAllByTenantIdAndDeletedFalse(UUID tenantId, Pageable pageable);
 
     Optional<ReceiptJpaEntity> findByTenantIdAndNumberAndDeletedFalse(UUID tenantId, String number);

@@ -34,4 +34,10 @@ public interface MemberSpringDataRepository extends BaseJpaRepository<GroupMembe
                )
             """)
     Page<GroupMemberJpaEntity> findRepresentativeRowsByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
+
+    /** Cross-tenant member count for platform administration listing only. */
+    long countByGroup_IdAndDeletedFalse(UUID groupId);
+
+    /** Cross-tenant total membership row count, for platform analytics only. */
+    long countByDeletedFalse();
 }
