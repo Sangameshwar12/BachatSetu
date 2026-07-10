@@ -7,6 +7,7 @@ import {
   LifeBuoy,
   Receipt,
   Settings,
+  Shield,
   Users,
 } from "lucide-react";
 
@@ -33,4 +34,5 @@ export const dashboardNavItems: DashboardNavItem[] = [
   { label: "Support", href: "/dashboard/support", icon: LifeBuoy, available: false },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, available: true },
   { label: "Organizer", href: "/dashboard/organizer", icon: Briefcase, available: true },
+  { label: "Admin", href: "/dashboard/admin", icon: Shield, available: true },
 ];

@@ -3,6 +3,15 @@ export function formatCompactNumber(value: number): string {
   return new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
+/** Formats a byte count as a human-readable size, e.g. `1536000` -> `1.46 MB`. */
+export function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, exponent);
+  return `${exponent === 0 ? value : value.toFixed(2)} ${units[exponent]}`;
+}
+
 /** Formats an integer amount of minor units (paise) as a localized rupee amount, e.g. `150000` -> `₹1,500.00`. */
 export function formatPaiseAsRupees(paise: number): string {
   return new Intl.NumberFormat("en-IN", {
