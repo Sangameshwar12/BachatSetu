@@ -17,6 +17,12 @@ public interface NotificationSpringDataRepository extends BaseJpaRepository<Noti
 
     long countByDeletedFalse();
 
+    /** Per-tenant notification count, for Platform Operations tenant statistics only. */
+    long countByTenantIdAndDeletedFalse(UUID tenantId);
+
+    /** Platform-wide notification count in a window, for the Platform Operations dashboard only. */
+    long countByCreatedAtBetween(Instant start, Instant end);
+
     Page<NotificationJpaEntity> findAllByTenantIdAndDeletedFalse(UUID tenantId, Pageable pageable);
 
     boolean existsByTenantIdAndUser_IdAndCategoryAndCreatedAtGreaterThanEqualAndDeletedFalse(

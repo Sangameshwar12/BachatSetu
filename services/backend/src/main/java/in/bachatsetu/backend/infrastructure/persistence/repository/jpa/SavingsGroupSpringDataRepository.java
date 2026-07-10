@@ -65,6 +65,9 @@ public interface SavingsGroupSpringDataRepository extends BaseJpaRepository<Savi
 
     long countByTenantIdAndDeletedFalse(UUID tenantId);
 
+    /** Platform-wide new-group count in a window, for the Platform Operations dashboard only. */
+    long countByCreatedAtBetween(Instant start, Instant end);
+
     /**
      * Cross-tenant, filterable listing for platform administration only — deliberately without the
      * {@code organizer}/{@code members} entity graph the tenant-scoped queries above use, since an

@@ -128,6 +128,12 @@ bachatsetu:
   dashboard:
     rest:
       enabled: ${DASHBOARD_REST_ENABLED:true}
+  support:
+    rest:
+      enabled: ${SUPPORT_REST_ENABLED:true}
+  platform-operations:
+    rest:
+      enabled: ${PLATFORM_OPERATIONS_REST_ENABLED:true}
   payment:
     rest:
       enabled: ${PAYMENT_REST_ENABLED:true}

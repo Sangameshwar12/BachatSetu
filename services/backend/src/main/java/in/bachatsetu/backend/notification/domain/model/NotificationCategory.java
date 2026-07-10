@@ -12,5 +12,6 @@ public enum NotificationCategory {
     DRAW,
     AUCTION,
     GROUP,
-    MEMBER
+    MEMBER,
+    PLATFORM_ANNOUNCEMENT
 }

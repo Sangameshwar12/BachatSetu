@@ -31,6 +31,18 @@ public interface UserSpringDataRepository extends BaseJpaRepository<UserJpaEntit
 
     long countByTenantIdAndDeletedFalse(UUID tenantId);
 
+    /** Platform-wide signup count in a window, for the Platform Operations dashboard only. */
+    long countByCreatedAtBetween(Instant start, Instant end);
+
+    /** Every non-deleted user, for Platform Operations broadcast notifications only. */
+    List<UserJpaEntity> findAllByDeletedFalse();
+
+    /** Every non-deleted user in one tenant, for Platform Operations broadcast notifications only. */
+    List<UserJpaEntity> findAllByTenantIdAndDeletedFalse(UUID tenantId);
+
+    /** Most recently updated user in a tenant, used as a last-activity proxy for tenant statistics only. */
+    Optional<UserJpaEntity> findFirstByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(UUID tenantId);
+
     /** Every distinct tenant known to the platform — a tenant "exists" by having at least one user. */
     @Query(
             value = "SELECT DISTINCT userEntity.tenantId FROM UserJpaEntity userEntity "

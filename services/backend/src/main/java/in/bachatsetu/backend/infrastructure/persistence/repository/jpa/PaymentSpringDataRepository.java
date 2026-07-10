@@ -25,6 +25,12 @@ public interface PaymentSpringDataRepository extends BaseJpaRepository<PaymentJp
 
     long countByStatusAndDeletedFalse(PaymentStatus status);
 
+    /** Per-tenant payment count, for Platform Operations tenant statistics only. */
+    long countByTenantIdAndDeletedFalse(UUID tenantId);
+
+    /** Platform-wide payment count in a window, for the Platform Operations dashboard only. */
+    long countByCreatedAtBetween(Instant start, Instant end);
+
     Page<PaymentJpaEntity> findAllByTenantIdAndDeletedFalse(UUID tenantId, Pageable pageable);
 
     Optional<PaymentJpaEntity> findByTenantIdAndReferenceAndDeletedFalse(UUID tenantId, String reference);
@@ -45,6 +51,10 @@ public interface PaymentSpringDataRepository extends BaseJpaRepository<PaymentJp
     @Query("SELECT COALESCE(SUM(p.amountPaise), 0) FROM PaymentJpaEntity p "
             + "WHERE p.deleted = false AND p.status = :status")
     long sumAmountPaiseByStatus(@Param("status") PaymentStatus status);
+
+    @Query("SELECT COALESCE(SUM(p.amountPaise), 0) FROM PaymentJpaEntity p "
+            + "WHERE p.deleted = false AND p.tenantId = :tenantId AND p.status = :status")
+    long sumAmountPaiseByTenantIdAndStatus(@Param("tenantId") UUID tenantId, @Param("status") PaymentStatus status);
 
     /**
      * One row per day since {@code since}: {@code [year, month, day, count, sum(amountPaise)]}, for platform

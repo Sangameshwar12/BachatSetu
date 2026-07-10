@@ -13,6 +13,9 @@ public interface ReceiptSpringDataRepository extends BaseJpaRepository<ReceiptJp
 
     long countByDeletedFalse();
 
+    /** Per-tenant receipt count, for Platform Operations tenant statistics only. */
+    long countByTenantIdAndDeletedFalse(UUID tenantId);
+
     Page<ReceiptJpaEntity> findAllByTenantIdAndDeletedFalse(UUID tenantId, Pageable pageable);
 
     Optional<ReceiptJpaEntity> findByTenantIdAndNumberAndDeletedFalse(UUID tenantId, String number);

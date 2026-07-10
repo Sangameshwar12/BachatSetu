@@ -16,7 +16,7 @@ class MigrationContractTest {
             fileName -> Integer.parseInt(fileName.substring(1, fileName.indexOf("__"))));
 
     @Test
-    void containsOnlyTheThirteenOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheFourteenOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted(BY_MIGRATION_VERSION).toList())
                     .containsExactly(
@@ -32,7 +32,8 @@ class MigrationContractTest {
                             "V10__admin_analytics_audit_event.sql",
                             "V11__platform_configuration.sql",
                             "V12__signup_and_profile_onboarding.sql",
-                            "V13__group_invitations.sql");
+                            "V13__group_invitations.sql",
+                            "V14__support_and_platform_operations.sql");
         }
     }
 
@@ -82,7 +83,8 @@ class MigrationContractTest {
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V10__admin_analytics_audit_event.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V11__platform_configuration.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V12__signup_and_profile_onboarding.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V13__group_invitations.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V13__group_invitations.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V14__support_and_platform_operations.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)
@@ -293,6 +295,28 @@ class MigrationContractTest {
                 .doesNotContain("ALTER TABLE")
                 .doesNotContain("CREATE SCHEMA")
                 .doesNotContain("DROP ");
+    }
+
+    @Test
+    void supportAndPlatformOperationsMigrationAddsAdditiveSchemasOnly() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V14__support_and_platform_operations.sql"));
+
+        assertThat(sql)
+                .contains("CREATE SCHEMA IF NOT EXISTS support")
+                .contains("CREATE TABLE support.support_tickets")
+                .contains("category IN ('LOGIN', 'OTP', 'PAYMENT', 'GROUP', 'DRAW', 'NOTIFICATION', 'RECEIPT', 'STORAGE', 'OTHER')")
+                .contains("status IN ('OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')")
+                .contains("CREATE SCHEMA IF NOT EXISTS platform")
+                .contains("CREATE TABLE platform.tenants")
+                .contains("CREATE TABLE platform.announcements")
+                .contains("ck_tenants_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'ARCHIVED'))")
+                .contains("DROP CONSTRAINT ck_audit_entries_event_type")
+                .contains("'TENANT_SUSPENDED'")
+                .contains("'SUPPORT_TICKET_CREATED'")
+                .contains("'ANNOUNCEMENT_PUBLISHED'")
+                .contains("'BROADCAST_NOTIFICATION_SENT'")
+                .doesNotContain("DROP TABLE")
+                .doesNotContain("DROP SCHEMA");
     }
 
     private int count(String source, String token) {

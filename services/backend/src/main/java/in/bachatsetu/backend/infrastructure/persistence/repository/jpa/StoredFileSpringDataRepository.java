@@ -16,8 +16,17 @@ public interface StoredFileSpringDataRepository extends BaseJpaRepository<Stored
 
     long countByDeletedFalse();
 
+    /** Per-tenant stored file count, for Platform Operations tenant statistics only. */
+    long countByTenantIdAndDeletedFalse(UUID tenantId);
+
+    /** Platform-wide upload count in a window, for the Platform Operations dashboard only. */
+    long countByUploadedAtBetween(Instant start, Instant end);
+
     @Query("SELECT COALESCE(SUM(f.size), 0) FROM StoredFileJpaEntity f WHERE f.deleted = false")
     long sumSize();
+
+    @Query("SELECT COALESCE(SUM(f.size), 0) FROM StoredFileJpaEntity f WHERE f.deleted = false AND f.tenantId = :tenantId")
+    long sumSizeByTenantId(@Param("tenantId") UUID tenantId);
 
     /** One row per provider: {@code [StorageProvider, count]}, for platform analytics only. */
     @Query("SELECT f.provider, COUNT(f) FROM StoredFileJpaEntity f WHERE f.deleted = false GROUP BY f.provider")

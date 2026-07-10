@@ -1,7 +1,9 @@
 package in.bachatsetu.backend.infrastructure.persistence.repository.jpa;
 
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.GroupMemberJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.entity.identity.UserJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.repository.BaseJpaRepository;
+import in.bachatsetu.backend.member.domain.model.GroupRole;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,4 +42,12 @@ public interface MemberSpringDataRepository extends BaseJpaRepository<GroupMembe
 
     /** Cross-tenant total membership row count, for platform analytics only. */
     long countByDeletedFalse();
+
+    /** Distinct-user count for one role, for the Platform Operations dashboard only. */
+    @Query("SELECT COUNT(DISTINCT gm.user.id) FROM GroupMemberJpaEntity gm WHERE gm.role = :role AND gm.deleted = false")
+    long countDistinctUsersByRoleAndDeletedFalse(@Param("role") GroupRole role);
+
+    /** Every distinct user holding one of the given roles, for Platform Operations broadcast notifications only. */
+    @Query("SELECT DISTINCT gm.user FROM GroupMemberJpaEntity gm WHERE gm.role IN :roles AND gm.deleted = false")
+    List<UserJpaEntity> findDistinctUsersByRoleInAndDeletedFalse(@Param("roles") List<GroupRole> roles);
 }
