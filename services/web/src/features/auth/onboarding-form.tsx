@@ -26,6 +26,8 @@ const onboardingSchema = z.object({
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
 export function OnboardingForm() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +48,16 @@ export function OnboardingForm() {
   async function handlePhotoSelected(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      toast.error("That photo is too large — please choose one under 5 MB.");
+      event.target.value = "";
       return;
     }
     setIsUploadingPhoto(true);

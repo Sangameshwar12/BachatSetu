@@ -5,14 +5,18 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { dashboardNavItems } from "@/constants/dashboard";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { hasRole } = useAuth();
 
   return (
-    <nav className="flex flex-col gap-1">
-      {dashboardNavItems.map((item) => {
+    <nav aria-label="Main navigation" className="flex flex-col gap-1">
+      {dashboardNavItems
+        .filter((item) => !item.requiredRole || hasRole(item.requiredRole))
+        .map((item) => {
         const isActive = pathname === item.href;
         const Icon = item.icon;
 
@@ -38,6 +42,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             key={item.href}
             href={item.href}
             onClick={onNavigate}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isActive

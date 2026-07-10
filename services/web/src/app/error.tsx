@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 
 /** Next.js App Router convention: catches errors thrown below the root layout. */
 export default function GlobalError({
@@ -14,7 +15,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    logger.captureException(error, { boundary: "segment", digest: error.digest });
   }, [error]);
 
   return (

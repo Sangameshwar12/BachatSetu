@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useSendBroadcast } from "@/hooks/use-broadcast";
+import { ApiError } from "@/services/api-client";
 import type { BroadcastScope } from "@/types/platform-operations";
 
 const SCOPES: { value: BroadcastScope; label: string }[] = [
@@ -35,12 +37,13 @@ export function AdminBroadcastForm() {
           className="flex max-w-xl flex-col gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            sendBroadcast.mutate({
-              scope,
-              tenantId: scope === "TENANT" ? tenantId : undefined,
-              title,
-              message,
-            });
+            sendBroadcast.mutate(
+              { scope, tenantId: scope === "TENANT" ? tenantId : undefined, title, message },
+              {
+                onError: (cause) =>
+                  toast.error(cause instanceof ApiError ? cause.message : "Couldn't send the broadcast."),
+              }
+            );
           }}
         >
           <div className="flex flex-col gap-1.5">
@@ -98,7 +101,6 @@ export function AdminBroadcastForm() {
               {sendBroadcast.data.failedCount > 0 ? ` (${sendBroadcast.data.failedCount} failed)` : ""}.
             </p>
           )}
-          {sendBroadcast.isError && <p className="text-xs text-destructive">Couldn&apos;t send the broadcast.</p>}
         </form>
       </CardContent>
     </Card>

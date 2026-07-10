@@ -1,12 +1,15 @@
 "use client";
 
+import { Flag } from "lucide-react";
+import { toast } from "sonner";
+
 import { ErrorState } from "@/components/shared/error-state";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Flag } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useFeatureFlags, useUpdateFeatureFlags } from "@/hooks/use-admin-config";
+import { ApiError } from "@/services/api-client";
 import { formatDateTime } from "@/utils/format";
 
 export function ConfigFeatureFlagsTab() {
@@ -54,7 +57,16 @@ export function ConfigFeatureFlagsTab() {
             id={`flag-${flag.key}`}
             checked={flag.enabled}
             disabled={updateFlags.isPending}
-            onCheckedChange={(checked) => updateFlags.mutate({ flags: { [flag.key]: checked } })}
+            onCheckedChange={(checked) =>
+              updateFlags.mutate(
+                { flags: { [flag.key]: checked } },
+                {
+                  onSuccess: () => toast.success(`${flag.key} ${checked ? "enabled" : "disabled"}.`),
+                  onError: (cause) =>
+                    toast.error(cause instanceof ApiError ? cause.message : `Couldn't update ${flag.key}.`),
+                }
+              )
+            }
           />
         </div>
       ))}

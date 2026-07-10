@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { logger } from "@/lib/logger";
+
 import "./globals.css";
 
 /** Next.js App Router convention: catches errors thrown by the root layout itself. */
@@ -13,7 +15,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    logger.captureException(error, { boundary: "root-layout", digest: error.digest });
   }, [error]);
 
   return (

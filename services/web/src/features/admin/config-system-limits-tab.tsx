@@ -2,6 +2,7 @@
 
 import { Gauge } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSystemLimits, useUpdateSystemLimits } from "@/hooks/use-admin-config";
+import { ApiError } from "@/services/api-client";
 import { formatDateTime } from "@/utils/format";
 
 export function ConfigSystemLimitsTab() {
@@ -64,7 +66,14 @@ export function ConfigSystemLimitsTab() {
                 onClick={() =>
                   updateLimits.mutate(
                     { limits: { [limit.key]: Number(draft) } },
-                    { onSuccess: () => setDrafts((prev) => ({ ...prev, [limit.key]: draft })) }
+                    {
+                      onSuccess: () => {
+                        setDrafts((prev) => ({ ...prev, [limit.key]: draft }));
+                        toast.success(`${limit.key} updated.`);
+                      },
+                      onError: (cause) =>
+                        toast.error(cause instanceof ApiError ? cause.message : `Couldn't update ${limit.key}.`),
+                    }
                   )
                 }
               >

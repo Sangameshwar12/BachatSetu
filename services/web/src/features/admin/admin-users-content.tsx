@@ -2,6 +2,7 @@
 
 import { Search, Users } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { PageContainer } from "@/components/dashboard/page-container";
 import { PaginationControls } from "@/components/dashboard/pagination-controls";
@@ -30,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { useAdminUsers, useDisableUser, useEnableUser } from "@/hooks/use-admin-users";
+import { ApiError } from "@/services/api-client";
 import type { PlatformUserResponse } from "@/types/admin";
 import { formatDate } from "@/utils/format";
 
@@ -41,6 +43,15 @@ function UserRowAction({ user }: { user: PlatformUserResponse }) {
   const disableUser = useDisableUser();
   const isDisabled = user.status === "DISABLED";
   const mutation = isDisabled ? enableUser : disableUser;
+  const action = isDisabled ? "enable" : "disable";
+
+  function handleConfirm() {
+    mutation.mutate(user.userId, {
+      onSuccess: () => toast.success(`User ${action}d.`),
+      onError: (cause) =>
+        toast.error(cause instanceof ApiError ? cause.message : `Couldn't ${action} this user.`),
+    });
+  }
 
   return (
     <AlertDialog>
@@ -64,7 +75,7 @@ function UserRowAction({ user }: { user: PlatformUserResponse }) {
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             variant={isDisabled ? "default" : "destructive"}
-            onClick={() => mutation.mutate(user.userId)}
+            onClick={handleConfirm}
             disabled={mutation.isPending}
           >
             {isDisabled ? "Enable" : "Disable"}

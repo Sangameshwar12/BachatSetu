@@ -2,6 +2,7 @@
 
 import { Megaphone } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAnnouncements, usePublishAnnouncement } from "@/hooks/use-announcements";
+import { ApiError } from "@/services/api-client";
 import type { AnnouncementSeverity } from "@/types/platform-operations";
 import { formatDateTime } from "@/utils/format";
 
@@ -60,7 +62,10 @@ export function AdminAnnouncementsContent() {
                     setMessage("");
                     setStartAt("");
                     setEndAt("");
+                    toast.success("Announcement published.");
                   },
+                  onError: (cause) =>
+                    toast.error(cause instanceof ApiError ? cause.message : "Couldn't publish the announcement."),
                 }
               );
             }}
@@ -107,7 +112,6 @@ export function AdminAnnouncementsContent() {
             <Button type="submit" disabled={publishAnnouncement.isPending} className="w-fit">
               Publish
             </Button>
-            {publishAnnouncement.isSuccess && <p className="text-xs text-success">Announcement published.</p>}
           </form>
         </CardContent>
       </Card>

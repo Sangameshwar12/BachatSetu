@@ -2,6 +2,7 @@
 
 import { Building2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { PageContainer } from "@/components/dashboard/page-container";
 import { PaginationControls } from "@/components/dashboard/pagination-controls";
@@ -25,11 +26,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { useActivateTenant, useArchiveTenant, usePlatformTenants, useSuspendTenant } from "@/hooks/use-platform-tenants";
+import { ApiError } from "@/services/api-client";
 import type { TenantResponse } from "@/types/platform-operations";
 import { formatCompactNumber, formatDateTime, formatPaiseAsRupees } from "@/utils/format";
 
 const PAGE_SIZE = 20;
 const STATUS_OPTIONS = ["ACTIVE", "SUSPENDED", "ARCHIVED"];
+
+function tenantMutationToasts(action: string) {
+  return {
+    onSuccess: () => toast.success(`Tenant ${action}d.`),
+    onError: (cause: unknown) =>
+      toast.error(cause instanceof ApiError ? cause.message : `Couldn't ${action} this tenant.`),
+  };
+}
 
 function SuspendTenantDialog({ tenant }: { tenant: TenantResponse }) {
   const [reason, setReason] = useState("");
@@ -56,7 +66,12 @@ function SuspendTenantDialog({ tenant }: { tenant: TenantResponse }) {
           <AlertDialogAction
             variant="destructive"
             disabled={reason.trim().length === 0 || suspendTenant.isPending}
-            onClick={() => suspendTenant.mutate({ tenantId: tenant.tenantId, request: { reason: reason.trim() } })}
+            onClick={() =>
+              suspendTenant.mutate(
+                { tenantId: tenant.tenantId, request: { reason: reason.trim() } },
+                tenantMutationToasts("suspend")
+              )
+            }
           >
             Suspend
           </AlertDialogAction>
@@ -77,7 +92,12 @@ function TenantActions({ tenant }: { tenant: TenantResponse }) {
   return (
     <div className="flex justify-end gap-2">
       {tenant.status === "SUSPENDED" ? (
-        <Button variant="outline" size="sm" onClick={() => activateTenant.mutate(tenant.tenantId)} disabled={activateTenant.isPending}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => activateTenant.mutate(tenant.tenantId, tenantMutationToasts("activate"))}
+          disabled={activateTenant.isPending}
+        >
           Activate
         </Button>
       ) : (
@@ -97,7 +117,7 @@ function TenantActions({ tenant }: { tenant: TenantResponse }) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={() => archiveTenant.mutate(tenant.tenantId)}
+              onClick={() => archiveTenant.mutate(tenant.tenantId, tenantMutationToasts("archive"))}
               disabled={archiveTenant.isPending}
             >
               Archive

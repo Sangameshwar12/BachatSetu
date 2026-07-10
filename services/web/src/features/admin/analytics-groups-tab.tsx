@@ -3,7 +3,7 @@ import { Gavel, Percent, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/shared/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnalyticsTrendChart } from "@/features/admin/analytics-trend-chart";
+import { AnalyticsTrendChart } from "@/features/admin/analytics-trend-chart-lazy";
 import { StatTile } from "@/features/dashboard/stat-tile";
 import { useGroupAnalytics } from "@/hooks/use-admin-analytics";
 import { formatPaiseAsRupees } from "@/utils/format";

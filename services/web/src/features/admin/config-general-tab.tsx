@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ErrorState } from "@/components/shared/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminConfiguration, useUpdateAdminConfiguration } from "@/hooks/use-admin-config";
+import { ApiError } from "@/services/api-client";
 import type { UpdateConfigurationRequest } from "@/types/admin-config";
 
 export function ConfigGeneralTab() {
@@ -55,7 +57,15 @@ export function ConfigGeneralTab() {
       className="flex max-w-xl flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        updateConfiguration.mutate(form);
+        updateConfiguration.mutate(form, {
+          onSuccess: () => toast.success("Configuration updated."),
+          onError: (cause) =>
+            toast.error(
+              cause instanceof ApiError
+                ? cause.message
+                : "Couldn't save — someone may have changed this concurrently."
+            ),
+        });
       }}
     >
       <div className="flex flex-col gap-1.5">
@@ -136,12 +146,6 @@ export function ConfigGeneralTab() {
       <Button type="submit" disabled={updateConfiguration.isPending} className="w-fit">
         Save changes
       </Button>
-      {updateConfiguration.isSuccess && (
-        <p className="text-xs text-success">Configuration updated (version {data.version + 1}).</p>
-      )}
-      {updateConfiguration.isError && (
-        <p className="text-xs text-destructive">Couldn&apos;t save — someone may have changed this concurrently.</p>
-      )}
     </form>
   );
 }

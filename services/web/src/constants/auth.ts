@@ -15,3 +15,6 @@ export const preferredLanguages: { value: PreferredLanguage; label: string }[] =
 
 /** Local storage key for the persisted session — read/written only by `auth-context.tsx`. */
 export const SESSION_STORAGE_KEY = "bachatsetu.session";
+
+/** Matches the backend's `PLATFORM_ADMIN` role exactly (see `AdminController`'s `@PreAuthorize`). */
+export const PLATFORM_ADMIN_ROLE = "PLATFORM_ADMIN";

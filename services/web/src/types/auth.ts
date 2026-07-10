@@ -113,4 +113,10 @@ export interface AuthSession {
   refreshTokenExpiresAt: string;
   userId: string;
   mobileNumber: string;
+  /**
+   * Decoded from the access token for client-side UX gating only (hiding nav items, redirecting
+   * away from a role-restricted page before it renders). The backend independently enforces every
+   * role check server-side — this is never the actual authorization boundary.
+   */
+  roles: string[];
 }

@@ -13,7 +13,7 @@ export function SiteHeader() {
       <div className="container-page flex h-16 items-center justify-between">
         <Logo />
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex">
           {marketingNavLinks.map((link) => (
             <Link
               key={link.href}

@@ -34,7 +34,7 @@ export function MobileNav() {
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <Logo />
         </SheetHeader>
-        <nav className="flex flex-col gap-1 px-4">
+        <nav aria-label="Primary" className="flex flex-col gap-1 px-4">
           {marketingNavLinks.map((link) => (
             <Link
               key={link.href}

@@ -3,7 +3,7 @@ import { Building2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/shared/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnalyticsTrendChart } from "@/features/admin/analytics-trend-chart";
+import { AnalyticsTrendChart } from "@/features/admin/analytics-trend-chart-lazy";
 import { DistributionList } from "@/features/admin/distribution-list";
 import { StatTile } from "@/features/dashboard/stat-tile";
 import { useUserAnalytics } from "@/hooks/use-admin-analytics";

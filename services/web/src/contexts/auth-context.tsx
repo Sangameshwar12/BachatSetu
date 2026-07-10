@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 
 import { SESSION_STORAGE_KEY } from "@/constants/auth";
 import { decodeAccessToken, isExpired } from "@/lib/jwt";
@@ -23,6 +24,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (tokens: SignupVerifyResponse) => void;
   logout: () => void;
+  /** Client-side UX gating only — see the `roles` field doc on `AuthSession`. */
+  hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,6 +42,7 @@ function toSession(tokens: SignupVerifyResponse): AuthSession | null {
     refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
     userId: claims.userId,
     mobileNumber: claims.mobileNumber,
+    roles: claims.roles,
   };
 }
 
@@ -72,9 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const parsed = JSON.parse(raw) as AuthSession;
         if (!isExpired(new Date(parsed.accessTokenExpiresAt).getTime())) {
+          // Older persisted sessions (pre-role-gating) never stored `roles`.
+          const hydrated: AuthSession = { ...parsed, roles: parsed.roles ?? [] };
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setSession(parsed);
-          setAccessToken(parsed.accessToken);
+          setSession(hydrated);
+          setAccessToken(hydrated.accessToken);
         } else {
           localStorage.removeItem(SESSION_STORAGE_KEY);
         }
@@ -88,14 +94,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       logout();
+      toast.error("Your session has expired — please log in again.");
       router.replace("/login");
     });
     return () => setUnauthorizedHandler(null);
   }, [logout, router]);
 
+  const hasRole = useCallback(
+    (role: string) => session?.roles.includes(role) ?? false,
+    [session]
+  );
+
   const value = useMemo<AuthContextValue>(
-    () => ({ session, isLoading, isAuthenticated: session !== null, login, logout }),
-    [session, isLoading, login, logout]
+    () => ({ session, isLoading, isAuthenticated: session !== null, login, logout, hasRole }),
+    [session, isLoading, login, logout, hasRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

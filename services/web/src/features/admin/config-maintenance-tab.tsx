@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/shared/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminConfiguration, useUpdateAdminConfiguration } from "@/hooks/use-admin-config";
+import { ApiError } from "@/services/api-client";
 
 export function ConfigMaintenanceTab() {
   const { data, isPending, isError, error, refetch } = useAdminConfiguration();
@@ -50,20 +52,27 @@ export function ConfigMaintenanceTab() {
       className="flex max-w-xl flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        updateConfiguration.mutate({
-          defaultLanguage: data.defaultLanguage,
-          otpExpirySeconds: data.otpExpirySeconds,
-          defaultStorageProvider: data.defaultStorageProvider,
-          defaultPaymentProvider: data.defaultPaymentProvider,
-          notificationRetryCount: data.notificationRetryCount,
-          maximumUploadSizeBytes: data.maximumUploadSizeBytes,
-          maximumMembersPerGroup: data.maximumMembersPerGroup,
-          maximumGroupsPerOrganizer: data.maximumGroupsPerOrganizer,
-          maintenanceEnabled: enabled,
-          maintenanceMessage: message || null,
-          maintenanceStartAt: startAt || null,
-          maintenanceEndAt: endAt || null,
-        });
+        updateConfiguration.mutate(
+          {
+            defaultLanguage: data.defaultLanguage,
+            otpExpirySeconds: data.otpExpirySeconds,
+            defaultStorageProvider: data.defaultStorageProvider,
+            defaultPaymentProvider: data.defaultPaymentProvider,
+            notificationRetryCount: data.notificationRetryCount,
+            maximumUploadSizeBytes: data.maximumUploadSizeBytes,
+            maximumMembersPerGroup: data.maximumMembersPerGroup,
+            maximumGroupsPerOrganizer: data.maximumGroupsPerOrganizer,
+            maintenanceEnabled: enabled,
+            maintenanceMessage: message || null,
+            maintenanceStartAt: startAt || null,
+            maintenanceEndAt: endAt || null,
+          },
+          {
+            onSuccess: () => toast.success("Maintenance settings updated."),
+            onError: (cause) =>
+              toast.error(cause instanceof ApiError ? cause.message : "Couldn't save maintenance settings."),
+          }
+        );
       }}
     >
       {enabled && (
@@ -114,7 +123,6 @@ export function ConfigMaintenanceTab() {
       <Button type="submit" disabled={updateConfiguration.isPending} className="w-fit">
         Save changes
       </Button>
-      {updateConfiguration.isSuccess && <p className="text-xs text-success">Maintenance settings updated.</p>}
     </form>
   );
 }

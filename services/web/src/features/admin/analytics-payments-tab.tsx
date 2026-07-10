@@ -3,7 +3,7 @@ import { Banknote, Percent, TrendingDown, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/shared/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnalyticsTrendChart } from "@/features/admin/analytics-trend-chart";
+import { AnalyticsTrendChart } from "@/features/admin/analytics-trend-chart-lazy";
 import { StatTile } from "@/features/dashboard/stat-tile";
 import { usePaymentAnalytics } from "@/hooks/use-admin-analytics";
 import { formatDate, formatPaiseAsRupees } from "@/utils/format";

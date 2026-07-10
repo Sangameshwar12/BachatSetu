@@ -11,12 +11,16 @@ import {
   Users,
 } from "lucide-react";
 
+import { PLATFORM_ADMIN_ROLE } from "@/constants/auth";
+
 export interface DashboardNavItem {
   label: string;
   href: string;
   icon: LucideIcon;
   /** True once a real frontend page exists for this section. */
   available: boolean;
+  /** Only shown to sessions whose decoded JWT roles include this — see `RoleGuard`. */
+  requiredRole?: string;
 }
 
 /**
@@ -34,5 +38,11 @@ export const dashboardNavItems: DashboardNavItem[] = [
   { label: "Support", href: "/dashboard/support", icon: LifeBuoy, available: false },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, available: true },
   { label: "Organizer", href: "/dashboard/organizer", icon: Briefcase, available: true },
-  { label: "Admin", href: "/dashboard/admin", icon: Shield, available: true },
+  {
+    label: "Admin",
+    href: "/dashboard/admin",
+    icon: Shield,
+    available: true,
+    requiredRole: PLATFORM_ADMIN_ROLE,
+  },
 ];

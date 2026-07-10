@@ -20,7 +20,7 @@ export function AuthShell({ title, description, children, footer }: AuthShellPro
         <ThemeToggle />
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-4 pb-16">
+      <main id="main-content" className="flex flex-1 items-center justify-center px-4 pb-16">
         <div className="w-full max-w-md">
           <Card className="shadow-lg shadow-primary/5">
             <CardHeader>
@@ -31,7 +31,7 @@ export function AuthShell({ title, description, children, footer }: AuthShellPro
           </Card>
           {footer && <div className="mt-6 text-center text-sm text-muted-foreground">{footer}</div>}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
