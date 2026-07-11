@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured logging configuration.
+
+  - `local` and `test`: a human-readable console pattern, for interactive development
+    and readable CI failure output.
+  - `dev` and `prod` (the default when no profile-specific appender matches): single-line
+    JSON on stdout via logstash-logback-encoder, so a container log driver (CloudWatch
+    Logs, Fluent Bit, etc.) can ship structured, machine-parseable log records without a
+    separate log-shipping agent parsing plain text. Every record automatically includes
+    whatever is in SLF4J's MDC at the time — in particular `requestId` and
+    `correlationId`, published per-request by
+    in.bachatsetu.backend.observability.CorrelationIdFilter — plus the application name,
+    so a JSON-log backend can group and trace requests without extra configuration.
+    No sensitive request data (headers, tokens, request/response bodies) is placed in the
+    MDC anywhere in the codebase, so none of it can leak into these log records.
+-->
+<configuration>
+    <springProperty scope="context" name="applicationName" source="spring.application.name"/>
+
+    <springProfile name="local,test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-httpserver}] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <springProfile name="!local &amp; !test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <customFields>{"application":"${applicationName}"}</customFields>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

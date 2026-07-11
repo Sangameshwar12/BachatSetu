@@ -1,0 +1,36 @@
+# Profile for CI/automated test runs against a real (typically Testcontainers-provisioned)
+# Postgres/Redis, as opposed to the `local` profile used for interactive development.
+# Not activated by any existing test today — every current test either overrides the
+# specific properties it needs directly via @SpringBootTest(properties = ...) or runs
+# under the default `local` profile — this profile is additive infrastructure for CI
+# pipelines that want a single explicit `SPRING_PROFILES_ACTIVE=test` instead of
+# per-test property overrides.
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  flyway:
+    clean-disabled: true
+
+bachatsetu:
+  authentication:
+    hash-strength: 4
+    security:
+      password-hash-strength: 10
+  automation:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: WARN
+    in.bachatsetu.backend: INFO

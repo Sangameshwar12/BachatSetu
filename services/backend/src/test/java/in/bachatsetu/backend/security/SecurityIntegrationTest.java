@@ -60,6 +60,7 @@ import org.springframework.web.bind.annotation.RestController;
     "bachatsetu.admin.platform-config.enabled=false",
     "bachatsetu.support.rest.enabled=false",
     "bachatsetu.platform-operations.rest.enabled=false",
+    "bachatsetu.cache.enabled=false",
     "spring.autoconfigure.exclude="
             + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
             + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"

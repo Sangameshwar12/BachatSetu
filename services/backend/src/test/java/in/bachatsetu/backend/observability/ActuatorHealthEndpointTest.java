@@ -1,23 +1,29 @@
-package in.bachatsetu.backend.auth.interfaces.rest;
+package in.bachatsetu.backend.observability;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import in.bachatsetu.backend.auth.application.usecase.GenerateOtpUseCase;
-import in.bachatsetu.backend.auth.application.usecase.InvalidateOtpUseCase;
-import in.bachatsetu.backend.auth.application.usecase.ResendOtpUseCase;
-import in.bachatsetu.backend.auth.application.usecase.VerifyOtpUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * Verifies the Kubernetes/ECS-style liveness and readiness probes are reachable without
+ * authentication — the plain {@code /actuator/health} case is already covered by
+ * {@link in.bachatsetu.backend.HealthEndpointTest}. This complements it: before this
+ * sprint, {@code bachatsetu.authentication.security.public-endpoints} listed only the exact
+ * path {@code /actuator/health}, so the sub-paths this test exercises would have returned
+ * 401 rather than 200 — which would have made services/backend/Dockerfile's
+ * {@code HEALTHCHECK} (and any container orchestrator's liveness probe) fail permanently.
+ * {@code public-endpoints} now also includes {@code /actuator/health/**}.
+ */
 @SpringBootTest(properties = {
     "bachatsetu.persistence.auditing.enabled=false",
     "bachatsetu.persistence.repositories.enabled=false",
+    "bachatsetu.authentication.rest.enabled=false",
     "bachatsetu.authentication.token.enabled=false",
     "bachatsetu.group.rest.enabled=false",
     "bachatsetu.member.rest.enabled=false",
@@ -48,33 +54,22 @@ import org.springframework.test.web.servlet.MockMvc;
             + "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
 })
 @AutoConfigureMockMvc
-class AuthenticationOpenApiSmokeTest {
+class ActuatorHealthEndpointTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
-    private GenerateOtpUseCase generateOtp;
-
-    @MockBean
-    private VerifyOtpUseCase verifyOtp;
-
-    @MockBean
-    private ResendOtpUseCase resendOtp;
-
-    @MockBean
-    private InvalidateOtpUseCase invalidateOtp;
+    @Test
+    void livenessProbeIsReachableWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/actuator/health/liveness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
 
     @Test
-    void publishesAuthenticationContract() throws Exception {
-        mockMvc.perform(get("/v3/api-docs"))
+    void readinessProbeIsReachableWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title").value("BachatSetu API"))
-                .andExpect(jsonPath("$.info.version").value("v1"))
-                .andExpect(jsonPath("$.paths['/api/v1/auth/otp/request'].post.summary")
-                        .value("Request an OTP"))
-                .andExpect(jsonPath("$.paths['/api/v1/auth/otp/verify'].post.responses['422']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/auth/otp/resend'].post.responses['429']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/auth/otp/invalidate'].post").exists());
+                .andExpect(jsonPath("$.status").value("UP"));
     }
 }

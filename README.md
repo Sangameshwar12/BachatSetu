@@ -9,11 +9,18 @@ This repository defines the production foundation, engineering standards, archit
 ```text
 BachatSetu/
   README.md
+  docker-compose.dev.yml     # Full stack (Postgres, Redis, backend, frontend) for local Docker development
+  docker-compose.prod.yml    # Full stack, production images, behind an Nginx edge — see docs/deployment/
+  .env.prod.example          # Template for docker-compose.prod.yml's required secrets
+  deploy/
+    nginx/
+      nginx.conf             # Edge reverse proxy used by docker-compose.prod.yml
   docs/
     README.md
     api/
     architecture/
     database/
+    deployment/               # Docker, environment, AWS infrastructure, runbook, recovery
     operations/
     product/
     roadmap/
@@ -22,6 +29,7 @@ BachatSetu/
     workflow/
   services/
     backend/   # Spring Boot backend (see "Backend Development" below)
+    web/       # Next.js frontend (see services/web/README.md)
 ```
 
 ## Intended Product Architecture
@@ -148,6 +156,8 @@ Runs the full test suite plus Checkstyle, PMD, SpotBugs, ArchUnit, and JaCoCo co
 ## Documentation Index
 
 - [Documentation Home](docs/README.md)
+- [**Product Documentation (start here for what's actually built)**](docs/product/README.md)
+- [**Deployment Documentation (Docker, environment, AWS, runbook)**](docs/deployment/README.md)
 - [Repository Structure](docs/architecture/repository-structure.md)
 - [Documentation Structure](docs/architecture/documentation-structure.md)
 - [System Architecture](docs/architecture/system-architecture.md)

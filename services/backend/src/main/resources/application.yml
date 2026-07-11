@@ -46,13 +46,17 @@ server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
   forward-headers-strategy: framework
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+    min-response-size: 1024
 
 management:
   endpoints:
     web:
       base-path: /actuator
       exposure:
-        include: health,info
+        include: ${MANAGEMENT_ENDPOINTS_EXPOSURE:health,info,metrics,prometheus}
   endpoint:
     health:
       probes:
@@ -63,6 +67,13 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 info:
   application:
@@ -99,6 +110,7 @@ bachatsetu:
       password-hash-strength: ${AUTH_PASSWORD_HASH_STRENGTH:12}
       public-endpoints:
         - /actuator/health
+        - /actuator/health/**
         - /v3/api-docs/**
         - /swagger-ui/**
         - /swagger-ui.html
@@ -205,3 +217,9 @@ bachatsetu:
       enabled: ${ADMIN_ANALYTICS_ENABLED:true}
     platform-config:
       enabled: ${ADMIN_PLATFORM_CONFIG_ENABLED:true}
+  cache:
+    enabled: ${CACHE_ENABLED:true}
+    otp-ttl: ${CACHE_OTP_TTL:5m}
+    rate-limit-ttl: ${CACHE_RATE_LIMIT_TTL:1m}
+    session-ttl: ${CACHE_SESSION_TTL:30m}
+    config-ttl: ${CACHE_CONFIG_TTL:10m}

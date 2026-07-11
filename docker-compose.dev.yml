@@ -1,0 +1,105 @@
+# Full-stack development orchestration for BachatSetu: PostgreSQL, Redis, the backend
+# (Spring Boot, `dev` profile), and the frontend (Next.js dev server with hot reload).
+#
+# This is additive to, and does not replace, services/backend/docker-compose.yml, which
+# remains the quickest way to get just Postgres + Redis running for `mvn spring-boot:run`
+# on the host (see services/backend/README.md). Use this file when you want the entire
+# stack — including the frontend — running in containers.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# All secrets below are fixed development-only placeholders, intentionally not used by
+# docker-compose.prod.yml, which requires every secret to be supplied via environment
+# variables / a .env file instead. See docs/deployment/environment-variables-guide.md.
+
+name: bachatsetu-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bachatsetu
+      POSTGRES_USER: bachatsetu
+      POSTGRES_PASSWORD: bachatsetu
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bachatsetu -d bachatsetu"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bachatsetu-dev
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bachatsetu-dev
+
+  backend:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,seed
+      DATABASE_URL: jdbc:postgresql://postgres:5432/bachatsetu
+      DATABASE_USERNAME: bachatsetu
+      DATABASE_PASSWORD: bachatsetu
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AUTH_JWT_SIGNING_SECRET: dev-only-signing-secret-not-for-production-use-0123456789
+      AUTH_CORS_ALLOWED_ORIGINS: http://localhost:3000
+      JAVA_OPTS: -XX:MaxRAMPercentage=75.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/liveness"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - bachatsetu-dev
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    volumes:
+      - ./services/web:/app
+      - frontend-dev-node-modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - bachatsetu-dev
+
+networks:
+  bachatsetu-dev:
+    driver: bridge
+
+volumes:
+  postgres-dev-data:
+  redis-dev-data:
+  frontend-dev-node-modules:
