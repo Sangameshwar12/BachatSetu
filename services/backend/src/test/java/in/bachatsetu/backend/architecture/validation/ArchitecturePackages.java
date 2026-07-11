@@ -16,6 +16,9 @@ final class ArchitecturePackages {
     static final String AUTH_TOKEN_APPLICATION_PORT = "..auth.application.token.port..";
     static final String GROUP_APPLICATION_PORT = "..group.application.port..";
     static final String GROUP_INFRASTRUCTURE = "..infrastructure.group..";
+    static final String EMAIL_INFRASTRUCTURE = "..infrastructure.email..";
+    static final String EMAIL_APPLICATION_PORT = "..email.application.port..";
+    static final String EMAIL_APPLICATION_EVENT = "..email.application.event..";
 
     private ArchitecturePackages() {
     }

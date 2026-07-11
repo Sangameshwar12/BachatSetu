@@ -1,0 +1,85 @@
+package in.bachatsetu.backend.email.interfaces.rest.event;
+
+import in.bachatsetu.backend.auth.domain.model.User;
+import in.bachatsetu.backend.auth.domain.model.UserId;
+import in.bachatsetu.backend.auth.domain.port.UserRepository;
+import in.bachatsetu.backend.email.application.command.SendEmailCommand;
+import in.bachatsetu.backend.email.application.usecase.SendEmailUseCase;
+import in.bachatsetu.backend.email.domain.model.EmailAddress;
+import in.bachatsetu.backend.email.domain.model.EmailTemplateCategory;
+import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
+import in.bachatsetu.backend.group.domain.model.GroupId;
+import in.bachatsetu.backend.group.domain.model.SavingsGroup;
+import in.bachatsetu.backend.invitation.domain.event.InvitationCreated;
+import in.bachatsetu.backend.invitation.domain.model.GroupInvitation;
+import in.bachatsetu.backend.invitation.domain.port.GroupInvitationRepository;
+import java.util.Map;
+import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+/**
+ * Sends an {@code INVITATION} confirmation email to the organizer who created a group's
+ * invitation, with the shareable code they can pass along to prospective members. {@link
+ * GroupInvitation} does not (and, per this sprint's "no redesign" scope, must not) carry a
+ * per-recipient email address — it is a code/link/QR-based shareable invitation, not addressed to
+ * a specific person — so the organizer (the invitation's {@code createdBy} actor) is the
+ * recipient. Reacts to the pre-existing {@link InvitationCreated} domain event; resolves the
+ * invitation and organizer email through existing repositories, since the event itself carries
+ * only an invitation id and a group id, with no tenant context.
+ */
+@Component
+@ConditionalOnProperty(
+        prefix = "bachatsetu.persistence.repositories",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
+public class InvitationCreatedEmailListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(InvitationCreatedEmailListener.class);
+
+    private final SendEmailUseCase sendEmail;
+    private final GroupInvitationRepository invitationRepository;
+    private final SavingsGroupRepository groupRepository;
+    private final UserRepository userRepository;
+
+    public InvitationCreatedEmailListener(
+            SendEmailUseCase sendEmail,
+            GroupInvitationRepository invitationRepository,
+            SavingsGroupRepository groupRepository,
+            UserRepository userRepository) {
+        this.sendEmail = Objects.requireNonNull(sendEmail, "sendEmail must not be null");
+        this.invitationRepository = Objects.requireNonNull(invitationRepository, "invitationRepository must not be null");
+        this.groupRepository = Objects.requireNonNull(groupRepository, "groupRepository must not be null");
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
+    }
+
+    @EventListener
+    public void onInvitationCreated(InvitationCreated event) {
+        try {
+            GroupInvitation invitation = invitationRepository.findById(event.aggregateId()).orElse(null);
+            if (invitation == null) {
+                return;
+            }
+            SavingsGroup group = groupRepository.findById(invitation.tenantId(), new GroupId(invitation.groupId()))
+                    .orElse(null);
+            User organizer = userRepository.findById(new UserId(invitation.auditInfo().createdBy().value()))
+                    .orElse(null);
+            if (group == null || organizer == null) {
+                return;
+            }
+            sendEmail.execute(new SendEmailCommand(
+                    new EmailAddress(organizer.email().value()),
+                    EmailTemplateCategory.INVITATION,
+                    Map.of(
+                            "groupName", group.name().value(),
+                            "invitationCode", invitation.code().value(),
+                            "invitationLink", "")));
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Failed to send an invitation-created email for invitation {}", event.aggregateId(), exception);
+        }
+    }
+}

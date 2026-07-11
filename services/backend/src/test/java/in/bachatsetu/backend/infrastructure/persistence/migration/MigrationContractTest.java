@@ -35,7 +35,8 @@ class MigrationContractTest {
                             "V13__group_invitations.sql",
                             "V14__support_and_platform_operations.sql",
                             "V15__otp_send_failed_audit_event.sql",
-                            "V16__backfill_role_permission_audit_metadata.sql");
+                            "V16__backfill_role_permission_audit_metadata.sql",
+                            "V17__email_audit_event.sql");
         }
     }
 

@@ -7,6 +7,8 @@ public enum AuditEventType {
     OTP_SENT,
     OTP_SEND_FAILED,
     OTP_VERIFIED,
+    EMAIL_SENT,
+    EMAIL_SEND_FAILED,
     GROUP_CREATED,
     GROUP_UPDATED,
     GROUP_CLOSED,

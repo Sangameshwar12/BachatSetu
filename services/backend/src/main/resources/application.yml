@@ -139,6 +139,21 @@ bachatsetu:
       account-sid: ${TWILIO_ACCOUNT_SID:}
       auth-token: ${TWILIO_AUTH_TOKEN:}
       phone-number: ${TWILIO_PHONE_NUMBER:}
+  email:
+    provider: ${EMAIL_PROVIDER:AWS_SES}
+    from-address: ${EMAIL_FROM_ADDRESS:}
+    reply-to: ${EMAIL_REPLY_TO:}
+    retry-count: ${EMAIL_RETRY_COUNT:2}
+    connect-timeout: ${EMAIL_CONNECT_TIMEOUT:3s}
+    read-timeout: ${EMAIL_READ_TIMEOUT:5s}
+    aws-ses:
+      region: ${AWS_SES_REGION:}
+      access-key: ${AWS_ACCESS_KEY:}
+      secret-key: ${AWS_SECRET_KEY:}
+    resend:
+      api-key: ${RESEND_API_KEY:}
+    send-grid:
+      api-key: ${SENDGRID_API_KEY:}
   group:
     rest:
       enabled: ${GROUP_REST_ENABLED:true}

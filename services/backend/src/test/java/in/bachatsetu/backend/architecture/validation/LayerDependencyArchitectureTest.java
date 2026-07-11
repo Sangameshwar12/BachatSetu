@@ -38,6 +38,7 @@ class LayerDependencyArchitectureTest {
             .that().resideInAnyPackage(ArchitecturePackages.INFRASTRUCTURE)
             .and().resideOutsideOfPackage(ArchitecturePackages.AUTH_INFRASTRUCTURE)
             .and().resideOutsideOfPackage(ArchitecturePackages.GROUP_INFRASTRUCTURE)
+            .and().resideOutsideOfPackage(ArchitecturePackages.EMAIL_INFRASTRUCTURE)
             .and().doNotHaveSimpleName("SavingsGroupRepositoryAdapter")
             .should().dependOnClassesThat().resideInAnyPackage(
                     ArchitecturePackages.APPLICATION,
@@ -90,6 +91,26 @@ class LayerDependencyArchitectureTest {
                     + "PI-2.1 SMS provider adapter, which must translate a provider failure into the existing "
                     + "OtpApplicationException and record sms.sent.*/sms.duration/sms.retry metrics, the same "
                     + "way every other dependency in this list was added for a concrete adapter need");
+
+    @ArchTest
+    static final ArchRule EMAIL_INFRASTRUCTURE_MAY_DEPEND_ONLY_ON_OWNED_PORTS_AND_DOMAIN = classes()
+            .that().resideInAnyPackage(ArchitecturePackages.EMAIL_INFRASTRUCTURE)
+            .should().onlyDependOnClassesThat().resideInAnyPackage(
+                    ArchitecturePackages.EMAIL_INFRASTRUCTURE,
+                    ArchitecturePackages.EMAIL_APPLICATION_PORT,
+                    ArchitecturePackages.EMAIL_APPLICATION_EVENT,
+                    "..email.domain..",
+                    "..shared..",
+                    "java..",
+                    "io.micrometer..",
+                    "org.slf4j..",
+                    "org.springframework..",
+                    "software.amazon.awssdk..")
+            .because("email adapters implement only their owned outbound port and events for Sprint PI-2.2, "
+                    + "the same way infrastructure.auth was carved out for the Sprint PI-2.1 SMS provider "
+                    + "adapter — io.micrometer for sent/duration/retry metrics, software.amazon.awssdk for "
+                    + "the AWS SES provider client, which must call the official SDK rather than hand-sign "
+                    + "SigV4 requests");
 
     @ArchTest
     static final ArchRule CONTROLLERS_MUST_NOT_DEPEND_ON_DOMAIN_OR_INFRASTRUCTURE = noClasses()

@@ -13,6 +13,15 @@ public interface GroupInvitationRepository {
 
     Optional<GroupInvitation> findById(AggregateId tenantId, AggregateId invitationId);
 
+    /**
+     * Cross-tenant lookup by identifier alone, for infrastructure listeners (Sprint PI-2.2's
+     * email integration) that receive only an invitation id from a domain event and have no
+     * tenant context to scope the read with — mirroring the same additive, cross-tenant lookup
+     * pattern already used elsewhere in this codebase (for example {@code
+     * MemberRepository.findByUserId}).
+     */
+    Optional<GroupInvitation> findById(AggregateId invitationId);
+
     Optional<GroupInvitation> findActiveByGroup(AggregateId tenantId, AggregateId groupId);
 
     Optional<GroupInvitation> findByCode(AggregateId tenantId, InvitationCode code);

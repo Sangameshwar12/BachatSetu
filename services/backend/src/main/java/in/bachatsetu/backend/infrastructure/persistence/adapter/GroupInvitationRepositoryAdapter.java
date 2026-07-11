@@ -51,6 +51,13 @@ public class GroupInvitationRepositoryAdapter implements GroupInvitationReposito
     }
 
     @Override
+    public Optional<GroupInvitation> findById(AggregateId invitationId) {
+        return repository.findById(invitationId.value())
+                .filter(entity -> !entity.isDeleted())
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<GroupInvitation> findActiveByGroup(AggregateId tenantId, AggregateId groupId) {
         return repository.findByGroupIdAndStatusAndDeletedFalse(groupId.value(), InvitationStatus.ACTIVE)
                 .filter(entity -> entity.getTenantId().equals(tenantId.value()))
