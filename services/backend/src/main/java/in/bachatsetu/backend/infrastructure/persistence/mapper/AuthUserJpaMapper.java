@@ -40,6 +40,7 @@ public interface AuthUserJpaMapper {
     }
 
     default void updateEntity(User domain, UserJpaEntity entity, Set<RoleJpaEntity> roles) {
-        entity.updateAuthentication(domain.passwordHash().value(), domain.status(), roles);
+        entity.updateAuthentication(
+                domain.email().value(), domain.passwordHash().value(), domain.status(), roles);
     }
 }

@@ -94,7 +94,11 @@ public final class CompleteSignupApplicationService implements CompleteSignupUse
         authUserRepository.save(user);
         eventPublisher.publish(user.pullDomainEvents());
 
-        profileProvisioning.activateProfile(actorId, actorId, now);
+        // Profile activation writes the same identity.users row authUserRepository.save just
+        // flushed. JPA's @LastModifiedDate stamps that row with the real clock at flush time,
+        // so reusing the `now` captured above can already be older than the row's updatedAt by
+        // the time this call reads it back, tripping AuditInfo's monotonic-update guard.
+        profileProvisioning.activateProfile(actorId, actorId, clock.now());
 
         AggregateId tenantId = tenantProvider.currentTenantId();
         IssuedAccessToken accessToken =

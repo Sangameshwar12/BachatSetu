@@ -4,9 +4,9 @@ spring:
   profiles:
     default: local
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/bachatsetu}
-    username: ${DATABASE_USERNAME:bachatsetu}
-    password: ${DATABASE_PASSWORD:bachatsetu}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/bachatsetu}
+    username: bachatsetu
+    password: password
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: BachatSetuPool

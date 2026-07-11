@@ -275,6 +275,7 @@ class AdminAnalyticsPersistencePostgreSqlIntegrationTest extends PostgreSqlInteg
                 UUID.randomUUID(), tenantId, "Test", "User", email, phoneNumber,
                 in.bachatsetu.backend.user.domain.model.UserStatus.ACTIVE, PreferredLanguage.ENGLISH);
         entity.updateAuthentication(
+                email,
                 "hash",
                 active ? in.bachatsetu.backend.auth.domain.model.UserStatus.ACTIVE
                         : in.bachatsetu.backend.auth.domain.model.UserStatus.DISABLED,

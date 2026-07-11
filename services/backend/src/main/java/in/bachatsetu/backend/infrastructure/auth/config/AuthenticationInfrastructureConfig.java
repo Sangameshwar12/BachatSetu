@@ -70,7 +70,7 @@ public class AuthenticationInfrastructureConfig {
     }
 
     @Bean
-    DomainEventPublisherPort applicationEventDomainEventPublisherAdapter(ApplicationEventPublisher publisher) {
+    DomainEventPublisherPort authApplicationEventDomainEventPublisherAdapter(ApplicationEventPublisher publisher) {
         return new ApplicationEventDomainEventPublisherAdapter(publisher);
     }
 }

@@ -18,3 +18,12 @@ management:
 logging:
   level:
     in.bachatsetu.backend: DEBUG
+
+bachatsetu:
+  authentication:
+    token:
+      # Local-development-only fixed signing secret so `local` needs no env vars to boot,
+      # matching this profile's existing "no configuration required" contract for DB/Redis.
+      # `dev`/`prod` still resolve AUTH_JWT_SIGNING_SECRET with no default (see application.yml)
+      # and fail fast if it is not supplied through the real environment.
+      signing-secret: ${AUTH_JWT_SIGNING_SECRET:ZyzpCq0iEVEavA6bLUY4YB3BF43YZEQ5tdjEFpJLeLopNbytZY+gk2F65CkLxfL63GcF2kFgSdifa/tek+fiJQ==}

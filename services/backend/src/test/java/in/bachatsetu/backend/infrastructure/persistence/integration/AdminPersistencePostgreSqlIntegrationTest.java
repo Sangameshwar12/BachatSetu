@@ -195,7 +195,7 @@ class AdminPersistencePostgreSqlIntegrationTest extends PostgreSqlIntegrationTes
         UserJpaEntity entity = new UserJpaEntity(
                 UUID.randomUUID(), tenantId, "Test", "User", email, phoneNumber,
                 in.bachatsetu.backend.user.domain.model.UserStatus.ACTIVE, PreferredLanguage.ENGLISH);
-        entity.updateAuthentication("hash", authenticationStatus, Set.of());
+        entity.updateAuthentication(email, "hash", authenticationStatus, Set.of());
         return userSpringDataRepository.save(entity);
     }
 

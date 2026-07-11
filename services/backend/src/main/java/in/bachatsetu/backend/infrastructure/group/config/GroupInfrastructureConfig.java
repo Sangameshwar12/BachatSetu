@@ -65,7 +65,7 @@ public class GroupInfrastructureConfig {
     }
 
     @Bean
-    DomainEventPublisherPort applicationEventDomainEventPublisherAdapter(ApplicationEventPublisher publisher) {
+    DomainEventPublisherPort groupApplicationEventDomainEventPublisherAdapter(ApplicationEventPublisher publisher) {
         return new ApplicationEventDomainEventPublisherAdapter(publisher);
     }
 }

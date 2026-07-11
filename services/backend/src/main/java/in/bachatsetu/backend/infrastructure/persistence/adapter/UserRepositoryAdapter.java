@@ -65,6 +65,7 @@ public class UserRepositoryAdapter implements UserRepository {
                     .map(AggregateId::new)
                     .orElseGet(tenantScopeProvider::currentTenantId);
             UserJpaEntity candidate = mapper.toEntity(user, tenantId.value());
+            existing.ifPresent(candidate::preserveAuthenticationState);
             repository.save(RepositoryOperations.preserveState(candidate, existing));
             return null;
         });

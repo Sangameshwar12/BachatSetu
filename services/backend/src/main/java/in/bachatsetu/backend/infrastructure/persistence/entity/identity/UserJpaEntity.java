@@ -136,13 +136,28 @@ public class UserJpaEntity extends BaseJpaEntity {
     public Set<RoleJpaEntity> getRoles() { return Set.copyOf(roles); }
 
     public void updateAuthentication(
+            String accountEmail,
             String encodedPasswordHash,
             in.bachatsetu.backend.auth.domain.model.UserStatus authStatus,
             Set<RoleJpaEntity> assignedRoles) {
+        email = accountEmail;
         passwordHash = encodedPasswordHash;
         authenticationStatus = authStatus;
         roles.clear();
         roles.addAll(assignedRoles);
+    }
+
+    /**
+     * The user/profile module's mapper builds a fresh {@code UserJpaEntity} that never sets these
+     * auth-owned columns (it only knows about profile fields), so a save from that module would
+     * otherwise silently overwrite them back to null/empty on the shared {@code identity.users}
+     * row. Mirrors {@link #copyPersistenceStateFrom} preserving the fields it doesn't own.
+     */
+    public void preserveAuthenticationState(UserJpaEntity source) {
+        passwordHash = source.passwordHash;
+        authenticationStatus = source.authenticationStatus;
+        roles.clear();
+        roles.addAll(source.roles);
     }
 
     public String getCity() { return city; }
