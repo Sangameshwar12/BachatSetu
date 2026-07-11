@@ -8,8 +8,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+/**
+ * Log-only OTP delivery for interactive development ({@code local}) and the automated test
+ * suite ({@code test}) — neither needs, nor should require, live SMS provider credentials. Every
+ * other profile ({@code dev}, {@code prod}) uses {@link
+ * in.bachatsetu.backend.infrastructure.auth.sms.SmsOtpSenderAdapter} instead, wired by {@link
+ * SmsInfrastructureConfig}.
+ */
 @Configuration(proxyBeanMethods = false)
-@Profile("local")
+@Profile({"local", "test"})
 public class LocalOtpSenderConfig {
 
     @Bean

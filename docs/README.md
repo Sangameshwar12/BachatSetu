@@ -29,6 +29,8 @@ docs/
     production-checklist.md
     runbook.md
     recovery-guide.md
+  integrations/
+    sms-provider.md
   operations/
     production-readiness.md
   product/
@@ -94,6 +96,12 @@ production: Docker images, environment configuration, target AWS infrastructure,
 deployment procedure, a pre-launch checklist, day-2 operations, and failure recovery. It is
 operational documentation, not product documentation — see `docs/product/` for what the
 platform does, `docs/deployment/` for how it runs.
+
+## Integrations Documentation
+
+**[`docs/integrations/sms-provider.md`](integrations/sms-provider.md)** covers the pluggable
+MSG91/Fast2SMS/Twilio OTP delivery integration added in Sprint PI-2.1: architecture,
+configuration, retry strategy, audit/monitoring, and production setup.
 
 ## Decision Log
 

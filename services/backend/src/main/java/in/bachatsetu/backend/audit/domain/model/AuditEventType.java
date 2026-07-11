@@ -5,6 +5,7 @@ public enum AuditEventType {
     LOGIN,
     LOGOUT,
     OTP_SENT,
+    OTP_SEND_FAILED,
     OTP_VERIFIED,
     GROUP_CREATED,
     GROUP_UPDATED,

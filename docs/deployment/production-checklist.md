@@ -62,11 +62,14 @@ restated here in the context of *this specific infrastructure*:
 - [ ] **No penetration test, SAST, or dependency/container vulnerability scan** has been run
       against these images — see
       [security-and-compliance.md §9](../product/security-and-compliance.md#9-compliance-posture).
-- [ ] **No payment gateway, email provider, or SMS provider is configured** — this is
-      unrelated to infrastructure readiness (those integrations are business-feature work, out
-      of scope for PI-1 by explicit instruction) but is worth restating here: infrastructure
-      being production-ready does not mean the product is feature-complete for a real payment
-      flow.
+- [ ] **No payment gateway or email provider is configured**, and the SMS provider integration
+      added in Sprint PI-2.1 (MSG91/Fast2SMS/Twilio — see
+      [docs/integrations/sms-provider.md](../integrations/sms-provider.md)) still needs real
+      production credentials issued and set for whichever provider this deployment selects —
+      this is unrelated to infrastructure readiness (these integrations are business-feature
+      work, largely out of scope for PI-1) but is worth restating here: infrastructure being
+      production-ready does not mean the product is feature-complete for a real payment or
+      email flow.
 - [ ] **Legal/compliance review** of what's actually being stored (PII in Postgres, receipts
       and photos in S3/local storage) has not happened — see
       [security-and-compliance.md §9](../product/security-and-compliance.md#9-compliance-posture).

@@ -76,14 +76,20 @@ class LayerDependencyArchitectureTest {
                     ArchitecturePackages.AUTH_APPLICATION_PORT,
                     ArchitecturePackages.AUTH_APPLICATION_EVENT,
                     ArchitecturePackages.AUTH_TOKEN_APPLICATION_PORT,
+                    "..auth.application.exception..",
                     "..auth.domain..",
                     "..shared..",
                     "java..",
                     "javax.crypto..",
                     "io.jsonwebtoken..",
+                    "io.micrometer..",
                     "org.slf4j..",
                     "org.springframework..")
-            .because("authentication adapters implement only their owned outbound ports and events");
+            .because("authentication adapters implement only their owned outbound ports and events; "
+                    + "auth.application.exception and io.micrometer are additionally allowed for the Sprint "
+                    + "PI-2.1 SMS provider adapter, which must translate a provider failure into the existing "
+                    + "OtpApplicationException and record sms.sent.*/sms.duration/sms.retry metrics, the same "
+                    + "way every other dependency in this list was added for a concrete adapter need");
 
     @ArchTest
     static final ArchRule CONTROLLERS_MUST_NOT_DEPEND_ON_DOMAIN_OR_INFRASTRUCTURE = noClasses()

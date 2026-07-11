@@ -70,6 +70,7 @@ class OtpApplicationServiceTest {
         assertThat(result.toString()).doesNotContain(VALID_CODE.value(), FakeHashingPort.VALID_HASH.value());
         assertThatThrownBy(() -> result.events().add(result.events().getFirst()))
                 .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(fixture.eventPublisher.published).hasExactlyElementsOfTypes(OtpRequested.class, OtpSent.class);
     }
 
     @Test
@@ -142,6 +143,7 @@ class OtpApplicationServiceTest {
         assertThat(result.challenge().resendCount()).isOne();
         assertThat(result.events()).hasExactlyElementsOfTypes(OtpResent.class, OtpSent.class);
         assertThat(fixture.repository.replacements).isOne();
+        assertThat(fixture.eventPublisher.published).hasExactlyElementsOfTypes(OtpResent.class, OtpSent.class);
 
         Fixture expired = new Fixture();
         expired.repository.current = expired.challenge(NOW, 0);
@@ -225,10 +227,10 @@ class OtpApplicationServiceTest {
             validator = new OtpRequestValidator(userRepository);
             OtpPolicyService policy = new OtpPolicyService();
             generate = new GenerateOtpApplicationService(
-                    validator, repository, policy, clock, random, hashing, sender);
+                    validator, repository, policy, clock, random, hashing, sender, eventPublisher);
             verify = new VerifyOtpApplicationService(validator, repository, clock, hashing, eventPublisher);
             resend = new ResendOtpApplicationService(
-                    validator, repository, policy, clock, random, hashing, sender);
+                    validator, repository, policy, clock, random, hashing, sender, eventPublisher);
             invalidate = new InvalidateOtpApplicationService(validator, repository, clock);
         }
 

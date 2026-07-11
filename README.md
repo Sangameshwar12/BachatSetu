@@ -158,6 +158,7 @@ Runs the full test suite plus Checkstyle, PMD, SpotBugs, ArchUnit, and JaCoCo co
 - [Documentation Home](docs/README.md)
 - [**Product Documentation (start here for what's actually built)**](docs/product/README.md)
 - [**Deployment Documentation (Docker, environment, AWS, runbook)**](docs/deployment/README.md)
+- [SMS Provider Integration (MSG91 / Fast2SMS / Twilio)](docs/integrations/sms-provider.md)
 - [Repository Structure](docs/architecture/repository-structure.md)
 - [Documentation Structure](docs/architecture/documentation-structure.md)
 - [System Architecture](docs/architecture/system-architecture.md)

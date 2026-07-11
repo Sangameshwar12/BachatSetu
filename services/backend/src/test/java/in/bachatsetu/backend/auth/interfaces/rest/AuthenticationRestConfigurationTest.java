@@ -39,11 +39,13 @@ class AuthenticationRestConfigurationTest {
         OtpRequestValidator validator = config.otpRequestValidator(users);
         OtpPolicyService policy = config.otpPolicyService();
 
-        assertThat(config.generateOtpUseCase(validator, verifications, policy, clock, random, hashing, sender))
+        assertThat(config.generateOtpUseCase(
+                        validator, verifications, policy, clock, random, hashing, sender, eventPublisher))
                 .isInstanceOf(GenerateOtpApplicationService.class);
         assertThat(config.verifyOtpUseCase(validator, verifications, clock, hashing, eventPublisher))
                 .isInstanceOf(VerifyOtpApplicationService.class);
-        assertThat(config.resendOtpUseCase(validator, verifications, policy, clock, random, hashing, sender))
+        assertThat(config.resendOtpUseCase(
+                        validator, verifications, policy, clock, random, hashing, sender, eventPublisher))
                 .isInstanceOf(ResendOtpApplicationService.class);
         assertThat(config.invalidateOtpUseCase(validator, verifications, clock))
                 .isInstanceOf(InvalidateOtpApplicationService.class);

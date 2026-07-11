@@ -16,7 +16,7 @@ class MigrationContractTest {
             fileName -> Integer.parseInt(fileName.substring(1, fileName.indexOf("__"))));
 
     @Test
-    void containsOnlyTheFourteenOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheFifteenOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted(BY_MIGRATION_VERSION).toList())
                     .containsExactly(
@@ -33,7 +33,8 @@ class MigrationContractTest {
                             "V11__platform_configuration.sql",
                             "V12__signup_and_profile_onboarding.sql",
                             "V13__group_invitations.sql",
-                            "V14__support_and_platform_operations.sql");
+                            "V14__support_and_platform_operations.sql",
+                            "V15__otp_send_failed_audit_event.sql");
         }
     }
 
@@ -317,6 +318,21 @@ class MigrationContractTest {
                 .contains("'BROADCAST_NOTIFICATION_SENT'")
                 .doesNotContain("DROP TABLE")
                 .doesNotContain("DROP SCHEMA");
+    }
+
+    @Test
+    void otpSendFailedMigrationOnlyWidensTheAuditEventTypeConstraint() throws IOException {
+        String sql = Files.readString(MIGRATION_DIRECTORY.resolve("V15__otp_send_failed_audit_event.sql"));
+
+        assertThat(sql)
+                .contains("DROP CONSTRAINT ck_audit_entries_event_type")
+                .contains("ADD CONSTRAINT ck_audit_entries_event_type CHECK (event_type IN (")
+                .contains("'OTP_SEND_FAILED'")
+                .contains("'LOGIN'")
+                .contains("'SYSTEM_EVENT'")
+                .doesNotContain("CREATE TABLE")
+                .doesNotContain("CREATE SCHEMA")
+                .doesNotContain("DROP TABLE");
     }
 
     private int count(String source, String token) {

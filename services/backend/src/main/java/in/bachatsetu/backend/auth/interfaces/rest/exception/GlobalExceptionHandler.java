@@ -81,6 +81,12 @@ public class GlobalExceptionHandler {
                     "OTP resend limit exceeded",
                     exception.getMessage(),
                     request);
+            case SMS_DELIVERY_FAILED -> response(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "otp-delivery-failed",
+                    "OTP delivery failed",
+                    exception.getMessage(),
+                    request);
         };
     }
 

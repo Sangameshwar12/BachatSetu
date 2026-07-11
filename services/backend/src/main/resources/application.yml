@@ -124,6 +124,21 @@ bachatsetu:
         exposed-headers: ${AUTH_CORS_EXPOSED_HEADERS:X-Request-ID}
         allow-credentials: ${AUTH_CORS_ALLOW_CREDENTIALS:false}
         max-age: ${AUTH_CORS_MAX_AGE:1h}
+  sms:
+    provider: ${SMS_PROVIDER:MSG91}
+    retry-count: ${SMS_RETRY_COUNT:2}
+    connect-timeout: ${SMS_CONNECT_TIMEOUT:3s}
+    read-timeout: ${SMS_READ_TIMEOUT:5s}
+    msg91:
+      auth-key: ${MSG91_AUTH_KEY:}
+      template-id: ${MSG91_TEMPLATE_ID:}
+      sender-id: ${MSG91_SENDER_ID:}
+    fast2sms:
+      api-key: ${FAST2SMS_API_KEY:}
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      phone-number: ${TWILIO_PHONE_NUMBER:}
   group:
     rest:
       enabled: ${GROUP_REST_ENABLED:true}

@@ -9,6 +9,7 @@ import in.bachatsetu.backend.auth.application.exception.OtpApplicationException;
 import in.bachatsetu.backend.auth.application.exception.OtpFailureReason;
 import in.bachatsetu.backend.auth.application.port.ClockPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
+import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
 import in.bachatsetu.backend.auth.application.query.OtpActionResult;
@@ -35,6 +36,7 @@ public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
     private final RandomGeneratorPort randomGenerator;
     private final HashingPort hashing;
     private final OtpSenderPort sender;
+    private final OtpEventPublisherPort eventPublisher;
 
     public GenerateOtpApplicationService(
             OtpRequestValidator validator,
@@ -43,7 +45,8 @@ public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
             ClockPort clock,
             RandomGeneratorPort randomGenerator,
             HashingPort hashing,
-            OtpSenderPort sender) {
+            OtpSenderPort sender,
+            OtpEventPublisherPort eventPublisher) {
         this.validator = Objects.requireNonNull(validator, "OTP validator must not be null");
         this.repository = Objects.requireNonNull(repository, "OTP repository must not be null");
         this.policyService = Objects.requireNonNull(policyService, "OTP policy must not be null");
@@ -51,6 +54,7 @@ public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
         this.randomGenerator = Objects.requireNonNull(randomGenerator, "random generator must not be null");
         this.hashing = Objects.requireNonNull(hashing, "hashing port must not be null");
         this.sender = Objects.requireNonNull(sender, "OTP sender must not be null");
+        this.eventPublisher = Objects.requireNonNull(eventPublisher, "event publisher must not be null");
     }
 
     @Override
@@ -83,6 +87,7 @@ public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
         sender.send(user.userId(), user.mobileNumber(), command.purpose(), code);
         events.add(new OtpSent(
                 UUID.randomUUID(), verification.id(), verification.userId(), verification.purpose(), now));
+        events.forEach(eventPublisher::publish);
         return OtpActionResult.from(verification, events);
     }
 }

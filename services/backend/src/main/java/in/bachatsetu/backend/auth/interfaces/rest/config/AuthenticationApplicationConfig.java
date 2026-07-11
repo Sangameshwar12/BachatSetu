@@ -58,9 +58,10 @@ public class AuthenticationApplicationConfig {
             ClockPort clock,
             RandomGeneratorPort randomGenerator,
             HashingPort hashing,
-            OtpSenderPort sender) {
+            OtpSenderPort sender,
+            OtpEventPublisherPort eventPublisher) {
         return new GenerateOtpApplicationService(
-                validator, repository, policyService, clock, randomGenerator, hashing, sender);
+                validator, repository, policyService, clock, randomGenerator, hashing, sender, eventPublisher);
     }
 
     @Bean
@@ -81,9 +82,10 @@ public class AuthenticationApplicationConfig {
             ClockPort clock,
             RandomGeneratorPort randomGenerator,
             HashingPort hashing,
-            OtpSenderPort sender) {
+            OtpSenderPort sender,
+            OtpEventPublisherPort eventPublisher) {
         return new ResendOtpApplicationService(
-                validator, repository, policyService, clock, randomGenerator, hashing, sender);
+                validator, repository, policyService, clock, randomGenerator, hashing, sender, eventPublisher);
     }
 
     @Bean

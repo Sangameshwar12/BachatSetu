@@ -19,7 +19,7 @@ sequenceDiagram
     B->>DB: Insert identity.users (auth_status = PENDING_VERIFICATION)
     B->>DB: Insert identity.otp_verifications (otp_hash, purpose = REGISTRATION)
     B-->>W: 201 Created { userId, mobileNumber, otpExpiresAt }
-    Note over B: OTP delivery channel is stubbed/logged in this environment — no live SMS provider is wired
+    Note over B: OTP delivery is logged, not sent, under the local/test profiles; dev/prod send a real<br/>SMS via a configured provider (MSG91, Fast2SMS, or Twilio) — see docs/integrations/sms-provider.md
     U->>W: Enter 6-digit OTP
     W->>B: POST /api/v1/auth/signup/verify
     B->>DB: Verify otp_hash match, increment verification_attempts on failure
