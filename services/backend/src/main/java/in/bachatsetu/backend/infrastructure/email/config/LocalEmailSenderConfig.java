@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Profile;
  * EmailInfrastructureConfig}.
  */
 @Configuration(proxyBeanMethods = false)
-@Profile({"local", "test"})
+@Profile({"local", "test", "prod"})
 public class LocalEmailSenderConfig {
 
     @Bean
