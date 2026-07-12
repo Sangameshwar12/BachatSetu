@@ -14,17 +14,15 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Gated on the "local" profile rather than {@code @ConditionalOnBean(TenantScopeProvider.class)};
- * see {@link AuthUserRepositoryAdapter} for the full rationale.
+ * Tenant-scoped via {@link TenantScopeProvider}; see {@link AuthUserRepositoryAdapter} for the
+ * full rationale.
  */
 @Repository
 @ConditionalOnPersistenceRepositories
-@Profile("local")
 @Transactional(readOnly = true)
 public class RoleRepositoryAdapter implements RoleRepository {
 

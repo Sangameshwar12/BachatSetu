@@ -5,9 +5,10 @@
 -- schema history. It is never combined into the default "local" profile so it cannot affect the
 -- FlywayMigrationPostgreSqlIntegrationTest's fixed "6 migrations" assertion or leak into dev/prod.
 --
--- Tenant: the fixed placeholder UUID returned by LocalTenantScopeProviderConfig
--- (00000000-0000-0000-0000-000000000000) so seeded records are visible through the same
--- tenant-scoped queries the local-only auth adapters use.
+-- Tenant: the default tenant id local's application.yml configures
+-- (bachatsetu.tenancy.default-tenant-id, 00000000-0000-0000-0000-000000000000 by default — see
+-- TenantScopeProviderConfig) so seeded records are visible through the same tenant-scoped
+-- queries the auth adapters use.
 
 INSERT INTO identity.users (
     id, tenant_id, given_name, family_name, email, phone_number, status, language_code,

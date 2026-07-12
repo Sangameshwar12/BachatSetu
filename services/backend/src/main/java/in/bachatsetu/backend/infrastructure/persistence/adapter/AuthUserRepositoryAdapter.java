@@ -15,21 +15,15 @@ import in.bachatsetu.backend.shared.domain.Email;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Gated on the "local" profile rather than {@code @ConditionalOnBean(TenantScopeProvider.class)}:
- * regular, component-scanned beans (this repository included) have no guaranteed processing order
- * relative to one another, so a bean-presence check for a sibling regular bean is evaluated
- * non-deterministically. The only {@link TenantScopeProvider} implementation currently wired is
- * the local-development placeholder, so this adapter is likewise local-only until a real
- * multi-tenant resolution strategy is designed for "dev"/"prod".
+ * Tenant-scoped via {@link TenantScopeProvider}, which resolves the single tenant this
+ * deployment serves (see {@link TenantScopeProviderConfig}) — available in every profile.
  */
 @Repository
 @ConditionalOnPersistenceRepositories
-@Profile("local")
 @Transactional(readOnly = true)
 public class AuthUserRepositoryAdapter implements UserRepository {
 

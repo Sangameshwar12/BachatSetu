@@ -34,6 +34,8 @@ verifies at startup under the `prod` profile.
 | `REDIS_PASSWORD` | Redis `AUTH` password. Has a safe blank default under `application.yml` for local development, but `application-prod.yml` removes that default (`${REDIS_PASSWORD}`, no fallback) — the app will not start under `SPRING_PROFILES_ACTIVE=prod` without it. |
 | `AUTH_JWT_SIGNING_SECRET` | HMAC signing secret for access/refresh JWTs. Generate with `openssl rand -base64 64`. Rejected if blank by `ProductionEnvironmentGuard`. |
 | `AUTH_CORS_ALLOWED_ORIGINS` | Comma-separated list of exact browser origins allowed to call the API. Rejected if blank or still the `http://localhost:3000` development default. |
+| `TENANT_DEFAULT_ID` | The single tenant this deployment serves (`TenantScopeProviderConfig`) — used for every pre-authentication flow (signup, OTP request, login-completion) that needs a tenant before a JWT exists. Provision the matching row in `platform.tenants` before go-live. Rejected if blank or still the local placeholder `00000000-0000-0000-0000-000000000000` by `ProductionEnvironmentGuard`. |
+| `AUDIT_SYSTEM_ACTOR_ID` | Recorded as `created_by`/`updated_by` only for the pre-authentication requests above (`SecurityContextCurrentAuditorProvider`) — every other write uses the real signed-in user's id automatically. Rejected if blank or still the local placeholder `00000000-0000-0000-0000-000000000001` by `ProductionEnvironmentGuard`. |
 
 ## 3. Backend — optional, with a safe default
 

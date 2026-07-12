@@ -9,6 +9,13 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
+bachatsetu:
+  tenancy:
+    default-tenant-id: ${TENANT_DEFAULT_ID}
+  persistence:
+    auditing:
+      system-actor-id: ${AUDIT_SYSTEM_ACTOR_ID}
+
 management:
   endpoint:
     health:

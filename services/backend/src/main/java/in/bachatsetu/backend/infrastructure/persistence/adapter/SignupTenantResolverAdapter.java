@@ -3,17 +3,15 @@ package in.bachatsetu.backend.infrastructure.persistence.adapter;
 import in.bachatsetu.backend.auth.domain.port.TenantProvider;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.util.Objects;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
  * Resolves the tenant for a brand-new self-registration by delegating to the same {@link
- * TenantScopeProvider} the pre-login OTP-request adapters already use — see {@code
- * AuthUserRepositoryAdapter} for the full rationale on why this is local-profile-only today.
+ * TenantScopeProvider} the pre-login OTP-request and login-completion adapters already use — see
+ * {@link TenantScopeProviderConfig} for the full rationale.
  */
 @Component
 @ConditionalOnPersistenceRepositories
-@Profile("local")
 public class SignupTenantResolverAdapter implements TenantProvider {
 
     private final TenantScopeProvider tenantScopeProvider;

@@ -21,12 +21,18 @@ public final class ProductionEnvironmentGuard {
 
     private static final String LOCALHOST_CORS_ORIGIN = "http://localhost:3000";
     private static final Set<String> WEAK_DATABASE_PASSWORDS = Set.of("bachatsetu", "password", "postgres", "");
+    private static final String LOCAL_DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000000";
+    private static final String LOCAL_SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000001";
 
     public ProductionEnvironmentGuard(Environment environment) {
         Objects.requireNonNull(environment, "environment must not be null");
         requireNonBlank(environment, "AUTH_JWT_SIGNING_SECRET", "bachatsetu.authentication.token.signing-secret");
         requireNotWeakDatabasePassword(environment);
         requireCorsOriginConfigured(environment);
+        requireNotThePlaceholder(environment, "TENANT_DEFAULT_ID", "bachatsetu.tenancy.default-tenant-id",
+                LOCAL_DEFAULT_TENANT_ID);
+        requireNotThePlaceholder(environment, "AUDIT_SYSTEM_ACTOR_ID", "bachatsetu.persistence.auditing.system-actor-id",
+                LOCAL_SYSTEM_ACTOR_ID);
     }
 
     private void requireNonBlank(Environment environment, String variableName, String propertyKey) {
@@ -42,6 +48,20 @@ public final class ProductionEnvironmentGuard {
         if (WEAK_DATABASE_PASSWORDS.contains(password)) {
             throw new IllegalStateException(
                     "Refusing to start under the 'prod' profile: DATABASE_PASSWORD is unset or a known "
+                            + "development placeholder value.");
+        }
+    }
+
+    private void requireNotThePlaceholder(
+            Environment environment, String variableName, String propertyKey, String placeholderValue) {
+        String value = environment.getProperty(propertyKey);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(
+                    "Refusing to start under the 'prod' profile: " + variableName + " is not set.");
+        }
+        if (value.equals(placeholderValue)) {
+            throw new IllegalStateException(
+                    "Refusing to start under the 'prod' profile: " + variableName + " is still the local "
                             + "development placeholder value.");
         }
     }

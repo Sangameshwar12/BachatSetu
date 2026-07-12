@@ -15,6 +15,11 @@ spring:
     clean-disabled: true
 
 bachatsetu:
+  tenancy:
+    default-tenant-id: ${TENANT_DEFAULT_ID}
+  persistence:
+    auditing:
+      system-actor-id: ${AUDIT_SYSTEM_ACTOR_ID}
   authentication:
     security:
       # Overrides (not merges) the base public-endpoints list — Swagger UI and the raw OpenAPI

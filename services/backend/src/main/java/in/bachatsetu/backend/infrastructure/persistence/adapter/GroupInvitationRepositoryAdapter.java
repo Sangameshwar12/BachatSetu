@@ -10,17 +10,16 @@ import in.bachatsetu.backend.invitation.domain.model.InvitationToken;
 import in.bachatsetu.backend.invitation.domain.port.GroupInvitationRepository;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.util.Optional;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Gated on the "local" profile rather than {@code @ConditionalOnBean(TenantScopeProvider.class)};
- * see {@link AuthUserRepositoryAdapter} for the full rationale.
+ * Unlike its sibling adapters in this package, this one takes {@code tenantId} as a method
+ * parameter (supplied by the caller) rather than injecting {@code TenantScopeProvider} — it was
+ * previously gated to the "local" profile only by inherited convention, not an actual dependency.
  */
 @Repository
 @ConditionalOnPersistenceRepositories
-@Profile("local")
 @Transactional(readOnly = true)
 public class GroupInvitationRepositoryAdapter implements GroupInvitationRepository {
 

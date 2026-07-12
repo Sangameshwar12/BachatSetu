@@ -86,6 +86,17 @@ logging:
     in.bachatsetu.backend: INFO
 
 bachatsetu:
+  tenancy:
+    # The single tenant this deployment serves — see TenantScopeProviderConfig. Matches the
+    # local seed loader's tenant id by default; every other profile should set TENANT_DEFAULT_ID
+    # to whatever id was provisioned in platform.tenants for that environment.
+    default-tenant-id: ${TENANT_DEFAULT_ID:00000000-0000-0000-0000-000000000000}
+  persistence:
+    auditing:
+      # Recorded as created_by/updated_by only for requests with no authenticated user yet
+      # (signup, OTP request) — see SecurityContextCurrentAuditorProvider, which uses the real
+      # signed-in user's id whenever one is available.
+      system-actor-id: ${AUDIT_SYSTEM_ACTOR_ID:00000000-0000-0000-0000-000000000001}
   authentication:
     otp-validity: 5m
     resend-limit: 3

@@ -11,7 +11,6 @@ import in.bachatsetu.backend.user.domain.model.UserProfile;
 import in.bachatsetu.backend.user.domain.port.UserRepository;
 import java.time.Instant;
 import java.util.Objects;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,11 +19,11 @@ import org.springframework.stereotype.Component;
  * allows this class to depend on the user module's domain layer: general infrastructure may depend
  * on any module's domain package, but the auth module itself must not — see {@link
  * in.bachatsetu.backend.auth.application.signup.service.StartSignupApplicationService} for the full
- * rationale.
+ * rationale. Depends transitively on {@link TenantScopeProvider} through its injected
+ * {@link UserRepository}, so it is available in every profile that repository is.
  */
 @Component
 @ConditionalOnPersistenceRepositories
-@Profile("local")
 public class AuthProfileProvisioningAdapter implements ProfileProvisioningPort {
 
     private final UserRepository userProfileRepository;
