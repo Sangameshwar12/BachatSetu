@@ -19,7 +19,9 @@ WORKDIR /app
 
 RUN addgroup -S bachatsetu \
     && adduser -S -G bachatsetu bachatsetu \
-    && apk add --no-cache curl
+    && apk add --no-cache curl \
+    && mkdir -p /app/data/storage \
+    && chown -R bachatsetu:bachatsetu /app
 
 COPY --from=build --chown=bachatsetu:bachatsetu /workspace/target/bachatsetu-backend-*.jar /app/application.jar
 
@@ -29,7 +31,7 @@ EXPOSE 8080
 # Overridable at `docker run`/Compose time. Defaults keep the JVM heap proportional to
 # whatever memory limit the orchestrator assigns the container, rather than a fixed -Xmx
 # that would either waste memory or OOM-kill the process under a tighter limit.
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD curl --fail --silent "http://localhost:${SERVER_PORT:-8080}/actuator/health/liveness" || exit 1

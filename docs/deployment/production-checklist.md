@@ -9,6 +9,30 @@ deployment. Items are grouped by what this sprint (PI-1) actually delivers versu
 tracking [roadmap-and-future-work.md](../product/roadmap-and-future-work.md) uses for the
 product as a whole.
 
+## LAUNCH BLOCKER (found in Sprint LS-1 production-mode smoke test)
+
+- [ ] **The backend does not start under any Spring profile except `local`.** Confirmed by
+      booting `bachatsetu-backend-*.jar` with `SPRING_PROFILES_ACTIVE=prod` against a real
+      Postgres/Redis: Flyway applies all 18 migrations successfully, Hikari/Redis connect fine,
+      then context startup fails with `No qualifying bean of type
+      'in.bachatsetu.backend.auth.domain.port.UserRepository'`. Root cause:
+      `TenantScopeProvider` — required by the pre-login persistence adapters
+      (`AuthUserRepositoryAdapter`, `UserRepositoryAdapter`, `RoleRepositoryAdapter`,
+      `GroupInvitationRepositoryAdapter`, `AuthProfileProvisioningAdapter`,
+      `SignupTenantResolverAdapter`, and the audit module's "current auditor" resolution) — has
+      exactly one implementation anywhere in the codebase
+      (`LocalTenantScopeProviderConfig`), and it is `@Profile("local")`-gated by deliberate,
+      documented design: "no real multi-tenant resolution strategy (header, subdomain, or
+      similar) has been designed yet... must never be active outside the local profile." This
+      means `docker-compose.prod.yml`'s `backend` service, exactly as configured today, would
+      crash-loop indefinitely in a real deployment — signup, login, OTP, and every
+      tenant-scoped read path are unusable outside `SPRING_PROFILES_ACTIVE=local`. **This is
+      not an infrastructure/deployment problem and is out of scope for this sprint to fix** (it
+      requires designing a real multi-tenant resolution strategy — business/architecture work
+      explicitly excluded from LS-1's "production deployment work only" mandate) — but it must
+      be resolved, and re-verified with the same smoke test, before any `dev`/`prod` deployment
+      is attempted.
+
 ## Delivered in PI-1 — verify before go-live
 
 - [ ] `.env` populated from `.env.prod.example` with real, non-default values for every
@@ -34,6 +58,14 @@ product as a whole.
       not a retention strategy.
 - [ ] Someone has read [runbook.md](runbook.md) and [recovery-guide.md](recovery-guide.md)
       before the first real incident, not during it.
+- [ ] If `STORAGE_DEFAULT_PROVIDER=LOCAL` (the default), confirm a real file upload survives
+      `docker compose up -d --build` (i.e. the `backend-prod-storage` volume is actually
+      mounted, not a fresh anonymous layer) — see
+      [environment-variables-guide.md §3](environment-variables-guide.md#3-backend--optional-with-a-safe-default).
+      `LOCAL` does not survive scaling the backend beyond one instance; provision `AWS_S3`
+      before doing so.
+- [ ] `PAYMENT_GATEWAY_DEFAULT_PROVIDER` is set to the provider whose credentials were actually
+      filled in — there is no fail-fast check catching a mismatch here, unlike SMS/Email.
 
 ## Explicitly not delivered by PI-1 — decide before go-live whether each is a blocker
 
@@ -74,6 +106,11 @@ restated here in the context of *this specific infrastructure*:
 - [ ] **Legal/compliance review** of what's actually being stored (PII in Postgres, receipts
       and photos in S3/local storage) has not happened — see
       [security-and-compliance.md §9](../product/security-and-compliance.md#9-compliance-posture).
+- [ ] **ElastiCache Redis in-transit encryption (TLS) is not supported by the application yet**
+      — the backend's Redis client has no `rediss://`/SSL configuration. Leave in-transit
+      encryption off for this beta (acceptable — Redis backs no business data today, see
+      [infrastructure-guide.md §4](infrastructure-guide.md#4-elasticache-redis)) or add Lettuce
+      SSL support before turning it on at the ElastiCache layer.
 
 Whether each unchecked item blocks a specific launch is a product/business decision, not an
 engineering one — this checklist surfaces the gap; it does not adjudicate it.

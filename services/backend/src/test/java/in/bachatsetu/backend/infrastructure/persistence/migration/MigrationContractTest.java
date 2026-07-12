@@ -16,7 +16,7 @@ class MigrationContractTest {
             fileName -> Integer.parseInt(fileName.substring(1, fileName.indexOf("__"))));
 
     @Test
-    void containsOnlyTheFifteenOrderedVersionedMigrations() throws IOException {
+    void containsOnlyTheEighteenOrderedVersionedMigrations() throws IOException {
         try (var files = Files.list(MIGRATION_DIRECTORY)) {
             assertThat(files.map(path -> path.getFileName().toString()).sorted(BY_MIGRATION_VERSION).toList())
                     .containsExactly(
@@ -88,7 +88,11 @@ class MigrationContractTest {
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V11__platform_configuration.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V12__signup_and_profile_onboarding.sql"))
                 + Files.readString(MIGRATION_DIRECTORY.resolve("V13__group_invitations.sql"))
-                + Files.readString(MIGRATION_DIRECTORY.resolve("V14__support_and_platform_operations.sql"));
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V14__support_and_platform_operations.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V15__otp_send_failed_audit_event.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V16__backfill_role_permission_audit_metadata.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V17__email_audit_event.sql"))
+                + Files.readString(MIGRATION_DIRECTORY.resolve("V18__login_failed_token_refresh_audit_event.sql"));
         String upperCaseSql = migrations.toUpperCase();
 
         assertThat(upperCaseSql)

@@ -31,6 +31,7 @@ verifies at startup under the `prod` profile.
 | `DATABASE_USERNAME` | Database user |
 | `DATABASE_PASSWORD` | Database password. `ProductionEnvironmentGuard` also rejects known development placeholder values (`bachatsetu`, `password`, `postgres`, blank). |
 | `REDIS_HOST` | Redis host |
+| `REDIS_PASSWORD` | Redis `AUTH` password. Has a safe blank default under `application.yml` for local development, but `application-prod.yml` removes that default (`${REDIS_PASSWORD}`, no fallback) — the app will not start under `SPRING_PROFILES_ACTIVE=prod` without it. |
 | `AUTH_JWT_SIGNING_SECRET` | HMAC signing secret for access/refresh JWTs. Generate with `openssl rand -base64 64`. Rejected if blank by `ProductionEnvironmentGuard`. |
 | `AUTH_CORS_ALLOWED_ORIGINS` | Comma-separated list of exact browser origins allowed to call the API. Rejected if blank or still the `http://localhost:3000` development default. |
 
@@ -42,13 +43,21 @@ verifies at startup under the `prod` profile.
 | `DATABASE_MIN_IDLE` | `2` (`5` under `prod`) | HikariCP min idle connections |
 | `DATABASE_BATCH_SIZE` | `50` | Hibernate JDBC batch size |
 | `REDIS_PORT` | `6379` | Redis port |
-| `REDIS_PASSWORD` | *(blank)* | Redis `AUTH` password — required in practice for any non-local Redis; blank only works against an unauthenticated instance |
 | `SERVER_PORT` | `8080` | HTTP port the app listens on |
-| `MANAGEMENT_SERVER_PORT` | same as `SERVER_PORT` | Optional separate port for actuator endpoints — see [infrastructure-guide.md §5](infrastructure-guide.md#5-monitoring-network-layout) |
 | `MANAGEMENT_ENDPOINTS_EXPOSURE` | `health,info,metrics,prometheus` | Actuator endpoints exposed over HTTP |
 | `AUTH_OTP_BCRYPT_STRENGTH` | `12` | bcrypt cost factor for OTP hashes |
 | `AUTH_ACCESS_TOKEN_EXPIRY` / `AUTH_REFRESH_TOKEN_EXPIRY` | `15m` / `30d` | JWT lifetimes |
 | `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` | `bachatsetu` / `bachatsetu-api` | JWT claims |
+| `AUTH_JWT_CLOCK_SKEW` | `30s` | Allowed clock drift when validating JWT `exp`/`nbf` |
+| `AUTH_PASSWORD_HASH_STRENGTH` | `12` | bcrypt cost factor for user password hashes |
+| `AUTH_REFRESH_HASH_STRENGTH` | `12` | bcrypt cost factor for stored refresh-token hashes |
+| `AUTH_HEADER_NAME` | `Authorization` | Header name the auth filter reads the bearer token from |
+| `AUTH_BEARER_PREFIX` | `Bearer ` (trailing space) | Prefix stripped from the auth header before JWT parsing |
+| `AUTH_CORS_ALLOWED_METHODS` | `GET,POST,PUT,PATCH,DELETE,OPTIONS` | Allowed HTTP methods on CORS preflight |
+| `AUTH_CORS_ALLOWED_HEADERS` | `Authorization,Content-Type,Accept,X-Request-ID` | Allowed request headers on CORS preflight |
+| `AUTH_CORS_EXPOSED_HEADERS` | `X-Request-ID` | Response headers exposed to the browser |
+| `AUTH_CORS_ALLOW_CREDENTIALS` | `false` | Whether cookies/credentials are allowed cross-origin |
+| `AUTH_CORS_MAX_AGE` | `1h` | Preflight cache duration |
 | `CACHE_ENABLED` | `true` | Enables the Redis cache infrastructure (`in.bachatsetu.backend.infrastructure.cache.CacheConfiguration`) |
 | `CACHE_OTP_TTL` / `CACHE_RATE_LIMIT_TTL` / `CACHE_SESSION_TTL` / `CACHE_CONFIG_TTL` | `5m` / `1m` / `30m` / `10m` | Per-cache-region time-to-live. No business module reads or writes through these caches yet — see [non-functional-and-production-readiness.md](../product/non-functional-and-production-readiness.md). |
 | `SMS_PROVIDER` | `MSG91` | `MSG91`, `FAST2SMS`, or `TWILIO` — selects the active OTP delivery provider. The selected provider's own credential variables below are enforced as required by `SmsProviderProperties`'s fail-fast startup validation, not by Spring's own binding — the app refuses to start if they are blank. |
@@ -63,12 +72,24 @@ verifies at startup under the `prod` profile.
 | `AWS_SES_REGION` / `AWS_ACCESS_KEY` / `AWS_SECRET_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=AWS_SES` |
 | `RESEND_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=RESEND` |
 | `SENDGRID_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=SENDGRID` |
+| `PAYMENT_GATEWAY_DEFAULT_PROVIDER` | `RAZORPAY` | `RAZORPAY`, `STRIPE`, or `CASHFREE` — selects which provider's credentials below are active. Unlike `SMS_PROVIDER`/`EMAIL_PROVIDER`, there is no fail-fast validation on the selected provider's credentials — a blank/misconfigured secret only surfaces at request/webhook time, not at startup. |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | *(blank)* | Razorpay payment gateway credentials |
 | `STRIPE_API_KEY` / `STRIPE_WEBHOOK_SECRET` | *(blank)* | Stripe payment gateway credentials |
 | `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` / `CASHFREE_WEBHOOK_SECRET` | *(blank)* | Cashfree payment gateway credentials |
-| `STORAGE_DEFAULT_PROVIDER` | `LOCAL` | `LOCAL`, `AWS_S3`, `AZURE_BLOB`, or `GOOGLE_CLOUD_STORAGE` — see [infrastructure-guide.md §2](infrastructure-guide.md#2-amazon-s3) before using `LOCAL` in a multi-instance deployment |
+| `STORAGE_DEFAULT_PROVIDER` | `LOCAL` | `LOCAL`, `AWS_S3`, `AZURE_BLOB`, or `GOOGLE_CLOUD_STORAGE` — see [infrastructure-guide.md §2](infrastructure-guide.md#2-amazon-s3) before using `LOCAL` in a multi-instance deployment. **Only `LOCAL` and `AWS_S3` are backed by a real implementation today** — `AZURE_BLOB` and `GOOGLE_CLOUD_STORAGE` are simulated adapters (no real SDK calls), and there is no fail-fast validation on any provider's credentials, unlike SMS/Email. |
+| `STORAGE_LOCAL_PATH` | `./data/storage` | Filesystem directory used when `STORAGE_DEFAULT_PROVIDER=LOCAL`. In `docker-compose.prod.yml` this resolves inside the backend container and is backed by the `backend-prod-storage` named volume so it survives redeploys — but not horizontal scaling to more than one backend instance. |
 | `STORAGE_AWS_BUCKET` / `STORAGE_AWS_REGION` / `STORAGE_AWS_ACCESS_KEY_ID` / `STORAGE_AWS_SECRET_ACCESS_KEY` | *(blank)* | Required only if `STORAGE_DEFAULT_PROVIDER=AWS_S3` |
-| Every `*_REST_ENABLED` / `*_ENABLED` flag (one per module — see `application.yml`) | `true` | Per-module kill switch, unrelated to this sprint; listed here only because they are also environment variables |
+| `STORAGE_AZURE_ACCOUNT_NAME` / `STORAGE_AZURE_ACCOUNT_KEY` / `STORAGE_AZURE_CONTAINER_NAME` | *(blank)* | Read only if `STORAGE_DEFAULT_PROVIDER=AZURE_BLOB` — simulated adapter, not yet wired through `docker-compose.prod.yml` |
+| `STORAGE_GCP_BUCKET` / `STORAGE_GCP_PROJECT_ID` / `STORAGE_GCP_CREDENTIALS_JSON` | *(blank)* | Read only if `STORAGE_DEFAULT_PROVIDER=GOOGLE_CLOUD_STORAGE` — simulated adapter, not yet wired through `docker-compose.prod.yml` |
+| `INVITATION_VALIDITY` | `P7D` (ISO-8601 duration) | Group-invitation link/code validity period |
+| `AUTOMATION_DRAW_CRON` | `0 */15 * * * *` | Cron schedule for the auto-draw job |
+| `AUTOMATION_PAYMENT_REMINDER_CRON` | `0 0 9 * * *` | Cron schedule for the payment-due reminder job |
+| `AUTOMATION_PAYMENT_REMINDER_DAYS_AHEAD` | `3` | How many days before the due date the reminder fires |
+| `AUTOMATION_OVERDUE_REMINDER_CRON` | `0 30 9 * * *` | Cron schedule for the overdue-payment reminder job |
+| `AUTOMATION_CLEANUP_CRON` | `0 0 3 * * *` | Cron schedule for the housekeeping/cleanup job |
+| `ADMIN_PAGE_SIZE_DEFAULT` | `20` | Default page size for admin list endpoints |
+| `ADMIN_PAGE_SIZE_MAX` | `100` | Max page size an admin caller may request |
+| Every `*_REST_ENABLED` / `*_ENABLED` flag (one per module — see `application.yml`) | `true` (except `RECEIPT_STORAGE_UPLOAD_ENABLED`, which defaults to `false`) | Per-module kill switch, unrelated to this sprint; listed here only because they are also environment variables |
 
 ## 4. Backend — profile-specific files
 

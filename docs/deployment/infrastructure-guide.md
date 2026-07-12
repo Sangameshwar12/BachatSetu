@@ -73,7 +73,7 @@ guidance for provisioning the bucket itself:
 ## 3. RDS PostgreSQL
 
 - Engine version matching what's tested locally (PostgreSQL 16.x; 17.x is also verified
-  working per `services/backend/README.md`).
+  working per the root [`README.md`](../../README.md)).
 - Multi-AZ for production (automatic failover) — the backend's HikariCP pool
   (`DATABASE_MAX_POOL_SIZE`, `DATABASE_MIN_IDLE`) reconnects on failover without code changes.
 - Automated backups with a retention window that matches the RPO decided in
@@ -101,30 +101,30 @@ guidance for provisioning the bucket itself:
   which no business module reads or writes through yet. A single-node ElastiCache instance
   (no cluster mode, no read replicas) is sufficient until a business module actually depends
   on it for correctness rather than performance.
-- Enable encryption in transit and at rest, and an auth token (`REDIS_PASSWORD`) — ElastiCache
-  supports both without any application-side change beyond setting the environment variable.
+- Enable encryption at rest and an auth token (`REDIS_PASSWORD`) — ElastiCache supports both
+  without any application-side change beyond setting the environment variable.
+- **Encryption in transit (TLS) is not yet supported by the application** and needs a code
+  change before it can be turned on: the backend's `spring.data.redis.*` configuration has no
+  `ssl.enabled`/`rediss://` support today, so an ElastiCache cluster with in-transit encryption
+  enforced would reject the backend's plaintext connection. Either leave in-transit encryption
+  off for this beta (acceptable given Redis today only backs the not-yet-used generic cache
+  infrastructure, not business data) or add Lettuce SSL configuration before enabling it.
 
 ## 5. Monitoring network layout
 
 The backend exposes `/actuator/health`, `/actuator/metrics`, and `/actuator/prometheus` (see
 [non-functional-and-production-readiness.md](../product/non-functional-and-production-readiness.md)).
-Only `/actuator/health` and its sub-paths (`/liveness`, `/readiness`) are unauthenticated
-(`bachatsetu.authentication.security.public-endpoints`) — `/actuator/metrics` and
-`/actuator/prometheus` require a valid bearer token under the default configuration, and the
-Nginx edge (§1.3 of [docker-guide.md](docker-guide.md)) does not proxy them to the public
-internet at all.
-
-Two ways to let an internal Prometheus server scrape metrics without exposing them publicly:
-
-1. **Same VPC, same port (simplest):** run Prometheus inside the private subnet, issue it a
-   service-account JWT scoped to nothing but the metrics endpoint, and have it authenticate
-   like any other client. No infrastructure change needed.
-2. **Separate management port:** set `MANAGEMENT_SERVER_PORT` to a port distinct from
-   `SERVER_PORT` (e.g. `8081`). Spring Boot then serves actuator endpoints on a separate
-   embedded connector, outside the application's `SecurityFilterChain` — so metrics are
-   reachable unauthenticated on that port, but only from whatever can reach it, which should
-   be restricted to the private subnet via a security group that allows `8081` only from the
-   monitoring host, never from the ALB or the internet.
+`/actuator/health` and its sub-paths (`/liveness`, `/readiness`), `/actuator/metrics` and its
+sub-paths, and `/actuator/prometheus` are all unauthenticated
+(`bachatsetu.authentication.security.public-endpoints` in `application-prod.yml`) — deeper
+actuator paths (env, beans, mappings, etc.) are not exposed and still require a valid bearer
+token. The Nginx edge (§1.3 of [docker-guide.md](docker-guide.md)) only proxies
+`/actuator/health*` to the public internet; `/actuator/metrics` and `/actuator/prometheus` are
+reachable only from inside the internal Docker network today, so an internal Prometheus server
+needs to run alongside the stack (same EC2 instance or same VPC) rather than scrape through the
+public ALB/Nginx path. Restrict access at the network layer (security group on the private
+subnet) rather than relying on application-level auth for these endpoints, since they are
+intentionally unauthenticated.
 
 Neither a Prometheus server nor a Grafana dashboard is deployed by this sprint — that remains
 Future Work (see

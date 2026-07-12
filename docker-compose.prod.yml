@@ -104,11 +104,15 @@ services:
       CASHFREE_CLIENT_SECRET: ${CASHFREE_CLIENT_SECRET:-}
       CASHFREE_WEBHOOK_SECRET: ${CASHFREE_WEBHOOK_SECRET:-}
       STORAGE_DEFAULT_PROVIDER: ${STORAGE_DEFAULT_PROVIDER:-LOCAL}
+      STORAGE_LOCAL_PATH: ${STORAGE_LOCAL_PATH:-./data/storage}
       STORAGE_AWS_BUCKET: ${STORAGE_AWS_BUCKET:-}
       STORAGE_AWS_REGION: ${STORAGE_AWS_REGION:-}
       STORAGE_AWS_ACCESS_KEY_ID: ${STORAGE_AWS_ACCESS_KEY_ID:-}
       STORAGE_AWS_SECRET_ACCESS_KEY: ${STORAGE_AWS_SECRET_ACCESS_KEY:-}
-      JAVA_OPTS: -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError
+      PAYMENT_GATEWAY_DEFAULT_PROVIDER: ${PAYMENT_GATEWAY_DEFAULT_PROVIDER:-RAZORPAY}
+      JAVA_OPTS: -XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError
+    volumes:
+      - backend-prod-storage:/app/data/storage
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/liveness"]
       interval: 15s
@@ -123,7 +127,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1536m
+          memory: 2048m
     networks:
       - bachatsetu-internal
 
@@ -159,6 +163,12 @@ services:
       - "80:80"
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       backend:
         condition: service_healthy
@@ -174,3 +184,4 @@ networks:
 volumes:
   postgres-prod-data:
   redis-prod-data:
+  backend-prod-storage:

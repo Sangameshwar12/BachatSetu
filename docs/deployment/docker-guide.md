@@ -23,9 +23,14 @@ A two-stage build:
    `/actuator/health/liveness` (public per
    `bachatsetu.authentication.security.public-endpoints` — see
    [environment-variables-guide.md](environment-variables-guide.md)). JVM heap sizing uses
-   `-XX:MaxRAMPercentage=75.0`/`-XX:InitialRAMPercentage=50.0` rather than a fixed `-Xmx`, so
+   `-XX:MaxRAMPercentage=70.0`/`-XX:InitialRAMPercentage=50.0` rather than a fixed `-Xmx`, so
    the container's memory limit (set by Compose or the orchestrator) is what actually bounds
-   heap size — no hardcoded value to keep in sync with deployment configuration.
+   heap size — no hardcoded value to keep in sync with deployment configuration. 30% of the
+   container limit is left as non-heap headroom (metaspace, thread stacks, JIT code cache,
+   native SDK buffers) — `docker-compose.prod.yml` sets the backend's limit to `2048m`
+   accordingly. The image also creates `/app/data/storage` owned by the non-root `bachatsetu`
+   user at build time, since `STORAGE_DEFAULT_PROVIDER=LOCAL`'s default directory needs to be
+   writable by that user, not `root`.
 
 Build and run it standalone:
 
@@ -82,13 +87,26 @@ a host port. Responsibilities:
   (`/actuator/metrics`, `/actuator/prometheus`) are deliberately **not** proxied here. See
   [infrastructure-guide.md §5](infrastructure-guide.md#5-monitoring-network-layout) for how
   those are reached instead.
-- gzip compression for text/JSON responses, and an explicit long-cache header for
+- gzip compression for text/JSON responses (including responses proxied through an optional
+  CloudFront CDN, via `gzip_proxied any`), and an explicit long-cache header for
   `/_next/static/**` (belt-and-braces alongside the Next.js server's own headers).
 - A small set of defense-in-depth response headers
-  (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) and a `X-Request-Id` header
-  that is preserved if the client supplied one, generated otherwise, and forwarded to both
-  upstreams — the backend's own
-  `in.bachatsetu.backend.observability.CorrelationIdFilter` picks it up from there.
+  (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) — nginx strips
+  (`proxy_hide_header`) whatever the upstream (Spring Security, Next.js's own
+  `next.config.ts` `headers()`) already set for these before re-adding its own, so clients
+  never see the same header twice. `Content-Security-Policy` is set at the Next.js layer
+  instead (`services/web/next.config.ts`), since only the frontend origin serves HTML and the
+  policy needs build-time knowledge of `NEXT_PUBLIC_API_BASE_URL` for `connect-src`.
+- A `X-Request-Id` header that is preserved if the client (or the ALB) supplied one, generated
+  otherwise, and forwarded to both upstreams — the backend's own
+  `in.bachatsetu.backend.observability.CorrelationIdFilter` picks it up from there. Named
+  `$req_id` internally, not `$request_id`, to avoid shadowing nginx's own built-in variable of
+  that name.
+- `X-Forwarded-Proto` is forwarded from whatever the ALB set on the original request (falling
+  back to nginx's own `$scheme` only when absent) rather than being overwritten with
+  `$scheme` directly — nginx itself always speaks plain HTTP, so using `$scheme` unconditionally
+  would make every request look insecure to the backend and silently suppress its
+  `Strict-Transport-Security` response header.
 - TLS termination happens **in front of** this proxy (an AWS Application Load Balancer with
   an ACM certificate — see [infrastructure-guide.md](infrastructure-guide.md)), not inside it.
   `nginx.conf` only listens on port 80.
