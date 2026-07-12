@@ -26,7 +26,7 @@ export function WelcomeEmptyState({ mobileNumber }: { mobileNumber?: string }) {
           <UserPlus className="size-4" /> Join a group
         </Link>
         <Link href="/dashboard/groups" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
-          <Users className="size-4" /> Browse groups <ArrowRight className="size-4" />
+          <Users className="size-4" /> My groups <ArrowRight className="size-4" />
         </Link>
       </div>
     </div>

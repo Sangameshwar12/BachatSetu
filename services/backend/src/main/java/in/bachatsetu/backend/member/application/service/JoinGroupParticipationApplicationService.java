@@ -6,6 +6,7 @@ import in.bachatsetu.backend.member.application.port.ClockPort;
 import in.bachatsetu.backend.member.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.application.query.MemberProfileResult;
+import in.bachatsetu.backend.member.application.security.MemberAuthorizationService;
 import in.bachatsetu.backend.member.application.usecase.JoinGroupParticipationUseCase;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
 import in.bachatsetu.backend.member.domain.port.MemberRepository;
@@ -17,17 +18,20 @@ public final class JoinGroupParticipationApplicationService implements JoinGroup
     private final ClockPort clock;
     private final TransactionPort transaction;
     private final MemberApplicationSupport support;
+    private final MemberAuthorizationService authorization;
 
     public JoinGroupParticipationApplicationService(
             MemberRepository repository,
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            MemberApplicationMapper mapper) {
+            MemberApplicationMapper mapper,
+            MemberAuthorizationService authorization) {
         Objects.requireNonNull(repository, "repository must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
         this.support = new MemberApplicationSupport(repository, eventPublisher, mapper);
+        this.authorization = Objects.requireNonNull(authorization, "authorization must not be null");
     }
 
     @Override
@@ -38,6 +42,7 @@ public final class JoinGroupParticipationApplicationService implements JoinGroup
 
     private MemberProfileResult join(JoinGroupParticipationCommand command) {
         MemberProfile member = support.requireMember(command.tenantId(), command.memberId());
+        authorization.requireSelf(member, command.actorId());
         member.joinGroup(command.groupId(), command.role(), command.actorId(), clock.now());
         return support.saveAndPublish(member);
     }

@@ -17,12 +17,18 @@ import in.bachatsetu.backend.support.interfaces.rest.dto.TicketPageResponse;
 import in.bachatsetu.backend.support.interfaces.rest.dto.TicketResponse;
 import in.bachatsetu.backend.support.interfaces.rest.mapper.SupportApiMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import java.net.URI;
 import java.time.Instant;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +42,7 @@ import org.springframework.web.bind.annotation.RestController;
  * restricted to the platform administrator role.
  */
 @RestController
+@Validated
 @RequestMapping(path = "/api/v1/support/tickets", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Support", description = "Customer support ticketing")
 @ConditionalOnProperty(prefix = "bachatsetu.support.rest", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -71,10 +78,11 @@ public class SupportController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Raise a support ticket", description = "Any authenticated user may raise a ticket.")
-    public TicketResponse create(@Valid @RequestBody CreateTicketRequest request) {
+    public ResponseEntity<TicketResponse> create(@Valid @RequestBody CreateTicketRequest request) {
         AuthenticatedUser currentUser = currentUserProvider.requireCurrentUser();
         SupportTicketResult result = createTicket.execute(mapper.toCreateCommand(currentUser, request));
-        return mapper.toResponse(result);
+        return ResponseEntity.created(URI.create("/api/v1/support/tickets/" + result.ticketId()))
+                .body(mapper.toResponse(result));
     }
 
     @GetMapping("/{ticketId}")
@@ -96,8 +104,8 @@ public class SupportController {
             @RequestParam(required = false) String raisedBy,
             @RequestParam(required = false) Instant createdAfter,
             @RequestParam(required = false) Instant createdBefore,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) @Min(0) @Parameter(description = "Zero-based page index") Integer page,
+            @RequestParam(required = false) @Min(1) @Max(100) @Parameter(description = "Page size, up to 100") Integer size,
             @RequestParam(defaultValue = "desc") String direction) {
         currentUserProvider.requireCurrentUser();
         Page<SupportTicketResult> result = searchTickets.execute(mapper.toSearchCriteria(

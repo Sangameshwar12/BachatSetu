@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,15 +73,17 @@ class SupportControllerTest {
 
     @Test
     void createsATicket() throws Exception {
+        SupportTicketResult result = ticketResult(TicketStatus.OPEN);
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
-        when(createTicket.execute(any())).thenReturn(ticketResult(TicketStatus.OPEN));
+        when(createTicket.execute(any())).thenReturn(result);
 
         mockMvc.perform(post("/api/v1/support/tickets")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"category":"PAYMENT","priority":"HIGH","subject":"Payment failed","description":"Verification failed"}
                                 """))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/support/tickets/" + result.ticketId()))
                 .andExpect(jsonPath("$.status").value("OPEN"));
     }
 
@@ -114,6 +117,19 @@ class SupportControllerTest {
         mockMvc.perform(get("/api/v1/support/tickets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void rejectsInvalidPaginationParameters() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+
+        mockMvc.perform(get("/api/v1/support/tickets").param("page", "-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("validation-error"));
+
+        mockMvc.perform(get("/api/v1/support/tickets").param("size", "500"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("validation-error"));
     }
 
     @Test

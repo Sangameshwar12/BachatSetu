@@ -22,55 +22,59 @@ class AwsSesEmailProviderClientTest {
 
     @Test
     void sendsTheMessageAndReturnsTheSesMessageId() {
-        SesClient sesClient = mock(SesClient.class);
-        when(sesClient.sendEmail(any(SendEmailRequest.class)))
-                .thenReturn(SendEmailResponse.builder().messageId("ses-msg-1").build());
+        try (SesClient sesClient = mock(SesClient.class)) {
+            when(sesClient.sendEmail(any(SendEmailRequest.class)))
+                    .thenReturn(SendEmailResponse.builder().messageId("ses-msg-1").build());
 
-        AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
-        EmailProviderSendResult result = client.send(MESSAGE);
+            AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
+            EmailProviderSendResult result = client.send(MESSAGE);
 
-        assertThat(result.providerName()).isEqualTo("AWS_SES");
-        assertThat(result.providerMessageId()).isEqualTo("ses-msg-1");
+            assertThat(result.providerName()).isEqualTo("AWS_SES");
+            assertThat(result.providerMessageId()).isEqualTo("ses-msg-1");
+        }
     }
 
     @Test
     void treatsALogicalRejectionAsNonRetryable() {
-        SesClient sesClient = mock(SesClient.class);
-        when(sesClient.sendEmail(any(SendEmailRequest.class)))
-                .thenThrow(AwsServiceException.builder().statusCode(400).message("invalid recipient").build());
+        try (SesClient sesClient = mock(SesClient.class)) {
+            when(sesClient.sendEmail(any(SendEmailRequest.class)))
+                    .thenThrow(AwsServiceException.builder().statusCode(400).message("invalid recipient").build());
 
-        AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
+            AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
 
-        assertThatThrownBy(() -> client.send(MESSAGE))
-                .isInstanceOfSatisfying(EmailProviderException.class, exception ->
-                        assertThat(exception.retryable()).isFalse());
+            assertThatThrownBy(() -> client.send(MESSAGE))
+                    .isInstanceOfSatisfying(EmailProviderException.class, exception ->
+                            assertThat(exception.retryable()).isFalse());
+        }
     }
 
     @Test
     void treatsAServiceUnavailableResponseAsRetryable() {
-        SesClient sesClient = mock(SesClient.class);
-        when(sesClient.sendEmail(any(SendEmailRequest.class)))
-                .thenThrow(AwsServiceException.builder().statusCode(503).message("throttled").build());
+        try (SesClient sesClient = mock(SesClient.class)) {
+            when(sesClient.sendEmail(any(SendEmailRequest.class)))
+                    .thenThrow(AwsServiceException.builder().statusCode(503).message("throttled").build());
 
-        AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
+            AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
 
-        assertThatThrownBy(() -> client.send(MESSAGE))
-                .isInstanceOfSatisfying(EmailProviderException.class, exception ->
-                        assertThat(exception.retryable()).isTrue());
+            assertThatThrownBy(() -> client.send(MESSAGE))
+                    .isInstanceOfSatisfying(EmailProviderException.class, exception ->
+                            assertThat(exception.retryable()).isTrue());
+        }
     }
 
     @Test
     void treatsANetworkFailureAsRetryable() {
-        SesClient sesClient = mock(SesClient.class);
-        when(sesClient.sendEmail(any(SendEmailRequest.class)))
-                .thenThrow(SdkClientException.create("simulated network failure"));
+        try (SesClient sesClient = mock(SesClient.class)) {
+            when(sesClient.sendEmail(any(SendEmailRequest.class)))
+                    .thenThrow(SdkClientException.create("simulated network failure"));
 
-        AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
+            AwsSesEmailProviderClient client = new AwsSesEmailProviderClient(sesClient);
 
-        assertThatThrownBy(() -> client.send(MESSAGE))
-                .isInstanceOfSatisfying(EmailProviderException.class, exception -> {
-                    assertThat(exception.retryable()).isTrue();
-                    assertThat(exception.httpStatus()).isEqualTo(-1);
-                });
+            assertThatThrownBy(() -> client.send(MESSAGE))
+                    .isInstanceOfSatisfying(EmailProviderException.class, exception -> {
+                        assertThat(exception.retryable()).isTrue();
+                        assertThat(exception.httpStatus()).isEqualTo(-1);
+                    });
+        }
     }
 }

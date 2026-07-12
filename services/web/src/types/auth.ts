@@ -28,7 +28,8 @@ export interface SignupVerifyRequest {
   code: string;
 }
 
-export interface SignupVerifyResponse {
+/** Shared shape of every endpoint that issues an access/refresh token pair — signup verify, login verify, and token refresh all return exactly this. */
+export interface TokenIssuedResponse {
   userId: string;
   accessToken: string;
   accessTokenExpiresAt: string;
@@ -36,6 +37,8 @@ export interface SignupVerifyResponse {
   refreshTokenExpiresAt: string;
   tokenType: string;
 }
+
+export type SignupVerifyResponse = TokenIssuedResponse;
 
 export interface OtpRequestRequest {
   userId: string;
@@ -71,6 +74,33 @@ export interface OtpResendRequest {
 export interface OtpInvalidateRequest {
   userId: string;
   purpose: OtpPurpose;
+}
+
+export interface LoginStartRequest {
+  mobileNumber: string;
+}
+
+export interface LoginStartResponse {
+  userId: string;
+  mobileNumber: string;
+  otpExpiresAt: string;
+}
+
+export interface LoginVerifyRequest {
+  userId: string;
+  code: string;
+}
+
+export type LoginVerifyResponse = TokenIssuedResponse;
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export type RefreshTokenResponse = TokenIssuedResponse;
+
+export interface LogoutRequest {
+  refreshToken: string;
 }
 
 export interface CompleteOnboardingRequest {

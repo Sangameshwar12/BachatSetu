@@ -15,6 +15,7 @@ import in.bachatsetu.backend.invitation.interfaces.rest.dto.CreateInvitationRequ
 import in.bachatsetu.backend.invitation.interfaces.rest.dto.InvitationPreviewResponse;
 import in.bachatsetu.backend.invitation.interfaces.rest.dto.InvitationResponse;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.net.URI;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -71,5 +72,10 @@ public class InvitationApiMapper {
     public AcceptInvitationResponse toResponse(InvitationAcceptedResult result) {
         return new AcceptInvitationResponse(
                 result.groupId().toString(), result.memberId().toString(), result.joinedAt());
+    }
+
+    /** Location header for the newly-created membership — kept here so the controller never touches domain types. */
+    public URI toLocationUri(InvitationAcceptedResult result) {
+        return URI.create("/api/v1/groups/" + result.groupId() + "/members/" + result.memberId());
     }
 }

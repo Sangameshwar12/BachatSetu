@@ -119,6 +119,19 @@ class MemberControllerTest {
     }
 
     @Test
+    void reportsCreatingProfileForAnotherUserAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(createMemberProfile.execute(any()))
+                .thenThrow(new MemberAccessDeniedException("only the member themselves may perform this operation"));
+
+        mockMvc.perform(post("/api/v1/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequestBody()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
     void rejectsUnauthenticatedCreateRequest() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenThrow(new CurrentUserUnavailableException());
 
@@ -312,6 +325,21 @@ class MemberControllerTest {
                                 """.formatted(UUID.randomUUID())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("participation-already-exists"));
+    }
+
+    @Test
+    void reportsJoiningAdditionalGroupOnAnothersProfileAsForbidden() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(joinGroupParticipation.execute(any()))
+                .thenThrow(new MemberAccessDeniedException("only the member themselves may perform this operation"));
+
+        mockMvc.perform(post("/api/v1/members/" + UUID.randomUUID() + "/participations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"groupId": "%s", "role": "MEMBER"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("access-denied"));
     }
 
     @Test

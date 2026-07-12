@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -72,7 +73,7 @@ public class JoinController {
     @PostMapping(path = "/api/v1/groups/join", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Join a group by code, QR token, or link token")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Joined the group"),
+        @ApiResponse(responseCode = "201", description = "Joined the group"),
         @ApiResponse(responseCode = "404", description = "Invitation not found", content = @Content(
                 mediaType = PROBLEM_CONTENT_TYPE, schema = @Schema(implementation = ProblemDetail.class))),
         @ApiResponse(responseCode = "409", description = "Already a member or group at capacity", content = @Content(
@@ -80,9 +81,9 @@ public class JoinController {
         @ApiResponse(responseCode = "422", description = "Invitation expired, used, or cancelled", content = @Content(
                 mediaType = PROBLEM_CONTENT_TYPE, schema = @Schema(implementation = ProblemDetail.class)))
     })
-    public AcceptInvitationResponse join(@Valid @RequestBody AcceptInvitationRequest request) {
+    public ResponseEntity<AcceptInvitationResponse> join(@Valid @RequestBody AcceptInvitationRequest request) {
         AuthenticatedUser currentUser = currentUserProvider.requireCurrentUser();
         InvitationAcceptedResult result = acceptInvitation.execute(mapper.toCommand(currentUser, request));
-        return mapper.toResponse(result);
+        return ResponseEntity.created(mapper.toLocationUri(result)).body(mapper.toResponse(result));
     }
 }

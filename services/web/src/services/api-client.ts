@@ -12,9 +12,11 @@ import type { ApiProblemDetail } from "@/types/api";
  * like onboarding/storage), and a response interceptor that normalizes the backend's RFC 7807
  * problem-detail error body into a typed `ApiError` and reacts to 401s.
  *
- * There is no token-refresh retry here: the backend does not yet expose a refresh-token
- * endpoint (see Sprint FE-2 report, "Pending Backend APIs"). A 401 therefore clears the
- * session and hands off to `AuthProvider`'s unauthorized handler, which redirects to /login.
+ * There is no refresh-and-retry logic here: `AuthProvider` already refreshes the access token
+ * proactively, shortly before it expires, so a request should rarely hit this client with an
+ * already-expired token. A 401 that does slip through (clock skew, out-of-band revocation) is a
+ * fallback signal only — it clears the session and hands off to `AuthProvider`'s unauthorized
+ * handler, which redirects to /login, rather than attempting an inline refresh-and-retry.
  */
 export const apiClient = axios.create({
   baseURL: env.apiBaseUrl,

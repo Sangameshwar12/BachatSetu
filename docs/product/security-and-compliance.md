@@ -7,7 +7,14 @@ This chapter documents security controls **as implemented**, distinguishing them
 
 ## 1. Authentication
 
-BachatSetu is **OTP-only** — there is no password-based login in the running product (the `/forgot-password` screen is an explicit placeholder; `identity.users.password_hash` exists in the schema but is not exercised by any implemented flow).
+BachatSetu is **OTP-only** — there is no password-based login in the running product (the `/forgot-password` screen is an explicit placeholder that points users back to mobile-number login; `identity.users.password_hash` exists in the schema but is not exercised by any implemented flow).
+
+New accounts authenticate via `POST /api/v1/auth/signup` + `/signup/verify`; returning users
+authenticate via the separate `POST /api/v1/auth/login/start` + `/login/verify` pair (Sprint LR-2)
+— same OTP mechanism, different entry point, since login looks up an existing `ACTIVE` user instead
+of provisioning one. Both verify steps issue an access/refresh token pair through the same,
+single token-generation code path. See [`login.md`](../../services/backend/docs/application/login.md)
+and [`signup.md`](../../services/backend/docs/application/signup.md) for the full flows.
 
 ```mermaid
 sequenceDiagram
@@ -17,15 +24,35 @@ sequenceDiagram
     participant DB as identity schema
 
     U->>W: Mobile number
-    W->>B: POST /api/v1/auth/otp/request
+    W->>B: POST /api/v1/auth/login/start
     B->>DB: Insert otp_verifications (otp_hash only — never plaintext)
-    B-->>W: { verificationId, expiresAt }
+    B-->>W: { userId, otpExpiresAt }
     U->>W: 6-digit code
-    W->>B: POST /api/v1/auth/otp/verify
+    W->>B: POST /api/v1/auth/login/verify
     B->>DB: Compare bcrypt hash; increment verification_attempts on mismatch
     B->>DB: Issue refresh_tokens (ACTIVE), sign a short-lived JWT access token
     B-->>W: { accessToken, refreshToken, accessTokenExpiresAt, refreshTokenExpiresAt }
 ```
+
+Later, when the access token is close to expiry, the frontend silently exchanges the refresh token
+for a new pair without any user interaction:
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant W as Frontend
+    participant B as auth module
+
+    Note over W: accessTokenExpiresAt - 60s timer fires
+    W->>B: POST /api/v1/auth/token/refresh { refreshToken }
+    B->>B: Validate expiry, revocation, and reuse; rotate
+    B-->>W: New { accessToken, refreshToken, ...expiresAt }
+    Note over U: No redirect, no re-entered OTP
+```
+
+If the refresh call itself fails (expired, revoked, or reused refresh token), the frontend clears
+the session, shows a toast, and redirects to `/login` — the user re-authenticates with a fresh OTP,
+never a password.
 
 Key controls, verified against the schema and controller code:
 
@@ -37,13 +64,19 @@ Key controls, verified against the schema and controller code:
 
 **Not implemented, despite being specified:** multi-factor authentication for admin/internal operations ([`security-standards.md` §"Authentication"](../architecture/security-standards.md#authentication) calls for this "before production launch"), device/session management UI, and password-based login entirely.
 
+Auth-related audit events, each scoped to fire from exactly one code path so the audit trail can't
+be spoofed by an unrelated flow (full detail in [`login.md`](../../services/backend/docs/application/login.md#audit-wiring--no-false-signals)):
+`LOGIN`, `LOGIN_FAILED`, `LOGOUT`, `TOKEN_REFRESH`, in addition to the pre-existing `USER_REGISTERED`.
+
 ## 2. Session Handling (Frontend)
 
 The frontend has no server-readable session — the backend issues bearer JWTs only, no session cookie. Consequently:
 
 - The token pair is persisted in `localStorage` (there is no more secure browser storage option available to a pure SPA without a backend-for-frontend layer, which does not exist in this system).
 - A module-level `token-store.ts` bridges the React `AuthContext` (the only writer) into the axios request interceptor (which cannot use React hooks) — every outgoing request attaches `Authorization: Bearer <token>` if a token is present.
-- On any `401` response, the interceptor calls a registered "unauthorized" handler that clears the session, shows a **"Your session has expired — please log in again"** toast, and redirects to `/login`. This toast was added specifically during the FE-6 production-readiness sprint after identifying that the prior behavior — a silent redirect with no explanation — was confusing.
+- **Proactive silent refresh** (Sprint LR-2): `AuthProvider` schedules a refresh 60 seconds before the access token's known expiry and re-arms the timer every time a new session is applied, so a session survives indefinitely while the refresh token remains valid — the user is never interrupted mid-session.
+- **Browser-refresh persistence** (Sprint LR-2): on mount, `AuthProvider` reads the persisted session from `localStorage`; if the access token has expired but the refresh token hasn't, it performs one refresh before rendering as logged-in, so reloading the page never logs the user out while their refresh token is still valid.
+- On any `401` response, the interceptor calls a registered "unauthorized" handler that clears the session, shows a **"Your session has expired — please log in again"** toast, and redirects to `/login`. This toast was added specifically during the FE-6 production-readiness sprint after identifying that the prior behavior — a silent redirect with no explanation — was confusing. This remains a reactive fallback alongside the proactive timer above, not a replacement for it.
 - `ProtectedRoute` gates every `/dashboard/*` route on `isAuthenticated` (client-side, post-mount, since there is no server-readable session to check during server rendering).
 
 ## 3. Authorization

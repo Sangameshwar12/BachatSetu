@@ -56,9 +56,10 @@ public class MemberApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            MemberApplicationMapper mapper) {
+            MemberApplicationMapper mapper,
+            MemberAuthorizationService authorization) {
         return new CreateMemberProfileApplicationService(
-                repository, numberGenerator, eventPublisher, clock, transaction, mapper);
+                repository, numberGenerator, eventPublisher, clock, transaction, mapper, authorization);
     }
 
     @Bean
@@ -67,8 +68,10 @@ public class MemberApplicationConfig {
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            MemberApplicationMapper mapper) {
-        return new JoinGroupParticipationApplicationService(repository, eventPublisher, clock, transaction, mapper);
+            MemberApplicationMapper mapper,
+            MemberAuthorizationService authorization) {
+        return new JoinGroupParticipationApplicationService(
+                repository, eventPublisher, clock, transaction, mapper, authorization);
     }
 
     @Bean

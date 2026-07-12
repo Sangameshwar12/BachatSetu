@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.auth.application.token.service;
 
+import in.bachatsetu.backend.auth.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.auth.application.token.command.RefreshAccessTokenCommand;
 import in.bachatsetu.backend.auth.application.token.exception.TokenApplicationException;
 import in.bachatsetu.backend.auth.application.token.exception.TokenFailureReason;
@@ -29,6 +30,7 @@ public final class RefreshAccessTokenApplicationService implements RefreshAccess
     private final TokenHasherPort hasher;
     private final TokenClockPort clock;
     private final Duration lifetime;
+    private final DomainEventPublisherPort eventPublisher;
 
     public RefreshAccessTokenApplicationService(
             RefreshTokenCredentialVerifier verifier,
@@ -37,7 +39,8 @@ public final class RefreshAccessTokenApplicationService implements RefreshAccess
             JwtProviderPort jwtProvider,
             TokenHasherPort hasher,
             TokenClockPort clock,
-            Duration lifetime) {
+            Duration lifetime,
+            DomainEventPublisherPort eventPublisher) {
         this.verifier = Objects.requireNonNull(verifier, "refresh token verifier must not be null");
         this.repository = Objects.requireNonNull(repository, "refresh token repository must not be null");
         this.principals = Objects.requireNonNull(principals, "token principal resolver must not be null");
@@ -45,6 +48,7 @@ public final class RefreshAccessTokenApplicationService implements RefreshAccess
         this.hasher = Objects.requireNonNull(hasher, "token hasher must not be null");
         this.clock = Objects.requireNonNull(clock, "token clock must not be null");
         this.lifetime = requirePositive(lifetime);
+        this.eventPublisher = Objects.requireNonNull(eventPublisher, "event publisher must not be null");
     }
 
     @Override
@@ -72,6 +76,7 @@ public final class RefreshAccessTokenApplicationService implements RefreshAccess
                 command.actorId());
         current.rotate(replacementId, command.actorId(), now);
         repository.replace(current, replacement);
+        eventPublisher.publish(replacement.pullDomainEvents());
         return new TokenPairResult(
                 accessToken,
                 new RefreshTokenResult(issued.credential(), replacement.sessionId(), replacement.expiresAt()));

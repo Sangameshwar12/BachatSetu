@@ -18,8 +18,9 @@ public final class ApplicationTestFixture {
     }
 
     public static CreateMemberProfileCommand createCommand() {
+        AggregateId userId = AggregateId.newId();
         return new CreateMemberProfileCommand(
-                AggregateId.newId(), AggregateId.newId(), AggregateId.newId(), GroupRole.MEMBER, AggregateId.newId());
+                AggregateId.newId(), userId, AggregateId.newId(), GroupRole.MEMBER, userId);
     }
 
     public static MemberProfile activeMember(AggregateId tenantId) {

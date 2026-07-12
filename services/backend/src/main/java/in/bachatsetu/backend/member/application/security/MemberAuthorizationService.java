@@ -15,4 +15,13 @@ public final class MemberAuthorizationService {
             throw new MemberAccessDeniedException("only the member themselves may perform this operation");
         }
     }
+
+    /** Overload for operations where no {@link MemberProfile} is loaded yet (e.g. creation). */
+    public void requireSelf(AggregateId targetUserId, AggregateId actorId) {
+        Objects.requireNonNull(targetUserId, "target user id must not be null");
+        Objects.requireNonNull(actorId, "actor id must not be null");
+        if (!targetUserId.equals(actorId)) {
+            throw new MemberAccessDeniedException("only the member themselves may perform this operation");
+        }
+    }
 }

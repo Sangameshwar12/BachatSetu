@@ -29,13 +29,16 @@ class MemberApplicationConfigTest {
 
     @Test
     void composesCreateMemberProfileUseCase() {
-        assertThat(config.createMemberProfileUseCase(repository, numberGenerator, eventPublisher, clock, transaction, mapper))
+        MemberAuthorizationService authorization = config.memberAuthorizationService();
+        assertThat(config.createMemberProfileUseCase(
+                        repository, numberGenerator, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(CreateMemberProfileApplicationService.class);
     }
 
     @Test
     void composesJoinGroupParticipationUseCase() {
-        assertThat(config.joinGroupParticipationUseCase(repository, eventPublisher, clock, transaction, mapper))
+        MemberAuthorizationService authorization = config.memberAuthorizationService();
+        assertThat(config.joinGroupParticipationUseCase(repository, eventPublisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(JoinGroupParticipationApplicationService.class);
     }
 

@@ -83,7 +83,7 @@ class MemberApplicationServiceTest {
         when(repository.findByMemberNumber(command.tenantId(), new MemberNumber("MB-APP-CREATE0001")))
                 .thenReturn(Optional.empty());
         CreateMemberProfileUseCase service = new CreateMemberProfileApplicationService(
-                repository, numberGenerator, publisher, clock, transaction, mapper);
+                repository, numberGenerator, publisher, clock, transaction, mapper, authorization);
 
         MemberProfileResult result = service.execute(command);
 
@@ -104,7 +104,7 @@ class MemberApplicationServiceTest {
         when(repository.findByMemberNumber(command.tenantId(), new MemberNumber("MB-APP-DUPLICATE1")))
                 .thenReturn(Optional.of(mock(MemberProfile.class)));
         CreateMemberProfileApplicationService duplicateService = new CreateMemberProfileApplicationService(
-                repository, numberGenerator, publisher, clock, transaction, mapper);
+                repository, numberGenerator, publisher, clock, transaction, mapper, authorization);
 
         assertThatThrownBy(() -> duplicateService.execute(command))
                 .isInstanceOf(DuplicateMemberNumberException.class);
@@ -112,7 +112,7 @@ class MemberApplicationServiceTest {
 
         when(numberGenerator.generate(any())).thenReturn(null);
         CreateMemberProfileApplicationService nullNumberService = new CreateMemberProfileApplicationService(
-                repository, numberGenerator, publisher, clock, transaction, mapper);
+                repository, numberGenerator, publisher, clock, transaction, mapper, authorization);
         assertThatThrownBy(() -> nullNumberService.execute(createCommand())).isInstanceOf(NullPointerException.class);
     }
 
@@ -128,7 +128,7 @@ class MemberApplicationServiceTest {
                 .when(repository)
                 .save(any(MemberProfile.class));
         CreateMemberProfileApplicationService service = new CreateMemberProfileApplicationService(
-                repository, numberGenerator, publisher, clock, transaction, mapper);
+                repository, numberGenerator, publisher, clock, transaction, mapper, authorization);
 
         assertThatThrownBy(() -> service.execute(command)).isInstanceOf(IllegalStateException.class);
 
@@ -139,13 +139,28 @@ class MemberApplicationServiceTest {
     }
 
     @Test
+    void deniesCreatingAProfileForAnotherUser() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId targetUserId = AggregateId.newId();
+        AggregateId otherActorId = AggregateId.newId();
+        CreateMemberProfileCommand command = new CreateMemberProfileCommand(
+                tenantId, targetUserId, AggregateId.newId(), GroupRole.MEMBER, otherActorId);
+        CreateMemberProfileUseCase service = new CreateMemberProfileApplicationService(
+                repository, numberGenerator, publisher, clock, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(command)).isInstanceOf(MemberAccessDeniedException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
     void joinsAdditionalGroupThroughExistingProfile() {
         AggregateId tenantId = AggregateId.newId();
         MemberProfile member = existingMember(tenantId);
         AggregateId newGroupId = AggregateId.newId();
         when(repository.findById(tenantId, member.id())).thenReturn(Optional.of(member));
         JoinGroupParticipationUseCase service = new JoinGroupParticipationApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, authorization);
 
         MemberProfileResult result = service.execute(
                 new JoinGroupParticipationCommand(tenantId, member.id(), newGroupId, GroupRole.MEMBER, member.userId()));
@@ -162,7 +177,7 @@ class MemberApplicationServiceTest {
         AggregateId existingGroupId = member.participations().get(0).groupId();
         when(repository.findById(tenantId, member.id())).thenReturn(Optional.of(member));
         JoinGroupParticipationUseCase service = new JoinGroupParticipationApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, authorization);
 
         assertThatThrownBy(() -> service.execute(new JoinGroupParticipationCommand(
                         tenantId, member.id(), existingGroupId, GroupRole.MEMBER, member.userId())))
@@ -171,12 +186,28 @@ class MemberApplicationServiceTest {
     }
 
     @Test
+    void deniesJoiningAnAdditionalGroupOnAnothersProfile() {
+        AggregateId tenantId = AggregateId.newId();
+        MemberProfile member = existingMember(tenantId);
+        AggregateId otherActorId = AggregateId.newId();
+        when(repository.findById(tenantId, member.id())).thenReturn(Optional.of(member));
+        JoinGroupParticipationUseCase service = new JoinGroupParticipationApplicationService(
+                repository, publisher, clock, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(new JoinGroupParticipationCommand(
+                        tenantId, member.id(), AggregateId.newId(), GroupRole.MEMBER, otherActorId)))
+                .isInstanceOf(MemberAccessDeniedException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
     void reportsMissingMemberOnJoinWithoutSavingOrPublishing() {
         AggregateId tenantId = AggregateId.newId();
         AggregateId memberId = AggregateId.newId();
         when(repository.findById(tenantId, memberId)).thenReturn(Optional.empty());
         JoinGroupParticipationUseCase service = new JoinGroupParticipationApplicationService(
-                repository, publisher, clock, transaction, mapper);
+                repository, publisher, clock, transaction, mapper, authorization);
 
         assertThatThrownBy(() -> service.execute(new JoinGroupParticipationCommand(
                         tenantId, memberId, AggregateId.newId(), GroupRole.MEMBER, AggregateId.newId())))
@@ -307,11 +338,11 @@ class MemberApplicationServiceTest {
     @Test
     void rejectsNullUseCaseInputs() {
         assertThatThrownBy(() -> new CreateMemberProfileApplicationService(
-                        repository, numberGenerator, publisher, clock, transaction, mapper)
+                        repository, numberGenerator, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupParticipationApplicationService(
-                        repository, publisher, clock, transaction, mapper)
+                        repository, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetMemberProfileApplicationService(repository, transaction, mapper, authorization)
@@ -338,25 +369,31 @@ class MemberApplicationServiceTest {
     @Test
     void validatesRequiredServiceDependencies() {
         assertThatThrownBy(() -> new CreateMemberProfileApplicationService(
-                        null, numberGenerator, publisher, clock, transaction, mapper))
+                        null, numberGenerator, publisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new CreateMemberProfileApplicationService(
-                        repository, null, publisher, clock, transaction, mapper))
+                        repository, null, publisher, clock, transaction, mapper, authorization))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CreateMemberProfileApplicationService(
+                        repository, numberGenerator, publisher, clock, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupParticipationApplicationService(
-                        null, publisher, clock, transaction, mapper))
+                        null, publisher, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupParticipationApplicationService(
-                        repository, null, clock, transaction, mapper))
+                        repository, null, clock, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupParticipationApplicationService(
-                        repository, publisher, null, transaction, mapper))
+                        repository, publisher, null, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupParticipationApplicationService(
-                        repository, publisher, clock, null, mapper))
+                        repository, publisher, clock, null, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new JoinGroupParticipationApplicationService(
-                        repository, publisher, clock, transaction, null))
+                        repository, publisher, clock, transaction, null, authorization))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new JoinGroupParticipationApplicationService(
+                        repository, publisher, clock, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GetMemberProfileApplicationService(null, transaction, mapper, authorization))
                 .isInstanceOf(NullPointerException.class);

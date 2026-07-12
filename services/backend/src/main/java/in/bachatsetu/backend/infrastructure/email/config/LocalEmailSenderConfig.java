@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Profile;
 public class LocalEmailSenderConfig {
 
     @Bean
-    EmailSenderPort loggingEmailSenderAdapter(Clock authenticationClock) {
+    EmailSenderPort emailInfrastructureLoggingEmailSenderAdapter(Clock authenticationClock) {
         return new LoggingEmailSenderAdapter(authenticationClock, UUID::randomUUID);
     }
 }

@@ -1,7 +1,9 @@
 package in.bachatsetu.backend.auth.interfaces.rest.exception;
 
 import in.bachatsetu.backend.auth.application.exception.OtpApplicationException;
+import in.bachatsetu.backend.auth.application.login.exception.LoginApplicationException;
 import in.bachatsetu.backend.auth.application.signup.exception.SignupApplicationException;
+import in.bachatsetu.backend.auth.application.token.exception.TokenApplicationException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.time.Instant;
@@ -129,6 +131,100 @@ public class GlobalExceptionHandler {
                     HttpStatus.TOO_MANY_REQUESTS,
                     "otp-verification-limit-exceeded",
                     "OTP verification limit exceeded",
+                    exception.getMessage(),
+                    request);
+        };
+    }
+
+    @ExceptionHandler(LoginApplicationException.class)
+    ResponseEntity<ProblemDetail> handleLoginFailure(
+            LoginApplicationException exception,
+            HttpServletRequest request) {
+        return switch (exception.reason()) {
+            case MOBILE_NOT_REGISTERED -> response(
+                    HttpStatus.NOT_FOUND,
+                    "mobile-not-registered",
+                    "Mobile number not registered",
+                    exception.getMessage(),
+                    request);
+            case ACCOUNT_NOT_ACTIVE -> response(
+                    HttpStatus.FORBIDDEN,
+                    "account-not-active",
+                    "Account not active",
+                    exception.getMessage(),
+                    request);
+            case OTP_EXPIRED -> response(
+                    HttpStatus.GONE,
+                    "otp-expired",
+                    "OTP expired",
+                    exception.getMessage(),
+                    request);
+            case OTP_INVALID -> response(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "otp-invalid",
+                    "OTP invalid",
+                    exception.getMessage(),
+                    request);
+            case OTP_ATTEMPTS_EXCEEDED -> response(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "otp-verification-limit-exceeded",
+                    "OTP verification limit exceeded",
+                    exception.getMessage(),
+                    request);
+        };
+    }
+
+    @ExceptionHandler(TokenApplicationException.class)
+    ResponseEntity<ProblemDetail> handleTokenFailure(
+            TokenApplicationException exception,
+            HttpServletRequest request) {
+        return switch (exception.reason()) {
+            case USER_NOT_FOUND -> response(
+                    HttpStatus.NOT_FOUND,
+                    "user-not-found",
+                    "User not found",
+                    exception.getMessage(),
+                    request);
+            case USER_NOT_ACTIVE -> response(
+                    HttpStatus.FORBIDDEN,
+                    "user-not-active",
+                    "User not active",
+                    exception.getMessage(),
+                    request);
+            case ROLE_NOT_FOUND, PERMISSION_NOT_FOUND -> response(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "internal-error",
+                    "Internal server error",
+                    "The request could not be completed.",
+                    request);
+            case ACTIVE_REFRESH_TOKEN_EXISTS -> response(
+                    HttpStatus.CONFLICT,
+                    "active-refresh-token-exists",
+                    "Active refresh token already exists",
+                    exception.getMessage(),
+                    request);
+            case REFRESH_TOKEN_NOT_FOUND, INVALID_REFRESH_TOKEN -> response(
+                    HttpStatus.UNAUTHORIZED,
+                    "invalid-refresh-token",
+                    "Refresh token invalid",
+                    exception.getMessage(),
+                    request);
+            case REFRESH_TOKEN_EXPIRED -> response(
+                    HttpStatus.UNAUTHORIZED,
+                    "refresh-token-expired",
+                    "Refresh token expired",
+                    exception.getMessage(),
+                    request);
+            case REFRESH_TOKEN_REUSED -> response(
+                    HttpStatus.UNAUTHORIZED,
+                    "refresh-token-reused",
+                    "Refresh token reuse detected",
+                    exception.getMessage(),
+                    request);
+            case REFRESH_TOKEN_REVOKED -> response(
+                    HttpStatus.UNAUTHORIZED,
+                    "refresh-token-revoked",
+                    "Refresh token revoked",
                     exception.getMessage(),
                     request);
         };

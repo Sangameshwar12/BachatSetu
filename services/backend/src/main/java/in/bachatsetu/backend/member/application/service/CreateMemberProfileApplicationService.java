@@ -8,6 +8,7 @@ import in.bachatsetu.backend.member.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.member.application.port.MemberNumberGeneratorPort;
 import in.bachatsetu.backend.member.application.port.TransactionPort;
 import in.bachatsetu.backend.member.application.query.MemberProfileResult;
+import in.bachatsetu.backend.member.application.security.MemberAuthorizationService;
 import in.bachatsetu.backend.member.application.usecase.CreateMemberProfileUseCase;
 import in.bachatsetu.backend.member.domain.model.MemberNumber;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
@@ -24,6 +25,7 @@ public final class CreateMemberProfileApplicationService implements CreateMember
     private final ClockPort clock;
     private final TransactionPort transaction;
     private final MemberApplicationSupport support;
+    private final MemberAuthorizationService authorization;
 
     public CreateMemberProfileApplicationService(
             MemberRepository repository,
@@ -31,12 +33,14 @@ public final class CreateMemberProfileApplicationService implements CreateMember
             DomainEventPublisherPort eventPublisher,
             ClockPort clock,
             TransactionPort transaction,
-            MemberApplicationMapper mapper) {
+            MemberApplicationMapper mapper,
+            MemberAuthorizationService authorization) {
         this.repository = Objects.requireNonNull(repository, "repository must not be null");
         this.numberGenerator = Objects.requireNonNull(numberGenerator, "number generator must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
         this.support = new MemberApplicationSupport(repository, eventPublisher, mapper);
+        this.authorization = Objects.requireNonNull(authorization, "authorization must not be null");
     }
 
     @Override
@@ -46,6 +50,7 @@ public final class CreateMemberProfileApplicationService implements CreateMember
     }
 
     private MemberProfileResult create(CreateMemberProfileCommand command) {
+        authorization.requireSelf(command.userId(), command.actorId());
         AggregateId memberId = AggregateId.newId();
         MemberNumber memberNumber = Objects.requireNonNull(
                 numberGenerator.generate(memberId), "generated member number must not be null");

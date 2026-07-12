@@ -14,6 +14,22 @@ spring:
   flyway:
     clean-disabled: true
 
+bachatsetu:
+  authentication:
+    security:
+      # Overrides (not merges) the base public-endpoints list — Swagger UI and the raw OpenAPI
+      # document are reconnaissance surfaces with no reason to be unauthenticated in production;
+      # every other environment (local/dev/test) still gets them via the base application.yml list.
+      public-endpoints:
+        - /actuator/health
+        - /actuator/health/**
+        - /actuator/metrics
+        - /actuator/metrics/**
+        - /actuator/prometheus
+        - /api/v1/auth/**
+        - /api/v1/payments/webhooks/**
+        - /api/v1/join/**
+
 management:
   endpoint:
     health:

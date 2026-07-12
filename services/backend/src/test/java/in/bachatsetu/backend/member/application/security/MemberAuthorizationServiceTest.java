@@ -36,9 +36,36 @@ class MemberAuthorizationServiceTest {
     void rejectsNullInputs() {
         MemberProfile member = newMember();
 
-        assertThatThrownBy(() -> authorization.requireSelf(null, member.userId()))
+        assertThatThrownBy(() -> authorization.requireSelf((MemberProfile) null, member.userId()))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> authorization.requireSelf(member, null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void allowsTargetUserIdMatchingActor() {
+        AggregateId userId = AggregateId.newId();
+
+        authorization.requireSelf(userId, userId);
+    }
+
+    @Test
+    void deniesTargetUserIdNotMatchingActor() {
+        AggregateId targetUserId = AggregateId.newId();
+        AggregateId otherActor = AggregateId.newId();
+
+        assertThatThrownBy(() -> authorization.requireSelf(targetUserId, otherActor))
+                .isInstanceOf(MemberAccessDeniedException.class)
+                .hasMessage("only the member themselves may perform this operation");
+    }
+
+    @Test
+    void rejectsNullInputsForTargetUserIdOverload() {
+        AggregateId userId = AggregateId.newId();
+
+        assertThatThrownBy(() -> authorization.requireSelf((AggregateId) null, userId))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> authorization.requireSelf(userId, (AggregateId) null))
                 .isInstanceOf(NullPointerException.class);
     }
 

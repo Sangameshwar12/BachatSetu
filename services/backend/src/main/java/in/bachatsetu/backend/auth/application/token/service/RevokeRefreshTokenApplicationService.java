@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.auth.application.token.service;
 
+import in.bachatsetu.backend.auth.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.auth.application.token.command.RevokeRefreshTokenCommand;
 import in.bachatsetu.backend.auth.application.token.exception.TokenApplicationException;
 import in.bachatsetu.backend.auth.application.token.exception.TokenFailureReason;
@@ -18,14 +19,17 @@ public final class RevokeRefreshTokenApplicationService implements RevokeRefresh
     private final RefreshTokenCredentialVerifier verifier;
     private final RefreshTokenRepository repository;
     private final TokenClockPort clock;
+    private final DomainEventPublisherPort eventPublisher;
 
     public RevokeRefreshTokenApplicationService(
             RefreshTokenCredentialVerifier verifier,
             RefreshTokenRepository repository,
-            TokenClockPort clock) {
+            TokenClockPort clock,
+            DomainEventPublisherPort eventPublisher) {
         this.verifier = Objects.requireNonNull(verifier, "refresh token verifier must not be null");
         this.repository = Objects.requireNonNull(repository, "refresh token repository must not be null");
         this.clock = Objects.requireNonNull(clock, "token clock must not be null");
+        this.eventPublisher = Objects.requireNonNull(eventPublisher, "event publisher must not be null");
     }
 
     @Override
@@ -54,6 +58,7 @@ public final class RevokeRefreshTokenApplicationService implements RevokeRefresh
         if (token.status() == TokenStatus.ACTIVE) {
             token.revoke(command.actorId(), now);
             repository.save(token);
+            eventPublisher.publish(token.pullDomainEvents());
         }
         return new RefreshTokenState(token.refreshTokenId(), token.status());
     }

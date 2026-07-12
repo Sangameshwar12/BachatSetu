@@ -111,6 +111,12 @@ bachatsetu:
       public-endpoints:
         - /actuator/health
         - /actuator/health/**
+        # Not proxied through the public nginx edge (see deploy/nginx/nginx.conf) — only reachable
+        # from the internal Docker network, where a Prometheus scraper connects directly to the
+        # backend container's actuator port and has no way to present a bearer JWT.
+        - /actuator/metrics
+        - /actuator/metrics/**
+        - /actuator/prometheus
         - /v3/api-docs/**
         - /swagger-ui/**
         - /swagger-ui.html

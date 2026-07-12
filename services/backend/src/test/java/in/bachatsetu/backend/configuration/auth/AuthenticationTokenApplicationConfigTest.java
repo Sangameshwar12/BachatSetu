@@ -3,6 +3,7 @@ package in.bachatsetu.backend.configuration.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.auth.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.auth.application.token.port.JwtProviderPort;
 import in.bachatsetu.backend.auth.application.token.port.TokenClockPort;
 import in.bachatsetu.backend.auth.application.token.port.TokenHasherPort;
@@ -34,6 +35,7 @@ class AuthenticationTokenApplicationConfigTest {
         JwtProviderPort jwt = mock(JwtProviderPort.class);
         TokenHasherPort hasher = mock(TokenHasherPort.class);
         TokenClockPort clock = mock(TokenClockPort.class);
+        DomainEventPublisherPort eventPublisher = mock(DomainEventPublisherPort.class);
         AuthenticationTokenProperties properties = properties();
         TokenPrincipalResolver principals = config.tokenPrincipalResolver(users, roles, permissions);
         RefreshTokenCredentialVerifier verifier = config.refreshTokenCredentialVerifier(refreshTokens, hasher);
@@ -43,9 +45,9 @@ class AuthenticationTokenApplicationConfigTest {
         assertThat(config.generateRefreshTokenUseCase(principals, refreshTokens, hasher, clock, properties))
                 .isInstanceOf(GenerateRefreshTokenApplicationService.class);
         assertThat(config.refreshAccessTokenUseCase(
-                        verifier, refreshTokens, principals, jwt, hasher, clock, properties))
+                        verifier, refreshTokens, principals, jwt, hasher, clock, properties, eventPublisher))
                 .isInstanceOf(RefreshAccessTokenApplicationService.class);
-        assertThat(config.revokeRefreshTokenUseCase(verifier, refreshTokens, clock))
+        assertThat(config.revokeRefreshTokenUseCase(verifier, refreshTokens, clock, eventPublisher))
                 .isInstanceOf(RevokeRefreshTokenApplicationService.class);
         assertThat(config.validateAccessTokenUseCase(jwt))
                 .isInstanceOf(ValidateAccessTokenApplicationService.class);

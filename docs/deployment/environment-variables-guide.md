@@ -51,6 +51,18 @@ verifies at startup under the `prod` profile.
 | `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` | `bachatsetu` / `bachatsetu-api` | JWT claims |
 | `CACHE_ENABLED` | `true` | Enables the Redis cache infrastructure (`in.bachatsetu.backend.infrastructure.cache.CacheConfiguration`) |
 | `CACHE_OTP_TTL` / `CACHE_RATE_LIMIT_TTL` / `CACHE_SESSION_TTL` / `CACHE_CONFIG_TTL` | `5m` / `1m` / `30m` / `10m` | Per-cache-region time-to-live. No business module reads or writes through these caches yet — see [non-functional-and-production-readiness.md](../product/non-functional-and-production-readiness.md). |
+| `SMS_PROVIDER` | `MSG91` | `MSG91`, `FAST2SMS`, or `TWILIO` — selects the active OTP delivery provider. The selected provider's own credential variables below are enforced as required by `SmsProviderProperties`'s fail-fast startup validation, not by Spring's own binding — the app refuses to start if they are blank. |
+| `SMS_RETRY_COUNT` / `SMS_CONNECT_TIMEOUT` / `SMS_READ_TIMEOUT` | `2` / `3s` / `5s` | Retry count (after the first attempt) and HTTP timeouts for the shared SMS `RestClient` |
+| `MSG91_AUTH_KEY` / `MSG91_TEMPLATE_ID` / `MSG91_SENDER_ID` | *(blank)* | Required only if `SMS_PROVIDER=MSG91` |
+| `FAST2SMS_API_KEY` | *(blank)* | Required only if `SMS_PROVIDER=FAST2SMS` |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_PHONE_NUMBER` | *(blank)* | Required only if `SMS_PROVIDER=TWILIO` |
+| `EMAIL_PROVIDER` | `AWS_SES` | `AWS_SES`, `RESEND`, or `SENDGRID` — selects the active email delivery provider. Same fail-fast pattern as `SMS_PROVIDER`, enforced by `EmailProviderProperties`. |
+| `EMAIL_FROM_ADDRESS` | *(blank)* | Sending address — required regardless of which provider is selected |
+| `EMAIL_REPLY_TO` | defaults to `EMAIL_FROM_ADDRESS` | Reply-to address on every outbound message |
+| `EMAIL_RETRY_COUNT` / `EMAIL_CONNECT_TIMEOUT` / `EMAIL_READ_TIMEOUT` | `2` / `3s` / `5s` | Retry count and HTTP/SDK timeouts for the shared email client |
+| `AWS_SES_REGION` / `AWS_ACCESS_KEY` / `AWS_SECRET_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=AWS_SES` |
+| `RESEND_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=RESEND` |
+| `SENDGRID_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=SENDGRID` |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | *(blank)* | Razorpay payment gateway credentials |
 | `STRIPE_API_KEY` / `STRIPE_WEBHOOK_SECRET` | *(blank)* | Stripe payment gateway credentials |
 | `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` / `CASHFREE_WEBHOOK_SECRET` | *(blank)* | Cashfree payment gateway credentials |
@@ -84,9 +96,8 @@ verifies at startup under the `prod` profile.
 
 ## 7. What is intentionally not here yet
 
-No `EMAIL_*` or `SMS_*` variables exist because no email or SMS provider is implemented (see
-[roadmap-and-future-work.md](../product/roadmap-and-future-work.md)) — PI-1 does not add
-providers that don't exist. No secrets-manager integration variables exist either
-(`AWS_SECRETS_MANAGER_*` or similar) — see
+`SMS_*` (Sprint PI-2.1) and `EMAIL_*` (Sprint PI-2.2) provider variables are documented in
+§3 above — both are implemented and wired through `docker-compose.prod.yml` as of Sprint LR-1.
+No secrets-manager integration variables exist yet (`AWS_SECRETS_MANAGER_*` or similar) — see
 [infrastructure-guide.md §6](infrastructure-guide.md#6-secrets-management) for why plain
-environment variables are this sprint's scope and what the next step looks like.
+environment variables are still this project's scope and what the next step looks like.

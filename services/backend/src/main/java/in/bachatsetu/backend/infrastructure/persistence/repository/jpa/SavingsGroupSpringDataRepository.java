@@ -32,17 +32,29 @@ public interface SavingsGroupSpringDataRepository extends BaseJpaRepository<Savi
     @EntityGraph(attributePaths = {"organizer", "members", "members.user"})
     List<SavingsGroupJpaEntity> findAllByTenantIdAndOrganizer_IdAndDeletedFalse(UUID tenantId, UUID organizerId);
 
-    @EntityGraph(attributePaths = {"organizer", "members", "members.user"})
+    /**
+     * IDs-only, sorted and paginated at the SQL level (LIMIT/OFFSET) — deliberately excludes the
+     * {@code organizer}/{@code members} entity graph. Hibernate cannot apply SQL-level pagination when a
+     * {@code @OneToMany} collection is join-fetched in the same query (it falls back to loading every
+     * matching row into memory and paginating there); splitting the paginated ID lookup from the
+     * entity-graph fetch in {@link #findByIdInAndDeletedFalse(List)} avoids that entirely. See
+     * {@code member-application.md}-style precedent: this mirrors the existing, deliberate omission of the
+     * entity graph on {@link #searchAcrossTenants}.
+     */
     @Query("""
-            SELECT groupEntity FROM SavingsGroupJpaEntity groupEntity
+            SELECT groupEntity.id FROM SavingsGroupJpaEntity groupEntity
              WHERE groupEntity.tenantId = :tenantId
                AND groupEntity.deleted = false
                AND (:status IS NULL OR groupEntity.status = :status)
             """)
-    Page<SavingsGroupJpaEntity> findPageByTenantIdAndOptionalStatus(
+    Page<UUID> findPageIdsByTenantIdAndOptionalStatus(
             @Param("tenantId") UUID tenantId,
             @Param("status") GroupStatus status,
             Pageable pageable);
+
+    /** Fetches the full aggregate graph for a bounded set of IDs — safe since no {@link Pageable} is involved. */
+    @EntityGraph(attributePaths = {"organizer", "members", "members.user"})
+    List<SavingsGroupJpaEntity> findByIdInAndDeletedFalse(List<UUID> ids);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

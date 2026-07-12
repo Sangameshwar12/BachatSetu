@@ -1,6 +1,5 @@
 package in.bachatsetu.backend.auth.interfaces.rest.controller;
 
-import in.bachatsetu.backend.auth.application.service.GenerateOtpApplicationService;
 import in.bachatsetu.backend.auth.application.signup.query.SignupCompletedResult;
 import in.bachatsetu.backend.auth.application.signup.query.SignupStartedResult;
 import in.bachatsetu.backend.auth.application.signup.usecase.CompleteSignupUseCase;
@@ -17,9 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -39,9 +35,6 @@ import org.springframework.web.bind.annotation.RestController;
         havingValue = "true",
         matchIfMissing = true)
 public class SignupController {
-
-        private static final Logger log =
-            LoggerFactory.getLogger(GenerateOtpApplicationService.class);
 
     private static final String PROBLEM_CONTENT_TYPE = MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 
@@ -68,7 +61,6 @@ public class SignupController {
                 mediaType = PROBLEM_CONTENT_TYPE, schema = @Schema(implementation = ProblemDetail.class)))
     })
     public ResponseEntity<SignupStartResponse> start(@Valid @RequestBody SignupStartRequest request) {
-        log.info("Received signup request for mobile number: ");
         SignupStartedResult result = startSignup.execute(mapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(mapper.toResponse(result));
     }

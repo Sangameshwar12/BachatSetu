@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.configuration.auth;
 
+import in.bachatsetu.backend.auth.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.auth.application.token.port.JwtProviderPort;
 import in.bachatsetu.backend.auth.application.token.port.TokenClockPort;
 import in.bachatsetu.backend.auth.application.token.port.TokenHasherPort;
@@ -85,7 +86,8 @@ public class AuthenticationTokenApplicationConfig {
             JwtProviderPort jwtProvider,
             TokenHasherPort hasher,
             TokenClockPort clock,
-            AuthenticationTokenProperties properties) {
+            AuthenticationTokenProperties properties,
+            DomainEventPublisherPort eventPublisher) {
         return new RefreshAccessTokenApplicationService(
                 verifier,
                 repository,
@@ -93,15 +95,17 @@ public class AuthenticationTokenApplicationConfig {
                 jwtProvider,
                 hasher,
                 clock,
-                properties.refreshTokenExpiry());
+                properties.refreshTokenExpiry(),
+                eventPublisher);
     }
 
     @Bean
     RevokeRefreshTokenUseCase revokeRefreshTokenUseCase(
             RefreshTokenCredentialVerifier verifier,
             RefreshTokenRepository repository,
-            TokenClockPort clock) {
-        return new RevokeRefreshTokenApplicationService(verifier, repository, clock);
+            TokenClockPort clock,
+            DomainEventPublisherPort eventPublisher) {
+        return new RevokeRefreshTokenApplicationService(verifier, repository, clock, eventPublisher);
     }
 
     @Bean

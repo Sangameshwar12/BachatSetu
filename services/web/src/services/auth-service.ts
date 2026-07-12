@@ -1,11 +1,18 @@
 import { apiClient } from "@/services/api-client";
 import type {
+  LoginStartRequest,
+  LoginStartResponse,
+  LoginVerifyRequest,
+  LoginVerifyResponse,
+  LogoutRequest,
   OtpInvalidateRequest,
   OtpRequestRequest,
   OtpRequestResponse,
   OtpResendRequest,
   OtpVerifyRequest,
   OtpVerifyResponse,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
   SignupStartRequest,
   SignupStartResponse,
   SignupVerifyRequest,
@@ -52,4 +59,27 @@ export async function invalidateOtp(payload: OtpInvalidateRequest): Promise<OtpR
     payload
   );
   return data;
+}
+
+/** `POST /api/v1/auth/login/start` — looks up the account by mobile number and dispatches a SIGN_IN OTP. */
+export async function loginStart(payload: LoginStartRequest): Promise<LoginStartResponse> {
+  const { data } = await apiClient.post<LoginStartResponse>("/api/v1/auth/login/start", payload);
+  return data;
+}
+
+/** `POST /api/v1/auth/login/verify` — verifies the sign-in OTP and issues the caller's tokens. */
+export async function loginVerify(payload: LoginVerifyRequest): Promise<LoginVerifyResponse> {
+  const { data } = await apiClient.post<LoginVerifyResponse>("/api/v1/auth/login/verify", payload);
+  return data;
+}
+
+/** `POST /api/v1/auth/token/refresh` — rotates a refresh token for a new access/refresh token pair. */
+export async function refreshAccessToken(payload: RefreshTokenRequest): Promise<RefreshTokenResponse> {
+  const { data } = await apiClient.post<RefreshTokenResponse>("/api/v1/auth/token/refresh", payload);
+  return data;
+}
+
+/** `POST /api/v1/auth/logout` — revokes a refresh token, ending its session. */
+export async function logout(payload: LogoutRequest): Promise<void> {
+  await apiClient.post("/api/v1/auth/logout", payload);
 }

@@ -54,21 +54,30 @@ Common headers:
 
 ## 3. Authentication APIs
 
+BachatSetu is OTP-only — there is no password, OAuth, social, biometric, or passkey login anywhere
+in the product. The table below reflects the endpoints actually implemented; see
+[`login.md`](../../services/backend/docs/application/login.md) and
+[`signup.md`](../../services/backend/docs/application/signup.md) for the full flows.
+
 | Method | Endpoint | Purpose | Auth | Idempotency |
 | --- | --- | --- | --- | --- |
-| POST | `/auth/otp` | Request OTP for login or verification | Public | Recommended |
-| POST | `/auth/otp/verify` | Verify OTP and create session | Public | Recommended |
-| POST | `/auth/login` | Password or credential login where enabled | Public | No |
-| POST | `/auth/refresh` | Refresh access token | Refresh token | No |
-| POST | `/auth/logout` | Logout current session | User | No |
-| POST | `/auth/logout-all` | Revoke all sessions for current user | User | Required |
-| GET | `/auth/session` | Get current authenticated session | User | No |
-| POST | `/auth/password/forgot` | Start password reset where password auth is enabled | Public | Recommended |
-| POST | `/auth/password/reset` | Complete password reset | Public token | Required |
-| POST | `/auth/mfa/challenges` | Start MFA challenge for privileged users | User | Recommended |
-| POST | `/auth/mfa/challenges/{challengeId}/verify` | Verify MFA challenge | User | Recommended |
+| POST | `/api/v1/auth/signup` | Register a new account and dispatch a `REGISTRATION` OTP | Public | Recommended |
+| POST | `/api/v1/auth/signup/verify` | Verify signup OTP, activate account, issue first token pair | Public | Recommended |
+| POST | `/api/v1/auth/login/start` | Look up a returning user by mobile number and dispatch a `SIGN_IN` OTP | Public | Recommended |
+| POST | `/api/v1/auth/login/verify` | Verify login OTP and issue an access/refresh token pair | Public | Recommended |
+| POST | `/api/v1/auth/token/refresh` | Rotate a refresh token and issue a new access/refresh token pair | Refresh token | No |
+| POST | `/api/v1/auth/logout` | Revoke a refresh token | Refresh token | No |
 
 ## 4. User APIs
+
+> **From here on, this document is a design specification, not an as-built catalog.** Sections 4
+> onward describe the target API surface this contract was originally written against; most of
+> these endpoints have not been implemented as specified (the real, shipped equivalent is often
+> narrower — e.g. the `user` module only exposes `POST /api/v1/users/me/onboarding`, not the
+> `/users/me/*` family below). For what actually exists in the running backend, see
+> [`backend-module-and-api-reference.md`](../product/backend-module-and-api-reference.md) (read
+> directly from the controller source) and the reconciliation in
+> [`vision-and-implementation-status.md`](../product/vision-and-implementation-status.md).
 
 | Method | Endpoint | Purpose | Auth | Idempotency |
 | --- | --- | --- | --- | --- |

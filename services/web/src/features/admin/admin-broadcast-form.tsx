@@ -40,6 +40,11 @@ export function AdminBroadcastForm() {
             sendBroadcast.mutate(
               { scope, tenantId: scope === "TENANT" ? tenantId : undefined, title, message },
               {
+                onSuccess: () => {
+                  toast.success("Broadcast sent.");
+                  setTitle("");
+                  setMessage("");
+                },
                 onError: (cause) =>
                   toast.error(cause instanceof ApiError ? cause.message : "Couldn't send the broadcast."),
               }

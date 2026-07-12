@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.auth.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.auth.application.token.command.GenerateAccessTokenCommand;
 import in.bachatsetu.backend.auth.application.token.command.GenerateRefreshTokenCommand;
 import in.bachatsetu.backend.auth.application.token.command.RefreshAccessTokenCommand;
@@ -82,6 +84,7 @@ class TokenApplicationServiceTest {
     @Mock private JwtProviderPort jwtProvider;
     @Mock private TokenHasherPort hasher;
     @Mock private TokenClockPort clock;
+    @Mock private DomainEventPublisherPort eventPublisher;
 
     private TokenPrincipalResolver principals;
     private RefreshTokenCredentialVerifier verifier;
@@ -210,6 +213,7 @@ class TokenApplicationServiceTest {
         assertThat(current.status()).isEqualTo(TokenStatus.ROTATED);
         assertThat(current.replacedByTokenId()).isNotNull();
         verify(refreshTokens).replace(any(), any());
+        verify(eventPublisher).publish(any());
     }
 
     @Test
@@ -228,7 +232,8 @@ class TokenApplicationServiceTest {
                 jwtProvider,
                 hasher,
                 clock,
-                Duration.ZERO));
+                Duration.ZERO,
+                eventPublisher));
     }
 
     @Test
@@ -247,6 +252,7 @@ class TokenApplicationServiceTest {
         assertThat(rotated.status()).isEqualTo(TokenStatus.REUSED);
         assertThat(active.status()).isEqualTo(TokenStatus.REVOKED);
         verify(refreshTokens).recordReuse(rotated, Optional.of(active));
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test
@@ -270,7 +276,7 @@ class TokenApplicationServiceTest {
         when(clock.now()).thenReturn(NOW);
         RefreshToken active = token(TokenStatus.ACTIVE, NOW.plusSeconds(60), null);
         stubVerified(active);
-        var service = new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock);
+        var service = new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock, eventPublisher);
 
         assertThat(service.revoke(new RevokeRefreshTokenCommand(
                         credential(active.refreshTokenId()).value(), ACTOR_ID)).status())
@@ -278,6 +284,7 @@ class TokenApplicationServiceTest {
         assertThat(service.revoke(new RevokeRefreshTokenCommand(
                         credential(active.refreshTokenId()).value(), ACTOR_ID)).status())
                 .isEqualTo(TokenStatus.REVOKED);
+        verify(eventPublisher, times(1)).publish(any());
 
         assertRevokeFailure(token(TokenStatus.ACTIVE, NOW, null), TokenFailureReason.REFRESH_TOKEN_EXPIRED);
         assertRevokeFailure(token(TokenStatus.EXPIRED, NOW.plusSeconds(1), null), TokenFailureReason.REFRESH_TOKEN_EXPIRED);
@@ -298,7 +305,7 @@ class TokenApplicationServiceTest {
         when(refreshTokens.findActive(USER_ID, SESSION_ID)).thenReturn(Optional.of(active));
 
         assertReason(
-                () -> new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock)
+                () -> new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock, eventPublisher)
                         .revoke(new RevokeRefreshTokenCommand(
                                 credential(rotated.refreshTokenId()).value(), ACTOR_ID)),
                 TokenFailureReason.REFRESH_TOKEN_REUSED);
@@ -312,7 +319,7 @@ class TokenApplicationServiceTest {
         stubVerified(secondRotated);
         when(refreshTokens.findActive(USER_ID, SESSION_ID)).thenReturn(Optional.of(expiredReplacement));
         assertReason(
-                () -> new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock)
+                () -> new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock, eventPublisher)
                         .revoke(new RevokeRefreshTokenCommand(
                                 credential(secondRotated.refreshTokenId()).value(), ACTOR_ID)),
                 TokenFailureReason.REFRESH_TOKEN_REUSED);
@@ -341,7 +348,8 @@ class TokenApplicationServiceTest {
                 jwtProvider,
                 hasher,
                 clock,
-                REFRESH_LIFETIME);
+                REFRESH_LIFETIME,
+                eventPublisher);
     }
 
     private void assertRefreshFailure(RefreshToken token, TokenFailureReason reason) {
@@ -355,7 +363,7 @@ class TokenApplicationServiceTest {
     private void assertRevokeFailure(RefreshToken token, TokenFailureReason reason) {
         stubVerified(token);
         assertReason(
-                () -> new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock)
+                () -> new RevokeRefreshTokenApplicationService(verifier, refreshTokens, clock, eventPublisher)
                         .revoke(new RevokeRefreshTokenCommand(
                                 credential(token.refreshTokenId()).value(), ACTOR_ID)),
                 reason);

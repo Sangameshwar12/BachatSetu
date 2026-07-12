@@ -27,6 +27,7 @@ import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -99,11 +100,14 @@ class SavingsGroupRepositoryAdapterTest {
         when(repository.existsByTenantIdAndCodeAndDeletedFalse(tenantId.value(), code.value()))
                 .thenReturn(true);
         GroupPageRequest pageRequest = new GroupPageRequest(0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
-        when(repository.findPageByTenantIdAndOptionalStatus(
+        when(entity.getId()).thenReturn(groupId.value().value());
+        when(repository.findPageIdsByTenantIdAndOptionalStatus(
                         org.mockito.ArgumentMatchers.eq(tenantId.value()),
                         org.mockito.ArgumentMatchers.isNull(),
                         any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(entity), PageRequest.of(0, 20), 1));
+                .thenReturn(new PageImpl<>(List.of(groupId.value().value()), PageRequest.of(0, 20), 1));
+        when(repository.findByIdInAndDeletedFalse(List.of(groupId.value().value())))
+                .thenReturn(List.of(entity));
         when(mapper.toDomain(entity)).thenReturn(group);
 
         assertThat(adapter.findById(tenantId, groupId)).contains(group);
@@ -122,11 +126,14 @@ class SavingsGroupRepositoryAdapterTest {
         AggregateId tenantId = group.tenantId();
         GroupPageRequest pageRequest = new GroupPageRequest(
                 1, 5, GroupSortField.NAME, SortDirection.DESC, GroupStatus.ACTIVE);
-        when(repository.findPageByTenantIdAndOptionalStatus(
+        when(entity.getId()).thenReturn(group.groupId().value().value());
+        when(repository.findPageIdsByTenantIdAndOptionalStatus(
                         org.mockito.ArgumentMatchers.eq(tenantId.value()),
                         org.mockito.ArgumentMatchers.eq(GroupStatus.ACTIVE),
                         any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(entity), PageRequest.of(1, 5), 6));
+                .thenReturn(new PageImpl<>(List.of(group.groupId().value().value()), PageRequest.of(1, 5), 6));
+        when(repository.findByIdInAndDeletedFalse(List.of(group.groupId().value().value())))
+                .thenReturn(List.of(entity));
         when(mapper.toDomain(entity)).thenReturn(group);
 
         GroupPage<SavingsGroup> page = adapter.findPage(tenantId, pageRequest);
@@ -134,6 +141,33 @@ class SavingsGroupRepositoryAdapterTest {
         assertThat(page.page()).isEqualTo(1);
         assertThat(page.size()).isEqualTo(5);
         assertThat(page.totalElements()).isEqualTo(6);
+    }
+
+    @Test
+    void preservesRequestedSortOrderWhenReassemblingPageFromIds() {
+        SavingsGroup groupA = newGroup(5);
+        SavingsGroup groupB = newGroup(5);
+        SavingsGroupJpaEntity entityA = mock(SavingsGroupJpaEntity.class);
+        SavingsGroupJpaEntity entityB = mock(SavingsGroupJpaEntity.class);
+        AggregateId tenantId = groupA.tenantId();
+        UUID idA = groupA.groupId().value().value();
+        UUID idB = groupB.groupId().value().value();
+        when(entityA.getId()).thenReturn(idA);
+        when(entityB.getId()).thenReturn(idB);
+        GroupPageRequest pageRequest = new GroupPageRequest(0, 20, GroupSortField.CREATED_AT, SortDirection.ASC, null);
+        when(repository.findPageIdsByTenantIdAndOptionalStatus(
+                        org.mockito.ArgumentMatchers.eq(tenantId.value()),
+                        org.mockito.ArgumentMatchers.isNull(),
+                        any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(idA, idB), PageRequest.of(0, 20), 2));
+        // Intentionally returned out of requested order — findByIdIn does not guarantee row order.
+        when(repository.findByIdInAndDeletedFalse(List.of(idA, idB))).thenReturn(List.of(entityB, entityA));
+        when(mapper.toDomain(entityA)).thenReturn(groupA);
+        when(mapper.toDomain(entityB)).thenReturn(groupB);
+
+        GroupPage<SavingsGroup> page = adapter.findPage(tenantId, pageRequest);
+
+        assertThat(page.content()).containsExactly(groupA, groupB);
     }
 
     @Test

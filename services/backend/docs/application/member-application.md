@@ -182,11 +182,25 @@ aggregate-owned-ID comparison, and this sprint follows the same pattern rather t
 
 | Operation | Rule |
 | --- | --- |
-| Create Member Profile | Any authenticated tenant user (unchanged — no new check). |
+| Create Member Profile | Only for yourself — `command.userId()` must equal `command.actorId()` (Sprint LR-3). |
 | Get Member Profile | Only the member themselves. |
 | List Member Profiles | Unchanged tenant isolation only (no self/role restriction). |
 | Get Participations | Only the member themselves (inherited automatically — see below). |
+| Join Additional Group | Only the member themselves (Sprint LR-3). |
 | Update Member Status | Only the member themselves. |
+
+**Sprint LR-3 correction.** A Closed Beta production-readiness audit found that `CreateMemberProfileUseCase`
+and `JoinGroupParticipationUseCase` — unlike every other mutating Member operation — performed no
+authorization check at all: `userId`/`role` on `CreateMemberProfileRequest` and `groupId`/`role` on
+`JoinGroupParticipationRequest` are client-supplied, so any authenticated tenant user could create a member
+profile (or add a participation) for **any other user**, in **any group**, with any `GroupRole` including
+`ORGANIZER`. Fixed by adding `MemberAuthorizationService.requireSelf(...)` to both services — a new
+`requireSelf(AggregateId targetUserId, AggregateId actorId)` overload for Create (no `MemberProfile` is
+loaded yet at that point) and the existing `requireSelf(MemberProfile, AggregateId)` for Join, run
+immediately after `support.requireMember(...)` loads the aggregate, matching the exact ordering already used
+by Get/Update. No new authorization framework was introduced. The frontend never called either endpoint
+directly (the real join-group flow goes through the Invitation module), so this fix has zero impact on any
+shipped user journey.
 
 **Why there is no "tenant administrator" branch.** The sprint brief allowed an administrator bypass "if
 such concept already exists." A `TENANT_ADMIN` role name is seeded in `V2__seed_roles_permissions.sql` and
@@ -266,7 +280,7 @@ The application suite covers:
 
 ## Future Integration
 
-Sprint 10.3 covered self-only authorization for Create (unrestricted), Get, Update, List (tenant isolation
-only), and Participations. It did not add authorization to `JoinGroupParticipationUseCase` (adding a further
-group participation), since the sprint's own rules table did not list that operation — a scope boundary
-worth revisiting once product intent for who may add participations on a member's behalf is confirmed.
+Sprint 10.3 covered self-only authorization for Get, Update, List (tenant isolation only), and
+Participations. Sprint LR-3 closed the two remaining gaps (Create, Join) — see "Sprint LR-3 correction"
+above. Every mutating Member operation is now self-only; there is no remaining authorization scope boundary
+on this module.

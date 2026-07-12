@@ -29,13 +29,12 @@ export default function ForgotPasswordPage() {
           <AlertTitle>There&apos;s no password to reset</AlertTitle>
           <AlertDescription>
             Every BachatSetu account signs in with a one-time code sent to your phone — there has
-            never been a password to forget. Returning-user sign-in is still pending on the
-            backend (see the Login page for details); this screen is a UI-only placeholder until
-            that ships.
+            never been a password to forget. Head back to the login page and enter your mobile
+            number to receive a fresh code.
           </AlertDescription>
         </Alert>
-        <Link href="/signup" className={cn(buttonVariants({ size: "lg" }))}>
-          Create an account
+        <Link href="/login" className={cn(buttonVariants({ size: "lg" }))}>
+          Back to log in
         </Link>
       </div>
     </AuthShell>

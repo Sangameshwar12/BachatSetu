@@ -17,8 +17,12 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.SavingsGr
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -94,10 +98,17 @@ public class SavingsGroupRepositoryAdapter implements SavingsGroupRepository, Gr
         Objects.requireNonNull(tenantId, "tenant id must not be null");
         Objects.requireNonNull(pageRequest, "page request must not be null");
         Pageable pageable = PageRequest.of(pageRequest.page(), pageRequest.size(), toSort(pageRequest));
-        Page<SavingsGroupJpaEntity> page = repository.findPageByTenantIdAndOptionalStatus(
+        Page<UUID> idPage = repository.findPageIdsByTenantIdAndOptionalStatus(
                 tenantId.value(), pageRequest.statusFilter(), pageable);
-        List<SavingsGroup> content = page.getContent().stream().map(mapper::toDomain).toList();
-        return new GroupPage<>(content, page.getNumber(), page.getSize(), page.getTotalElements());
+        List<UUID> orderedIds = idPage.getContent();
+        Map<UUID, SavingsGroupJpaEntity> byId = repository.findByIdInAndDeletedFalse(orderedIds).stream()
+                .collect(Collectors.toMap(SavingsGroupJpaEntity::getId, Function.identity()));
+        List<SavingsGroup> content = orderedIds.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .map(mapper::toDomain)
+                .toList();
+        return new GroupPage<>(content, idPage.getNumber(), idPage.getSize(), idPage.getTotalElements());
     }
 
     private Sort toSort(GroupPageRequest pageRequest) {

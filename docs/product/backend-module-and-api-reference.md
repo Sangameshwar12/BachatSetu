@@ -5,7 +5,7 @@
 
 Every endpoint below was read directly from the `@RequestMapping`/`@GetMapping`/`@PostMapping`/`@PatchMapping`/`@DeleteMapping` annotations in `services/backend/src/main/java/in/bachatsetu/backend/**/interfaces/rest/controller/`. All paths are relative to the API base `http://localhost:8080` (local) — no `/api/v1` prefix is added twice; it is already part of every path shown. For request/response field-level detail and business rules per module, see the deep-dive documents under `services/backend/docs/application/` linked from each section. Live, always-current API documentation is also available at `/swagger-ui/index.html` when the backend is running (per `services/backend/README.md`).
 
-**Auth column key:** *Public* = no bearer token required. *User* = any authenticated user. *Owner* = authenticated user acting on their own resource. *Organizer* = a `GroupMember` with `roleInGroup = ORGANIZER`. *PLATFORM_ADMIN* = a user holding the seeded `PLATFORM_ADMIN` role, enforced via Spring Security `@PreAuthorize("hasRole('PLATFORM_ADMIN')")`. *Provider* = signed webhook call from a payment gateway, not a logged-in user.
+**Auth column key:** *Public* = no bearer token required. *User* = any authenticated user. *Owner* = authenticated user acting on their own resource. *Organizer* = a `GroupMember` with `roleInGroup = ORGANIZER`. *PLATFORM_ADMIN* = a user holding the seeded `PLATFORM_ADMIN` role, enforced via Spring Security `@PreAuthorize("hasRole('PLATFORM_ADMIN')")`. *Provider* = signed webhook call from a payment gateway, not a logged-in user. *Refresh token* = no bearer access token; the request body itself carries the opaque refresh token being acted on.
 
 ## Authentication and Signup — `auth`
 
@@ -17,6 +17,12 @@ Every endpoint below was read directly from the `@RequestMapping`/`@GetMapping`/
 | POST | `/api/v1/auth/otp/invalidate` | Invalidate a pending OTP challenge | Public |
 | POST | `/api/v1/auth/signup` | Start signup: create a `PENDING_VERIFICATION` user and send the first OTP | Public |
 | POST | `/api/v1/auth/signup/verify` | Verify signup OTP and receive the initial token pair | Public |
+| POST | `/api/v1/auth/login/start` | Returning-user login: look up an `ACTIVE` user by mobile number and send a `SIGN_IN` OTP (Sprint LR-2) | Public |
+| POST | `/api/v1/auth/login/verify` | Verify login OTP and receive an access/refresh token pair (Sprint LR-2) | Public |
+| POST | `/api/v1/auth/token/refresh` | Rotate a refresh token and issue a new access/refresh token pair (Sprint LR-2, wires the Sprint 8.6 refresh-token layer) | Refresh token |
+| POST | `/api/v1/auth/logout` | Revoke a refresh token, ending the session (Sprint LR-2) | Refresh token |
+
+See [`login.md`](../../services/backend/docs/application/login.md) for the full returning-user login and session-management flow.
 
 ## Profile Onboarding — `user`
 

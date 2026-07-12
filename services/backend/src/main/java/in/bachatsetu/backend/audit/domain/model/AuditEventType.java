@@ -3,7 +3,9 @@ package in.bachatsetu.backend.audit.domain.model;
 /** Categorizes the business action a single {@link AuditEntry} records. */
 public enum AuditEventType {
     LOGIN,
+    LOGIN_FAILED,
     LOGOUT,
+    TOKEN_REFRESH,
     OTP_SENT,
     OTP_SEND_FAILED,
     OTP_VERIFIED,
