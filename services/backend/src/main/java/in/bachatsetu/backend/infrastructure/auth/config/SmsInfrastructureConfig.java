@@ -33,7 +33,7 @@ import org.springframework.web.client.RestClient;
  * no further validation — it only assembles already-validated configuration into beans.
  */
 @Configuration(proxyBeanMethods = false)
-@Profile({"dev", "prod"})
+@Profile({"dev"})
 @EnableConfigurationProperties(SmsProviderProperties.class)
 public class SmsInfrastructureConfig {
 

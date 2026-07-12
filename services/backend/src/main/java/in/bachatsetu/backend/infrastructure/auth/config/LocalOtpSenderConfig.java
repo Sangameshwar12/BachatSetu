@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Profile;
  * SmsInfrastructureConfig}.
  */
 @Configuration(proxyBeanMethods = false)
-@Profile({"local", "test"})
+@Profile({"local", "test", "prod"})
 public class LocalOtpSenderConfig {
 
     @Bean
