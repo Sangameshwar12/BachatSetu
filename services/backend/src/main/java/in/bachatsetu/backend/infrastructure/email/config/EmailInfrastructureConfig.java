@@ -38,7 +38,7 @@ import software.amazon.awssdk.services.ses.SesClient;
  * are missing, so this class adds no further validation.
  */
 @Configuration(proxyBeanMethods = false)
-@Profile({"dev", "prod"})
+@Profile({"dev"})
 @EnableConfigurationProperties(EmailProviderProperties.class)
 public class EmailInfrastructureConfig {
 
