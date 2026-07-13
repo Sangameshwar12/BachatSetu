@@ -9,10 +9,14 @@ Last Updated: 2026-07-11
 
 Sprint PI-2.2 introduces BachatSetu's first email infrastructure: a generic, provider-agnostic
 `SendEmailUseCase` backed by a real, pluggable provider integration (AWS SES, Resend, or
-SendGrid) for every profile except `local` and `test`, and a log-only fallback for those two.
-Nothing in Authentication, Signup, Invitation, Notification, or Audit was redesigned — this
-sprint is purely additive: a brand-new `email` module plus a small number of event listeners that
-react to domain events those modules already publish.
+SendGrid). Which one is active is a deployment-mode switch (`EMAIL_PROVIDER_ENABLED`,
+independent of `SPRING_PROFILES_ACTIVE`) rather than a Spring-profile one — see
+[environment-variables-guide.md](../deployment/environment-variables-guide.md) — defaulting to a
+log-only fallback everywhere, including under `prod`, until real credentials are supplied and
+the flag is explicitly enabled. Nothing in Authentication, Signup, Invitation,
+Notification, or Audit was redesigned — this sprint is purely additive: a brand-new `email`
+module plus a small number of event listeners that react to domain events those modules already
+publish.
 
 ## Architecture
 

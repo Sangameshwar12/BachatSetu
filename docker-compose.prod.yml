@@ -75,6 +75,12 @@ services:
       AUDIT_SYSTEM_ACTOR_ID: ${AUDIT_SYSTEM_ACTOR_ID:?AUDIT_SYSTEM_ACTOR_ID is required}
       AUTH_JWT_SIGNING_SECRET: ${AUTH_JWT_SIGNING_SECRET:?AUTH_JWT_SIGNING_SECRET is required}
       AUTH_CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ALLOWED_ORIGINS:?AUTH_CORS_ALLOWED_ORIGINS is required}
+      # Deployment-mode switches, independent of SPRING_PROFILES_ACTIVE — false (the default)
+      # means log-only delivery, suitable for an MVP with no real SMS/email provider yet. Flip
+      # to true, and fill in the selected provider's credentials below, when ready to send real
+      # SMS/email — no code or compose change needed. See docs/deployment/environment-variables-guide.md.
+      SMS_PROVIDER_ENABLED: ${SMS_PROVIDER_ENABLED:-false}
+      EMAIL_PROVIDER_ENABLED: ${EMAIL_PROVIDER_ENABLED:-false}
       SMS_PROVIDER: ${SMS_PROVIDER:-MSG91}
       SMS_RETRY_COUNT: ${SMS_RETRY_COUNT:-2}
       SMS_CONNECT_TIMEOUT: ${SMS_CONNECT_TIMEOUT:-3s}
@@ -111,6 +117,9 @@ services:
       STORAGE_AWS_REGION: ${STORAGE_AWS_REGION:-}
       STORAGE_AWS_ACCESS_KEY_ID: ${STORAGE_AWS_ACCESS_KEY_ID:-}
       STORAGE_AWS_SECRET_ACCESS_KEY: ${STORAGE_AWS_SECRET_ACCESS_KEY:-}
+      # Also defaults to off for the same MVP reason — no real payment gateway credentials
+      # required until this is explicitly turned on.
+      PAYMENT_GATEWAY_ENABLED: ${PAYMENT_GATEWAY_ENABLED:-false}
       PAYMENT_GATEWAY_DEFAULT_PROVIDER: ${PAYMENT_GATEWAY_DEFAULT_PROVIDER:-RAZORPAY}
       JAVA_OPTS: -XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError
     volumes:

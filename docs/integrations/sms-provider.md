@@ -7,9 +7,13 @@ Last Updated: 2026-07-11
 
 ## Purpose
 
-Sprint PI-2.1 replaces `LoggingOtpSenderAdapter` — the log-only OTP sender used since the
-authentication module was first built — with a real, pluggable SMS provider integration for
-every profile except `local` and `test`. Nothing above the infrastructure layer changed: the
+Sprint PI-2.1 adds a real, pluggable SMS provider integration alongside
+`LoggingOtpSenderAdapter` — the log-only OTP sender used since the authentication module was
+first built. Which one is active is a deployment-mode switch (`SMS_PROVIDER_ENABLED`,
+independent of `SPRING_PROFILES_ACTIVE`) rather than a Spring-profile one — see
+[environment-variables-guide.md](../deployment/environment-variables-guide.md) — defaulting to
+the log-only sender everywhere, including under `prod`, until real credentials are supplied and
+the flag is explicitly enabled. Nothing above the infrastructure layer changed: the
 same `OtpSenderPort` interface, the same `GenerateOtpUseCase`/`ResendOtpUseCase` application
 services, the same REST endpoints and response contracts, the same domain rules. Only what
 `OtpSenderPort.send(...)` does under the hood is new.

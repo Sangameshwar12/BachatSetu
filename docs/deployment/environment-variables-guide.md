@@ -62,19 +62,22 @@ verifies at startup under the `prod` profile.
 | `AUTH_CORS_MAX_AGE` | `1h` | Preflight cache duration |
 | `CACHE_ENABLED` | `true` | Enables the Redis cache infrastructure (`in.bachatsetu.backend.infrastructure.cache.CacheConfiguration`) |
 | `CACHE_OTP_TTL` / `CACHE_RATE_LIMIT_TTL` / `CACHE_SESSION_TTL` / `CACHE_CONFIG_TTL` | `5m` / `1m` / `30m` / `10m` | Per-cache-region time-to-live. No business module reads or writes through these caches yet — see [non-functional-and-production-readiness.md](../product/non-functional-and-production-readiness.md). |
-| `SMS_PROVIDER` | `MSG91` | `MSG91`, `FAST2SMS`, or `TWILIO` — selects the active OTP delivery provider. The selected provider's own credential variables below are enforced as required by `SmsProviderProperties`'s fail-fast startup validation, not by Spring's own binding — the app refuses to start if they are blank. |
-| `SMS_RETRY_COUNT` / `SMS_CONNECT_TIMEOUT` / `SMS_READ_TIMEOUT` | `2` / `3s` / `5s` | Retry count (after the first attempt) and HTTP timeouts for the shared SMS `RestClient` |
-| `MSG91_AUTH_KEY` / `MSG91_TEMPLATE_ID` / `MSG91_SENDER_ID` | *(blank)* | Required only if `SMS_PROVIDER=MSG91` |
-| `FAST2SMS_API_KEY` | *(blank)* | Required only if `SMS_PROVIDER=FAST2SMS` |
-| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_PHONE_NUMBER` | *(blank)* | Required only if `SMS_PROVIDER=TWILIO` |
-| `EMAIL_PROVIDER` | `AWS_SES` | `AWS_SES`, `RESEND`, or `SENDGRID` — selects the active email delivery provider. Same fail-fast pattern as `SMS_PROVIDER`, enforced by `EmailProviderProperties`. |
-| `EMAIL_FROM_ADDRESS` | *(blank)* | Sending address — required regardless of which provider is selected |
+| `SMS_PROVIDER_ENABLED` | `false` | Deployment-mode switch, independent of `SPRING_PROFILES_ACTIVE` (see `SmsInfrastructureConfig`/`LocalOtpSenderConfig`). `false` (the default, safe under `prod` too) means every OTP is logged instead of sent — the MVP mode this project currently runs in. `true` activates the real provider below; `SmsProviderProperties`'s fail-fast startup validation then requires that provider's credentials. Exactly one `OtpSenderPort` bean exists either way. |
+| `SMS_PROVIDER` | `MSG91` | `MSG91`, `FAST2SMS`, or `TWILIO` — selects the active OTP delivery provider, read only when `SMS_PROVIDER_ENABLED=true`. |
+| `SMS_RETRY_COUNT` / `SMS_CONNECT_TIMEOUT` / `SMS_READ_TIMEOUT` | `2` / `3s` / `5s` | Retry count (after the first attempt) and HTTP timeouts for the shared SMS `RestClient` — only relevant when `SMS_PROVIDER_ENABLED=true` |
+| `MSG91_AUTH_KEY` / `MSG91_TEMPLATE_ID` / `MSG91_SENDER_ID` | *(blank)* | Required only if `SMS_PROVIDER_ENABLED=true` and `SMS_PROVIDER=MSG91` |
+| `FAST2SMS_API_KEY` | *(blank)* | Required only if `SMS_PROVIDER_ENABLED=true` and `SMS_PROVIDER=FAST2SMS` |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_PHONE_NUMBER` | *(blank)* | Required only if `SMS_PROVIDER_ENABLED=true` and `SMS_PROVIDER=TWILIO` |
+| `EMAIL_PROVIDER_ENABLED` | `false` | Deployment-mode switch, independent of `SPRING_PROFILES_ACTIVE` (see `EmailInfrastructureConfig`/`LocalEmailSenderConfig`). `false` (the default, safe under `prod` too) means every email is logged instead of sent — the MVP mode this project currently runs in. `true` activates the real provider below; `EmailProviderProperties`'s fail-fast startup validation then requires that provider's credentials plus `EMAIL_FROM_ADDRESS`. Exactly one `EmailSenderPort` bean exists either way. |
+| `EMAIL_PROVIDER` | `AWS_SES` | `AWS_SES`, `RESEND`, or `SENDGRID` — selects the active email delivery provider, read only when `EMAIL_PROVIDER_ENABLED=true`. |
+| `EMAIL_FROM_ADDRESS` | *(blank)* | Sending address — required only if `EMAIL_PROVIDER_ENABLED=true` |
 | `EMAIL_REPLY_TO` | defaults to `EMAIL_FROM_ADDRESS` | Reply-to address on every outbound message |
-| `EMAIL_RETRY_COUNT` / `EMAIL_CONNECT_TIMEOUT` / `EMAIL_READ_TIMEOUT` | `2` / `3s` / `5s` | Retry count and HTTP/SDK timeouts for the shared email client |
-| `AWS_SES_REGION` / `AWS_ACCESS_KEY` / `AWS_SECRET_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=AWS_SES` |
-| `RESEND_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=RESEND` |
-| `SENDGRID_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER=SENDGRID` |
-| `PAYMENT_GATEWAY_DEFAULT_PROVIDER` | `RAZORPAY` | `RAZORPAY`, `STRIPE`, or `CASHFREE` — selects which provider's credentials below are active. Unlike `SMS_PROVIDER`/`EMAIL_PROVIDER`, there is no fail-fast validation on the selected provider's credentials — a blank/misconfigured secret only surfaces at request/webhook time, not at startup. |
+| `EMAIL_RETRY_COUNT` / `EMAIL_CONNECT_TIMEOUT` / `EMAIL_READ_TIMEOUT` | `2` / `3s` / `5s` | Retry count and HTTP/SDK timeouts for the shared email client — only relevant when `EMAIL_PROVIDER_ENABLED=true` |
+| `AWS_SES_REGION` / `AWS_ACCESS_KEY` / `AWS_SECRET_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER_ENABLED=true` and `EMAIL_PROVIDER=AWS_SES` |
+| `RESEND_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER_ENABLED=true` and `EMAIL_PROVIDER=RESEND` |
+| `SENDGRID_API_KEY` | *(blank)* | Required only if `EMAIL_PROVIDER_ENABLED=true` and `EMAIL_PROVIDER=SENDGRID` |
+| `PAYMENT_GATEWAY_ENABLED` | `false` | Disables the payment-gateway and webhook REST controllers entirely when `false` (the default) — the MVP mode this project currently runs in, since no payment gateway is used yet. Set to `true` when a payment gateway is ready to launch. |
+| `PAYMENT_GATEWAY_DEFAULT_PROVIDER` | `RAZORPAY` | `RAZORPAY`, `STRIPE`, or `CASHFREE` — selects which provider's credentials below are active, read only when `PAYMENT_GATEWAY_ENABLED=true`. Unlike `SMS_PROVIDER`/`EMAIL_PROVIDER`, there is no fail-fast validation on the selected provider's credentials — a blank/misconfigured secret only surfaces at request/webhook time, not at startup. |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | *(blank)* | Razorpay payment gateway credentials |
 | `STRIPE_API_KEY` / `STRIPE_WEBHOOK_SECRET` | *(blank)* | Stripe payment gateway credentials |
 | `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` / `CASHFREE_WEBHOOK_SECRET` | *(blank)* | Cashfree payment gateway credentials |

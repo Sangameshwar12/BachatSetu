@@ -32,11 +32,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+// bachatsetu.payment.gateway.enabled defaults to false (MVP mode) as of the deployment-mode
+// refactor — PaymentGatewayController is itself gated on this property, so tests exercising its
+// success paths must explicitly enable it, matching a real "gateway enabled" deployment.
 @WebMvcTest(PaymentGatewayController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({PaymentGatewayApiMapper.class, PaymentGatewayExceptionHandler.class})
+@TestPropertySource(properties = "bachatsetu.payment.gateway.enabled=true")
 class PaymentGatewayControllerTest {
 
     @Autowired

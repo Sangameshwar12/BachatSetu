@@ -64,8 +64,14 @@ product as a whole.
       [environment-variables-guide.md §3](environment-variables-guide.md#3-backend--optional-with-a-safe-default).
       `LOCAL` does not survive scaling the backend beyond one instance; provision `AWS_S3`
       before doing so.
-- [ ] `PAYMENT_GATEWAY_DEFAULT_PROVIDER` is set to the provider whose credentials were actually
-      filled in — there is no fail-fast check catching a mismatch here, unlike SMS/Email.
+- [ ] If `PAYMENT_GATEWAY_ENABLED=true`, confirm `PAYMENT_GATEWAY_DEFAULT_PROVIDER` is set to the
+      provider whose credentials were actually filled in — there is no fail-fast check catching
+      a mismatch here, unlike SMS/Email. Leave it `false` (the default) for an MVP with no
+      payment gateway yet.
+- [ ] `SMS_PROVIDER_ENABLED`/`EMAIL_PROVIDER_ENABLED` reflect an intentional choice: `false`
+      (the default) means OTPs/emails are logged, not sent — correct for an MVP with no real
+      provider yet, but confirm this is actually the intended launch state and not an oversight
+      before pointing real users at signup/login.
 
 ## Explicitly not delivered by PI-1 — decide before go-live whether each is a blocker
 
@@ -94,15 +100,18 @@ restated here in the context of *this specific infrastructure*:
 - [ ] **No penetration test, SAST, or dependency/container vulnerability scan** has been run
       against these images — see
       [security-and-compliance.md §9](../product/security-and-compliance.md#9-compliance-posture).
-- [ ] **No payment gateway is configured.** The SMS provider integration added in Sprint PI-2.1
-      (MSG91/Fast2SMS/Twilio — see [docs/integrations/sms-provider.md](../integrations/sms-provider.md))
-      and the email provider integration added in Sprint PI-2.2 (AWS SES/Resend/SendGrid — see
-      [docs/integrations/email-provider.md](../integrations/email-provider.md)) both still need
-      real production credentials issued and set for whichever provider this deployment
-      selects — this is unrelated to infrastructure readiness (these integrations are
-      business-feature work, largely out of scope for PI-1) but is worth restating here:
-      infrastructure being production-ready does not mean the product is feature-complete for
-      a real payment flow.
+- [ ] **No payment gateway, real SMS, or real email provider is configured — by design, for the
+      current MVP.** `PAYMENT_GATEWAY_ENABLED`, `SMS_PROVIDER_ENABLED`, and
+      `EMAIL_PROVIDER_ENABLED` all default to `false`: OTPs and emails are logged instead of
+      sent, and the payment-gateway endpoints are disabled entirely. This is a genuinely
+      supported, fully-functional deployment mode, not a stopgap — see
+      [docs/integrations/sms-provider.md](../integrations/sms-provider.md) and
+      [docs/integrations/email-provider.md](../integrations/email-provider.md) for the real
+      provider integrations (MSG91/Fast2SMS/Twilio; AWS SES/Resend/SendGrid), which activate
+      with each flag plus that provider's credentials — no code change needed. Before inviting
+      real users who cannot read application logs for their OTP, decide whether this MVP launch
+      needs `SMS_PROVIDER_ENABLED=true` at minimum, since users otherwise cannot complete
+      signup/login on their own without operator help.
 - [ ] **Legal/compliance review** of what's actually being stored (PII in Postgres, receipts
       and photos in S3/local storage) has not happened — see
       [security-and-compliance.md §9](../product/security-and-compliance.md#9-compliance-posture).

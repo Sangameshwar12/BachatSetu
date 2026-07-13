@@ -54,9 +54,25 @@ class AuthenticationInfrastructureConfigTest {
     }
 
     @Test
-    void doesNotExposeLoggingSenderOutsideLocalProfile() {
+    void wiresTheLoggingSenderUnderProdTooWhenSmsIsNotExplicitlyEnabled() {
+        // Whether the logging sender is active is a deployment-mode switch
+        // (bachatsetu.sms.enabled), not a Spring-profile one — an MVP deployment legitimately
+        // runs the "prod" profile while still wanting log-only OTP delivery. See
+        // SmsInfrastructureConfigTest for the mirror-image assertion once bachatsetu.sms.enabled
+        // is true.
         contextRunner
                 .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).getBean(OtpSenderPort.class).isInstanceOf(LoggingOtpSenderAdapter.class);
+                });
+    }
+
+    @Test
+    void doesNotExposeTheLoggingSenderWhenSmsIsExplicitlyEnabled() {
+        contextRunner
+                .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+                .withPropertyValues("bachatsetu.sms.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(OtpSenderPort.class);

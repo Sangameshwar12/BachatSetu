@@ -142,6 +142,10 @@ bachatsetu:
         allow-credentials: ${AUTH_CORS_ALLOW_CREDENTIALS:false}
         max-age: ${AUTH_CORS_MAX_AGE:1h}
   sms:
+    # Deployment-mode switch, independent of Spring profile: false (the default, including under
+    # prod) means log-only OTP delivery, suitable for an MVP that has no real SMS provider yet.
+    # Set to true, plus the selected provider's own credentials below, to send real SMS.
+    enabled: ${SMS_PROVIDER_ENABLED:false}
     provider: ${SMS_PROVIDER:MSG91}
     retry-count: ${SMS_RETRY_COUNT:2}
     connect-timeout: ${SMS_CONNECT_TIMEOUT:3s}
@@ -157,6 +161,10 @@ bachatsetu:
       auth-token: ${TWILIO_AUTH_TOKEN:}
       phone-number: ${TWILIO_PHONE_NUMBER:}
   email:
+    # Deployment-mode switch, independent of Spring profile: false (the default, including under
+    # prod) means log-only email delivery, suitable for an MVP that has no real email provider
+    # yet. Set to true, plus the selected provider's own credentials below, to send real email.
+    enabled: ${EMAIL_PROVIDER_ENABLED:false}
     provider: ${EMAIL_PROVIDER:AWS_SES}
     from-address: ${EMAIL_FROM_ADDRESS:}
     reply-to: ${EMAIL_REPLY_TO:}
@@ -197,7 +205,11 @@ bachatsetu:
     rest:
       enabled: ${PAYMENT_REST_ENABLED:true}
     gateway:
-      enabled: ${PAYMENT_GATEWAY_ENABLED:true}
+      # Disabled by default (unlike every sibling *_ENABLED flag) — an external payment
+      # gateway is opt-in MVP functionality, not core: bachatsetu.payment.rest.enabled above
+      # (payment recording/viewing) stays on. Set to true, plus a provider's credentials, when
+      # ready to launch a real gateway — no code change needed either way.
+      enabled: ${PAYMENT_GATEWAY_ENABLED:false}
       default-provider: ${PAYMENT_GATEWAY_DEFAULT_PROVIDER:RAZORPAY}
       razorpay:
         key-id: ${RAZORPAY_KEY_ID:}

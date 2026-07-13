@@ -16,7 +16,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -26,19 +25,27 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
 
 /**
- * Wires the real email provider integration — active for every profile except {@code local} and
- * {@code test} (see {@link LocalEmailSenderConfig}), which keep the log-only sender so neither
- * interactive development nor the test suite ever requires live email credentials.
+ * Wires the real email provider integration — active only when a real provider is explicitly
+ * enabled ({@code bachatsetu.email.enabled}, env {@code EMAIL_PROVIDER_ENABLED}, default
+ * {@code false}). This is a deployment-mode switch, not an environment one: whether real email
+ * is wired is orthogonal to which Spring profile (local/dev/test/prod) is active — an MVP closed
+ * beta legitimately runs the {@code prod} profile (strict CORS, no Swagger, production database)
+ * while still wanting log-only delivery. See {@link LocalEmailSenderConfig}, which is active
+ * under the exact opposite condition, so precisely one {@link EmailSenderPort} bean ever exists
+ * regardless of which Spring profile is running.
  *
  * <p>Exactly one of the three {@code EmailProviderClient} beans below is created, selected by
  * {@code bachatsetu.email.provider} ({@code EMAIL_PROVIDER}) — switching providers is purely this
  * one configuration change; {@link RetryingEmailSenderAdapter} and every business module are
  * unaware which provider is active. {@link EmailProviderProperties}'s compact constructor already
  * fails application startup if the selected provider's secrets (or {@code EMAIL_FROM_ADDRESS})
- * are missing, so this class adds no further validation.
+ * are missing, so this class adds no further validation — and because that properties class is
+ * only bound while this configuration class is itself active, migrating to a real provider is
+ * purely a configuration change: set {@code EMAIL_PROVIDER_ENABLED=true} plus that provider's
+ * credentials, no code change.
  */
 @Configuration(proxyBeanMethods = false)
-@Profile({"dev", "prod"})
+@ConditionalOnProperty(prefix = "bachatsetu.email", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(EmailProviderProperties.class)
 public class EmailInfrastructureConfig {
 

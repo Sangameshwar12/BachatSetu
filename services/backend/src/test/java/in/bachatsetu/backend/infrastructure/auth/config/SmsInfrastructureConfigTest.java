@@ -25,6 +25,7 @@ class SmsInfrastructureConfigTest {
     // that selects one provider but omits every key for the other two would fail to bind
     // for a reason unrelated to what that scenario is actually testing.
     private static final String[] BLANK_DEFAULTS_FOR_EVERY_PROVIDER = {
+        "bachatsetu.sms.enabled=true",
         "bachatsetu.sms.retry-count=2",
         "bachatsetu.sms.connect-timeout=3s",
         "bachatsetu.sms.read-timeout=5s",
@@ -37,11 +38,12 @@ class SmsInfrastructureConfigTest {
         "bachatsetu.sms.twilio.phone-number="
     };
 
+    // SmsInfrastructureConfig is gated on bachatsetu.sms.enabled (a deployment-mode switch,
+    // see its javadoc), not on any Spring profile, so no active-profile initializer is needed here.
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(SmsInfrastructureConfig.class)
             .withBean(Clock.class, Clock::systemUTC)
             .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
-            .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
             .withPropertyValues(BLANK_DEFAULTS_FOR_EVERY_PROVIDER);
 
     @Test
@@ -93,5 +95,19 @@ class SmsInfrastructureConfigTest {
         contextRunner
                 .withPropertyValues("bachatsetu.sms.provider=MSG91")
                 .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void contributesNoBeansWhenSmsIsNotEnabled() {
+        // The MVP-mode side of the exactly-one-OtpSenderPort-bean contract — see
+        // AuthenticationInfrastructureConfigTest for the mirror-image assertion on
+        // LocalOtpSenderConfig.
+        contextRunner
+                .withPropertyValues("bachatsetu.sms.enabled=false", "bachatsetu.sms.provider=MSG91")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(OtpSenderPort.class);
+                    assertThat(context).doesNotHaveBean(SmsProviderClient.class);
+                });
     }
 }

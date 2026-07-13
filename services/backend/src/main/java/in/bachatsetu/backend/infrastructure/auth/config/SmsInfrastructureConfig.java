@@ -16,24 +16,30 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 /**
- * Wires the real SMS provider integration — active for every profile except {@code local} and
- * {@code test} (see {@link LocalOtpSenderConfig}), which keep the log-only sender so neither
- * interactive development nor the test suite ever requires live SMS credentials.
+ * Wires the real SMS provider integration — active only when a real provider is explicitly
+ * enabled ({@code bachatsetu.sms.enabled}, env {@code SMS_PROVIDER_ENABLED}, default
+ * {@code false}). This is a deployment-mode switch, not an environment one: whether real SMS is
+ * wired is orthogonal to which Spring profile (local/dev/test/prod) is active — an MVP closed
+ * beta legitimately runs the {@code prod} profile (strict CORS, no Swagger, production database)
+ * while still wanting log-only OTP delivery. See {@link LocalOtpSenderConfig}, which is active
+ * under the exact opposite condition, so precisely one {@link OtpSenderPort} bean ever exists
+ * regardless of which Spring profile is running.
  *
  * <p>Exactly one of the three {@code SmsProviderClient} beans below is created, selected by
  * {@code bachatsetu.sms.provider} ({@code SMS_PROVIDER}) — switching providers is purely this
  * one configuration change; {@link SmsOtpSenderAdapter} and every OTP application service are
  * unaware which provider is active. {@link SmsProviderProperties}'s compact constructor already
  * fails application startup if the selected provider's secrets are missing, so this class adds
- * no further validation — it only assembles already-validated configuration into beans.
+ * no further validation — and because that properties class is only bound while this
+ * configuration class is itself active, migrating to a real provider is purely a configuration
+ * change: set {@code SMS_PROVIDER_ENABLED=true} plus that provider's credentials, no code change.
  */
 @Configuration(proxyBeanMethods = false)
-@Profile({"dev", "prod"})
+@ConditionalOnProperty(prefix = "bachatsetu.sms", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(SmsProviderProperties.class)
 public class SmsInfrastructureConfig {
 
