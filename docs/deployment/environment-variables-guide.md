@@ -48,6 +48,7 @@ verifies at startup under the `prod` profile.
 | `SERVER_PORT` | `8080` | HTTP port the app listens on |
 | `MANAGEMENT_ENDPOINTS_EXPOSURE` | `health,info,metrics,prometheus` | Actuator endpoints exposed over HTTP |
 | `AUTH_OTP_BCRYPT_STRENGTH` | `12` | bcrypt cost factor for OTP hashes |
+| `AUTH_OTP_TEST_MODE` | `false` | **TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION.** Deployment-mode switch, independent of `SPRING_PROFILES_ACTIVE` (see `AuthenticationInfrastructureConfig`/`FixedTestOtpGeneratorAdapter`). `false` (the default, including under `prod`) means OTPs are generated randomly as normal. `true` makes every generated OTP the fixed code `102030` for every user, with a loud startup warning banner — for exercising signup/login without a real SMS/Email provider configured. All expiry, retry, and rate-limit validations are unaffected either way; only the code's origin changes. Exactly one `RandomGeneratorPort` bean exists either way. |
 | `AUTH_ACCESS_TOKEN_EXPIRY` / `AUTH_REFRESH_TOKEN_EXPIRY` | `15m` / `30d` | JWT lifetimes |
 | `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` | `bachatsetu` / `bachatsetu-api` | JWT claims |
 | `AUTH_JWT_CLOCK_SKEW` | `30s` | Allowed clock drift when validating JWT `exp`/`nbf` |

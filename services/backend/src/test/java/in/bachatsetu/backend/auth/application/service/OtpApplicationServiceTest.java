@@ -37,6 +37,8 @@ import in.bachatsetu.backend.auth.domain.model.UserStatus;
 import in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository;
 import in.bachatsetu.backend.auth.domain.port.UserRepository;
 import in.bachatsetu.backend.auth.domain.service.OtpPolicyService;
+import in.bachatsetu.backend.infrastructure.auth.adapter.BCryptHashingAdapter;
+import in.bachatsetu.backend.infrastructure.auth.adapter.FixedTestOtpGeneratorAdapter;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.AuditInfo;
 import in.bachatsetu.backend.shared.domain.Email;
@@ -46,6 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 class OtpApplicationServiceTest {
 
@@ -193,6 +196,22 @@ class OtpApplicationServiceTest {
                 OtpFailureReason.OTP_NOT_FOUND);
     }
 
+    // TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION
+    // Proves the real FixedTestOtpGeneratorAdapter output verifies through the exact same
+    // BCrypt-based comparison a randomly generated OTP would, with no other change to the flow.
+    @Test
+    void fixedTestModeCodeGeneratesAndVerifiesThroughTheRealHashingPipeline() {
+        Fixture fixture = new Fixture(
+                new FixedTestOtpGeneratorAdapter(), new BCryptHashingAdapter(new BCryptPasswordEncoder(4)));
+
+        fixture.generate.generate(new GenerateOtpCommand(USER_ID, OtpPurpose.SIGN_IN, ACTOR_ID));
+        OtpActionResult verified = fixture.verify.verify(
+                new VerifyOtpCommand(USER_ID, OtpPurpose.SIGN_IN, OtpCode.of("102030"), ACTOR_ID));
+
+        assertThat(verified.challenge().status()).isEqualTo(OtpStatus.VERIFIED);
+        assertThat(verified.events()).singleElement().isInstanceOf(OtpVerified.class);
+    }
+
     private void assertFailure(ThrowingOperation operation, OtpFailureReason reason) {
         assertThatThrownBy(operation::run)
                 .isInstanceOfSatisfying(OtpApplicationException.class, exception ->
@@ -231,6 +250,21 @@ class OtpApplicationServiceTest {
             verify = new VerifyOtpApplicationService(validator, repository, clock, hashing, eventPublisher);
             resend = new ResendOtpApplicationService(
                     validator, repository, policy, clock, random, hashing, sender, eventPublisher);
+            invalidate = new InvalidateOtpApplicationService(validator, repository, clock);
+        }
+
+        // TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION
+        // Wires the real adapters instead of the fakes above, for the single round-trip test that
+        // proves a test-mode-generated code verifies through the real hashing pipeline.
+        private Fixture(RandomGeneratorPort randomGeneratorPort, HashingPort hashingPort) {
+            UserRepository userRepository = new StubUserRepository(user());
+            validator = new OtpRequestValidator(userRepository);
+            OtpPolicyService policy = new OtpPolicyService();
+            generate = new GenerateOtpApplicationService(
+                    validator, repository, policy, clock, randomGeneratorPort, hashingPort, sender, eventPublisher);
+            verify = new VerifyOtpApplicationService(validator, repository, clock, hashingPort, eventPublisher);
+            resend = new ResendOtpApplicationService(
+                    validator, repository, policy, clock, randomGeneratorPort, hashingPort, sender, eventPublisher);
             invalidate = new InvalidateOtpApplicationService(validator, repository, clock);
         }
 

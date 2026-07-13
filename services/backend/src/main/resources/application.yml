@@ -102,6 +102,13 @@ bachatsetu:
     resend-limit: 3
     verify-limit: 5
     hash-strength: ${AUTH_OTP_BCRYPT_STRENGTH:12}
+    otp:
+      # TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION
+      # MVP/demo only: when true, every generated OTP is the fixed code 102030 instead of random,
+      # so signup/login can be exercised with no real Email/SMS provider configured. Defaults to
+      # false everywhere, including prod — see FixedTestOtpGeneratorAdapter and
+      # AuthenticationInfrastructureConfig.
+      test-mode: ${AUTH_OTP_TEST_MODE:false}
     rest:
       enabled: ${AUTH_REST_ENABLED:true}
     token:

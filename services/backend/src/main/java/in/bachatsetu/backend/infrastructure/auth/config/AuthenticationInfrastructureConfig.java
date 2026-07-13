@@ -9,11 +9,13 @@ import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
 import in.bachatsetu.backend.infrastructure.auth.adapter.ApplicationEventDomainEventPublisherAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.ApplicationEventOtpPublisherAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.BCryptHashingAdapter;
+import in.bachatsetu.backend.infrastructure.auth.adapter.FixedTestOtpGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.RandomPasswordHashGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SecureRandomGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SystemClockAdapter;
 import java.security.SecureRandom;
 import java.time.Clock;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -48,9 +50,30 @@ public class AuthenticationInfrastructureConfig {
         return new SystemClockAdapter(authenticationClock);
     }
 
+    /**
+     * Active whenever {@code bachatsetu.authentication.otp.test-mode} ({@code
+     * AUTH_OTP_TEST_MODE}) is {@code false} or unset — the default for every Spring profile,
+     * including {@code prod}. {@link #fixedTestOtpGeneratorAdapter()} is active under the exact
+     * opposite condition, so precisely one {@link RandomGeneratorPort} bean exists no matter which
+     * Spring profile is running or whether the flag was set at all.
+     */
     @Bean
+    @ConditionalOnProperty(
+            prefix = "bachatsetu.authentication.otp",
+            name = "test-mode",
+            havingValue = "false",
+            matchIfMissing = true)
     RandomGeneratorPort secureRandomGeneratorAdapter(SecureRandom authenticationSecureRandom) {
         return new SecureRandomGeneratorAdapter(authenticationSecureRandom);
+    }
+
+    // TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION
+    // MVP/demo-only: every OTP becomes the fixed code 102030 so signup/login/reset can be
+    // exercised without a real Email/SMS provider. See FixedTestOtpGeneratorAdapter.
+    @Bean
+    @ConditionalOnProperty(prefix = "bachatsetu.authentication.otp", name = "test-mode", havingValue = "true")
+    RandomGeneratorPort fixedTestOtpGeneratorAdapter() {
+        return new FixedTestOtpGeneratorAdapter();
     }
 
     @Bean

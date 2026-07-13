@@ -6,7 +6,9 @@ import in.bachatsetu.backend.auth.application.port.ClockPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.auth.domain.model.OtpCode;
 import in.bachatsetu.backend.infrastructure.auth.adapter.BCryptHashingAdapter;
+import in.bachatsetu.backend.infrastructure.auth.adapter.FixedTestOtpGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.LoggingOtpSenderAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SecureRandomGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SystemClockAdapter;
@@ -76,6 +78,47 @@ class AuthenticationInfrastructureConfigTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(OtpSenderPort.class);
+                });
+    }
+
+    @Test
+    void wiresTheSecureRandomGeneratorUnderProdTooWhenTestModeIsNotExplicitlyEnabled() {
+        // Same deployment-mode-switch reasoning as the SMS/email adapters above:
+        // bachatsetu.authentication.otp.test-mode, not the Spring profile, decides which
+        // RandomGeneratorPort is wired.
+        contextRunner
+                .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).getBean(RandomGeneratorPort.class)
+                            .isInstanceOf(SecureRandomGeneratorAdapter.class);
+                });
+    }
+
+    // TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION
+    @Test
+    void wiresTheFixedTestOtpGeneratorWhenTestModeIsExplicitlyEnabled() {
+        contextRunner
+                .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+                .withPropertyValues("bachatsetu.authentication.otp.test-mode=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).getBean(RandomGeneratorPort.class)
+                            .isInstanceOf(FixedTestOtpGeneratorAdapter.class);
+                    assertThat(context.getBean(RandomGeneratorPort.class).generateOtp())
+                            .isEqualTo(OtpCode.of("102030"));
+                });
+    }
+
+    // TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION
+    @Test
+    void doesNotExposeTheSecureRandomGeneratorWhenTestModeIsExplicitlyEnabled() {
+        contextRunner
+                .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+                .withPropertyValues("bachatsetu.authentication.otp.test-mode=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBeansOfType(RandomGeneratorPort.class)).hasSize(1);
                 });
     }
 }

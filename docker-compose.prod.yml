@@ -75,6 +75,9 @@ services:
       AUDIT_SYSTEM_ACTOR_ID: ${AUDIT_SYSTEM_ACTOR_ID:?AUDIT_SYSTEM_ACTOR_ID is required}
       AUTH_JWT_SIGNING_SECRET: ${AUTH_JWT_SIGNING_SECRET:?AUTH_JWT_SIGNING_SECRET is required}
       AUTH_CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ALLOWED_ORIGINS:?AUTH_CORS_ALLOWED_ORIGINS is required}
+      # TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION. Leave false. true makes every
+      # generated OTP the fixed code 102030 for every user — MVP/demo only, never a real launch.
+      AUTH_OTP_TEST_MODE: ${AUTH_OTP_TEST_MODE:-false}
       # Deployment-mode switches, independent of SPRING_PROFILES_ACTIVE — false (the default)
       # means log-only delivery, suitable for an MVP with no real SMS/email provider yet. Flip
       # to true, and fill in the selected provider's credentials below, when ready to send real
