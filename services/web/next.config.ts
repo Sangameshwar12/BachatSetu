@@ -11,7 +11,7 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 // an inline <style> tag for per-series chart theming.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
