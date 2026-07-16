@@ -2,6 +2,8 @@
 
 import { Search, Users } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { PageContainer } from "@/components/dashboard/page-container";
 import { Input } from "@/components/ui/input";
@@ -9,11 +11,41 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { GroupCard } from "@/features/groups/group-card";
+import { invitationQueryKey } from "@/hooks/use-group-invitation";
 import { useOrganizerDashboard } from "@/hooks/use-organizer-dashboard";
+import { ApiError } from "@/services/api-client";
+import { getCurrentInvitation } from "@/services/invitation-service";
+import type { OrganizerGroupResponse } from "@/types/organizer-dashboard";
+import { buildInvitationShareMessage, shareViaWhatsApp } from "@/utils/share";
 
 export function OrganizerGroupsContent() {
   const { data, isPending, isError, error, refetch } = useOrganizerDashboard();
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
+
+  async function handleShare(group: OrganizerGroupResponse) {
+    if (!group.hasActiveInvitation) {
+      toast.error("Generate an invitation first, then share it.");
+      return;
+    }
+    try {
+      const invitation = await queryClient.fetchQuery({
+        queryKey: invitationQueryKey(group.groupId),
+        queryFn: () => getCurrentInvitation(group.groupId),
+      });
+      const fullJoinLink = `${window.location.origin}${invitation.joinLink}`;
+      shareViaWhatsApp(
+        buildInvitationShareMessage({
+          groupName: group.name,
+          inviteCode: invitation.code,
+          inviteLink: fullJoinLink,
+        })
+      );
+      toast.success("Invitation shared");
+    } catch (cause) {
+      toast.error(cause instanceof ApiError ? cause.message : "Couldn't share this invitation.");
+    }
+  }
 
   if (isPending) {
     return (
@@ -77,6 +109,9 @@ export function OrganizerGroupsContent() {
               nextDrawAt={group.nextDraw?.scheduledAt}
               contributionProgressPercent={group.contributionProgressPercent}
               detailsHref={`/dashboard/organizer/groups/${group.groupId}`}
+              hasActiveInvitation={group.hasActiveInvitation}
+              inviteHref={`/dashboard/organizer/groups/${group.groupId}/invite`}
+              onShare={() => handleShare(group)}
             />
           ))}
         </div>

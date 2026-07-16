@@ -40,7 +40,7 @@ export function JoinGroupContent() {
   async function handleJoin(payload: { code?: string; token?: string; channel: JoinChannel }) {
     try {
       const result = await joinGroup.mutateAsync(payload);
-      toast.success("You've joined the group.");
+      toast.success("Joined successfully");
       router.push(`/dashboard/groups/${result.groupId}`);
     } catch (cause) {
       toast.error(cause instanceof ApiError ? cause.message : "Couldn't join that group — try again.");

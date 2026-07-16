@@ -1,7 +1,8 @@
-import { ArrowRight, CalendarClock, Users } from "lucide-react";
+import { ArrowRight, CalendarClock, MessageCircle, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/dashboard/status-badge";
@@ -24,6 +25,12 @@ interface GroupCardProps {
   contributionProgressPercent?: number;
   /** Defaults to the member-facing group details route. */
   detailsHref?: string;
+  /** Organizer view only: whether the group currently has an active invitation. */
+  hasActiveInvitation?: boolean;
+  /** Organizer view only: renders an "Invite" button linking here when set. */
+  inviteHref?: string;
+  /** Organizer view only: renders a "Share" button that runs this when set. */
+  onShare?: () => void;
 }
 
 export function GroupCard({
@@ -39,6 +46,9 @@ export function GroupCard({
   nextDrawAt,
   contributionProgressPercent,
   detailsHref,
+  hasActiveInvitation,
+  inviteHref,
+  onShare,
 }: GroupCardProps) {
   const fillRate = maximumMembers > 0 ? (memberCount / maximumMembers) * 100 : 0;
 
@@ -50,7 +60,14 @@ export function GroupCard({
             <CardTitle className="text-base">{name}</CardTitle>
             <p className="text-xs text-muted-foreground">{groupCode}</p>
           </div>
-          {status && <StatusBadge status={status} />}
+          <div className="flex items-center gap-2">
+            {hasActiveInvitation && (
+              <Badge variant="outline" className="border-transparent bg-info/10 text-info">
+                Invitation pending
+              </Badge>
+            )}
+            {status && <StatusBadge status={status} />}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -97,6 +114,21 @@ export function GroupCard({
               <span>{contributionProgressPercent}%</span>
             </div>
             <Progress value={contributionProgressPercent} />
+          </div>
+        )}
+
+        {(inviteHref || onShare) && (
+          <div className="flex gap-2">
+            {inviteHref && (
+              <Link href={inviteHref} className={cn(buttonVariants({ variant: "outline" }), "flex-1")}>
+                <UserPlus className="size-4" /> Invite
+              </Link>
+            )}
+            {onShare && (
+              <Button variant="outline" className="flex-1" onClick={onShare}>
+                <MessageCircle className="size-4" /> Share
+              </Button>
+            )}
           </div>
         )}
 

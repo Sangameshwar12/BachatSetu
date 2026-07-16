@@ -1,5 +1,11 @@
 import { apiClient } from "@/services/api-client";
-import type { SavingsGroupResponse } from "@/types/group";
+import type { CreateSavingsGroupRequest, SavingsGroupResponse } from "@/types/group";
+
+/** `POST /api/v1/groups` — creates a new inactive savings group owned by the caller. */
+export async function createGroup(payload: CreateSavingsGroupRequest): Promise<SavingsGroupResponse> {
+  const { data } = await apiClient.post<SavingsGroupResponse>("/api/v1/groups", payload);
+  return data;
+}
 
 /** `GET /api/v1/groups/{groupId}` — one tenant-scoped savings group. */
 export async function getGroup(groupId: string): Promise<SavingsGroupResponse> {

@@ -9,5 +9,6 @@ public record InvitationPreviewResponse(
         @Schema(description = "Currency code", example = "INR") String currencyCode,
         @Schema(description = "Contribution frequency", example = "MONTHLY") String frequency,
         @Schema(description = "Current member count") int memberCount,
-        @Schema(description = "Maximum members allowed") int maximumMembers) {
+        @Schema(description = "Maximum members allowed") int maximumMembers,
+        @Schema(description = "Group lifecycle status", example = "ACTIVE") String status) {
 }

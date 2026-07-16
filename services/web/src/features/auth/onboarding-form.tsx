@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, UserRound } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { isSafeRedirectPath } from "@/lib/utils";
 import { mergeCachedProfile } from "@/lib/profile-cache";
 import { ApiError } from "@/services/api-client";
 import { completeOnboarding } from "@/services/onboarding-service";
@@ -30,6 +31,9 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 export function OnboardingForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
+  const redirectTarget = isSafeRedirectPath(redirectParam) ? redirectParam : "/dashboard";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoFileId, setPhotoFileId] = useState<string | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
@@ -88,10 +92,10 @@ export function OnboardingForm() {
         hasPhoto: Boolean(photoFileId),
       });
       toast.success("You're all set up.");
-      router.push("/dashboard");
+      router.push(redirectTarget);
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "already-onboarded") {
-        router.push("/dashboard");
+        router.push(redirectTarget);
         return;
       }
       toast.error(cause instanceof ApiError ? cause.message : "Couldn't save your profile — try again.");

@@ -10,12 +10,14 @@ public record InvitationPreviewResult(
         String currencyCode,
         String frequency,
         int memberCount,
-        int maximumMembers) {
+        int maximumMembers,
+        String status) {
 
     public InvitationPreviewResult {
         Objects.requireNonNull(groupName, "groupName must not be null");
         Objects.requireNonNull(organizerName, "organizerName must not be null");
         Objects.requireNonNull(currencyCode, "currencyCode must not be null");
         Objects.requireNonNull(frequency, "frequency must not be null");
+        Objects.requireNonNull(status, "status must not be null");
     }
 }

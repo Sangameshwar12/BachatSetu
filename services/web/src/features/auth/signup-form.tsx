@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
 import { INDIAN_MOBILE_PATTERN, preferredLanguages } from "@/constants/auth";
 import { useAuth } from "@/contexts/auth-context";
 import { OtpStep } from "@/features/auth/otp-step";
+import { isSafeRedirectPath } from "@/lib/utils";
 import { mergeCachedProfile } from "@/lib/profile-cache";
 import { ApiError } from "@/services/api-client";
 import { signupStart, signupVerify } from "@/services/auth-service";
@@ -51,8 +52,11 @@ interface PendingSignup {
 
 export function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [pending, setPending] = useState<PendingSignup | null>(null);
+  const redirectParam = searchParams.get("redirect");
+  const redirectTarget = isSafeRedirectPath(redirectParam) ? redirectParam : null;
 
   const {
     register,
@@ -114,7 +118,9 @@ export function SignupForm() {
     const tokens = await signupVerify({ userId: pending.userId, code });
     login(tokens);
     toast.success("Account verified — let's finish setting up your profile.");
-    router.push("/onboarding");
+    router.push(
+      redirectTarget ? `/onboarding?redirect=${encodeURIComponent(redirectTarget)}` : "/onboarding"
+    );
   }
 
   if (pending) {

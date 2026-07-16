@@ -6,7 +6,7 @@ import { ApiError } from "@/services/api-client";
 import { createInvitation, getCurrentInvitation, revokeInvitation } from "@/services/invitation-service";
 import type { CreateInvitationRequest } from "@/types/invitation";
 
-function invitationQueryKey(groupId: string) {
+export function invitationQueryKey(groupId: string) {
   return ["group-invitation", groupId] as const;
 }
 

@@ -7,6 +7,7 @@ export interface InvitationPreviewResponse {
   frequency: string;
   memberCount: number;
   maximumMembers: number;
+  status: string;
 }
 
 export type JoinChannel = "CODE" | "QR" | "LINK";

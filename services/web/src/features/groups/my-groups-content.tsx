@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Search, UserPlus, Users } from "lucide-react";
+import { Info, Plus, Search, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -35,11 +35,16 @@ export function MyGroupsContent() {
           <EmptyState
             icon={Users}
             title="You haven't joined a group yet"
-            description="Join a savings group with an invitation code, link, or QR to see it here."
+            description="Create your own savings group, or join one with an invitation code, link, or QR."
             action={
-              <Link href="/dashboard/groups/join" className={cn(buttonVariants())}>
-                <UserPlus className="size-4" /> Join a group
-              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Link href="/dashboard/groups/create" className={cn(buttonVariants())}>
+                  <Plus className="size-4" /> Create a group
+                </Link>
+                <Link href="/dashboard/groups/join" className={cn(buttonVariants({ variant: "outline" }))}>
+                  <UserPlus className="size-4" /> Join a group
+                </Link>
+              </div>
             }
           />
         </PageContainer>
@@ -63,9 +68,14 @@ export function MyGroupsContent() {
       title="My Groups"
       description="Every savings group you're a part of."
       actions={
-        <Link href="/dashboard/groups/join" className={cn(buttonVariants())}>
-          <UserPlus className="size-4" /> Join a group
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/dashboard/groups/create" className={cn(buttonVariants())}>
+            <Plus className="size-4" /> Create a group
+          </Link>
+          <Link href="/dashboard/groups/join" className={cn(buttonVariants({ variant: "outline" }))}>
+            <UserPlus className="size-4" /> Join a group
+          </Link>
+        </div>
       }
     >
       <div className="relative max-w-sm">

@@ -52,7 +52,8 @@ class JoinControllerTest {
     @Test
     void previewsAGroupByToken() throws Exception {
         when(previewInvitation.execute("tok3n")).thenReturn(
-                new InvitationPreviewResult("Diwali Bachat Gat", "Asha Rao", 100_000L, "INR", "MONTHLY", 4, 10));
+                new InvitationPreviewResult(
+                        "Diwali Bachat Gat", "Asha Rao", 100_000L, "INR", "MONTHLY", 4, 10, "ACTIVE"));
 
         mockMvc.perform(get("/api/v1/join/{token}", "tok3n"))
                 .andExpect(status().isOk())

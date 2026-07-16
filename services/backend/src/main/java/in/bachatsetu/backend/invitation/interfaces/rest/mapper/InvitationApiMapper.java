@@ -60,7 +60,7 @@ public class InvitationApiMapper {
     public InvitationPreviewResponse toResponse(InvitationPreviewResult result) {
         return new InvitationPreviewResponse(
                 result.groupName(), result.organizerName(), result.contributionAmountPaise(), result.currencyCode(),
-                result.frequency(), result.memberCount(), result.maximumMembers());
+                result.frequency(), result.memberCount(), result.maximumMembers(), result.status());
     }
 
     public AcceptInvitationCommand toCommand(AuthenticatedUser currentUser, AcceptInvitationRequest request) {

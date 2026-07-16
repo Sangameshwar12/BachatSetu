@@ -1,8 +1,8 @@
 "use client";
 
-import { Copy, Loader2, RefreshCw, Share2, Ticket, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { Copy, Download, Loader2, MessageCircle, QrCode, RefreshCw, Ticket, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 
 import {
@@ -18,6 +18,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { PageContainer } from "@/components/dashboard/page-container";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { ErrorState } from "@/components/shared/error-state";
@@ -29,14 +36,20 @@ import {
   useCurrentInvitation,
   useRevokeInvitation,
 } from "@/hooks/use-group-invitation";
+import { useGroup } from "@/hooks/use-group";
 import { ApiError } from "@/services/api-client";
+import { buildInvitationShareMessage, shareViaWhatsApp } from "@/utils/share";
 import { formatDateTime } from "@/utils/format";
+
+const QR_DOWNLOAD_SIZE = 320;
 
 export function InviteMembersContent({ groupId }: { groupId: string }) {
   const { data: invitation, isPending, isError, error, refetch } = useCurrentInvitation(groupId);
+  const group = useGroup(groupId);
   const createInvitation = useCreateInvitation(groupId);
   const revokeInvitation = useRevokeInvitation(groupId);
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const downloadCanvasRef = useRef<HTMLCanvasElement>(null);
 
   if (isPending) {
     return (
@@ -90,26 +103,39 @@ export function InviteMembersContent({ groupId }: { groupId: string }) {
     );
   }
 
+  const currentInvitation = invitation;
   const fullJoinLink =
-    typeof window !== "undefined" ? `${window.location.origin}${invitation.joinLink}` : invitation.joinLink;
+    typeof window !== "undefined"
+      ? `${window.location.origin}${currentInvitation.joinLink}`
+      : currentInvitation.joinLink;
+  const groupName = group.data?.name ?? "my group";
 
   async function copyToClipboard(value: string, which: "code" | "link") {
     await navigator.clipboard.writeText(value);
     setCopied(which);
-    toast.success("Copied to clipboard.");
+    toast.success(which === "code" ? "Invite code copied" : "Invite link copied");
     setTimeout(() => setCopied(null), 2000);
   }
 
-  async function share() {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Join my BachatSetu group", url: fullJoinLink });
-      } catch {
-        // User cancelled the share sheet — nothing to do.
-      }
-    } else {
-      await copyToClipboard(fullJoinLink, "link");
+  function share() {
+    const message = buildInvitationShareMessage({
+      groupName,
+      inviteCode: currentInvitation.code,
+      inviteLink: fullJoinLink,
+    });
+    shareViaWhatsApp(message);
+    toast.success("Invitation shared");
+  }
+
+  function downloadQrCode() {
+    const canvas = downloadCanvasRef.current;
+    if (!canvas) {
+      return;
     }
+    const link = document.createElement("a");
+    link.download = `bachatsetu-invite-${currentInvitation.code}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
   }
 
   return (
@@ -122,9 +148,24 @@ export function InviteMembersContent({ groupId }: { groupId: string }) {
           </div>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
-          <div className="rounded-2xl border border-border/60 bg-white p-4">
-            <QRCodeSVG value={fullJoinLink} size={176} />
-          </div>
+          <Dialog>
+            <DialogTrigger render={<Button variant="outline" />}>
+              <QrCode className="size-4" /> Show QR code
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Scan to join {groupName}</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col items-center gap-4 py-2">
+                <div className="rounded-2xl border border-border/60 bg-white p-4">
+                  <QRCodeCanvas ref={downloadCanvasRef} value={fullJoinLink} size={QR_DOWNLOAD_SIZE} />
+                </div>
+                <Button variant="outline" className="w-full" onClick={downloadQrCode}>
+                  <Download className="size-4" /> Download as PNG
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <div className="flex w-full flex-col gap-3">
             <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2.5">
@@ -158,11 +199,12 @@ export function InviteMembersContent({ groupId }: { groupId: string }) {
                 >
                   <Copy className={copied === "link" ? "size-4 text-success" : "size-4"} />
                 </Button>
-                <Button variant="ghost" size="icon" aria-label="Share invite link" onClick={share}>
-                  <Share2 className="size-4" />
-                </Button>
               </div>
             </div>
+
+            <Button variant="outline" className="w-full" onClick={share}>
+              <MessageCircle className="size-4" /> Share via WhatsApp
+            </Button>
           </div>
 
           <p className="text-xs text-muted-foreground">Expires {formatDateTime(invitation.expiresAt)}</p>

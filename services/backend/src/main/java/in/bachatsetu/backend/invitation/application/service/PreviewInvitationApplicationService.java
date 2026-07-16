@@ -56,7 +56,8 @@ public final class PreviewInvitationApplicationService implements PreviewInvitat
                     group.contributionAmount().value().currency().getCurrencyCode(),
                     group.rule().contributionSchedule().frequency().name(),
                     group.members().size(),
-                    group.maximumMembers().value());
+                    group.maximumMembers().value(),
+                    group.status().name());
         });
     }
 }

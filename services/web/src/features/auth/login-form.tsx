@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { INDIAN_MOBILE_PATTERN } from "@/constants/auth";
 import { useAuth } from "@/contexts/auth-context";
 import { OtpStep } from "@/features/auth/otp-step";
+import { isSafeRedirectPath } from "@/lib/utils";
 import { ApiError } from "@/services/api-client";
 import { loginStart, loginVerify } from "@/services/auth-service";
 
@@ -34,8 +35,11 @@ interface PendingLogin {
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [pending, setPending] = useState<PendingLogin | null>(null);
+  const redirectParam = searchParams.get("redirect");
+  const redirectTarget = isSafeRedirectPath(redirectParam) ? redirectParam : "/dashboard";
 
   const {
     register,
@@ -72,7 +76,7 @@ export function LoginForm() {
     const tokens = await loginVerify({ userId: pending.userId, code });
     login(tokens);
     toast.success("Welcome back!");
-    router.push("/dashboard");
+    router.push(redirectTarget);
   }
 
   if (pending) {

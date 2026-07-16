@@ -92,14 +92,15 @@ class InvitationApiMapperTest {
 
     @Test
     void mapsPreviewResultToResponse() {
-        InvitationPreviewResult result =
-                new InvitationPreviewResult("Diwali Bachat Gat", "Asha Rao", 100_000L, "INR", "MONTHLY", 4, 10);
+        InvitationPreviewResult result = new InvitationPreviewResult(
+                "Diwali Bachat Gat", "Asha Rao", 100_000L, "INR", "MONTHLY", 4, 10, "ACTIVE");
 
         InvitationPreviewResponse response = mapper.toResponse(result);
 
         assertThat(response.groupName()).isEqualTo("Diwali Bachat Gat");
         assertThat(response.organizerName()).isEqualTo("Asha Rao");
         assertThat(response.memberCount()).isEqualTo(4);
+        assertThat(response.status()).isEqualTo("ACTIVE");
     }
 
     @Test
