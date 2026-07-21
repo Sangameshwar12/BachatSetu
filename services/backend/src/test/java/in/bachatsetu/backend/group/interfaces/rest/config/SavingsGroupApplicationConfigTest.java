@@ -18,6 +18,7 @@ import in.bachatsetu.backend.group.application.service.JoinGroupApplicationServi
 import in.bachatsetu.backend.group.application.service.ListSavingsGroupsApplicationService;
 import in.bachatsetu.backend.group.application.service.RemoveMemberApplicationService;
 import in.bachatsetu.backend.group.application.service.SuspendGroupApplicationService;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
 import org.junit.jupiter.api.Test;
 
 class SavingsGroupApplicationConfigTest {
@@ -29,6 +30,7 @@ class SavingsGroupApplicationConfigTest {
     private final DomainEventPublisherPort eventPublisher = mock(DomainEventPublisherPort.class);
     private final ClockPort clock = mock(ClockPort.class);
     private final TransactionPort transaction = mock(TransactionPort.class);
+    private final UserRepository userRepository = mock(UserRepository.class);
 
     @Test
     void composesCreateSavingsGroupUseCase() {
@@ -38,7 +40,7 @@ class SavingsGroupApplicationConfigTest {
 
     @Test
     void composesGetAndListUseCases() {
-        assertThat(config.getSavingsGroupUseCase(repository, transaction, mapper))
+        assertThat(config.getSavingsGroupUseCase(repository, transaction, mapper, userRepository))
                 .isInstanceOf(GetSavingsGroupApplicationService.class);
         assertThat(config.listSavingsGroupsUseCase(repository, transaction, mapper))
                 .isInstanceOf(ListSavingsGroupsApplicationService.class);

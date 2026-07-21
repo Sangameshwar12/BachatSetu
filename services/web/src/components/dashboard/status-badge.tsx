@@ -9,6 +9,7 @@ const STATUS_STYLES: Record<string, string> = {
   ACTIVE: "bg-success/10 text-success",
   COMPLETED: "bg-success/10 text-success",
   GENERATED: "bg-success/10 text-success",
+  PAID: "bg-success/10 text-success",
   // In-progress / neutral
   INITIATED: "bg-info/10 text-info",
   PENDING_PROVIDER: "bg-info/10 text-info",
@@ -16,9 +17,11 @@ const STATUS_STYLES: Record<string, string> = {
   QUEUED: "bg-info/10 text-info",
   SCHEDULED: "bg-info/10 text-info",
   OPEN: "bg-info/10 text-info",
+  PENDING: "bg-info/10 text-info",
   INACTIVE: "bg-muted text-muted-foreground",
   // Attention / warning
   SUSPENDED: "bg-warning/10 text-warning",
+  OVERDUE: "bg-warning/10 text-warning",
   // Negative
   FAILED: "bg-destructive/10 text-destructive",
   CANCELLED: "bg-destructive/10 text-destructive",

@@ -1,16 +1,19 @@
 "use client";
 
-import { FileText, Gavel, Users, Wallet } from "lucide-react";
+import { FileText, Gavel, Wallet } from "lucide-react";
 
 import { PageContainer } from "@/components/dashboard/page-container";
 import { ErrorState } from "@/components/shared/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/auth-context";
+import { GroupMembersTab } from "@/features/groups/group-members-tab";
 import { GroupOverviewTab } from "@/features/groups/group-overview-tab";
 import { GroupTabPlaceholder } from "@/features/groups/group-tab-placeholder";
 import { useGroup } from "@/hooks/use-group";
 
 export function GroupDetailsContent({ groupId }: { groupId: string }) {
+  const { session } = useAuth();
   const { data: group, isPending, isError, error, refetch } = useGroup(groupId);
 
   if (isPending) {
@@ -45,11 +48,7 @@ export function GroupDetailsContent({ groupId }: { groupId: string }) {
         </TabsContent>
 
         <TabsContent value="members" className="pt-4">
-          <GroupTabPlaceholder
-            icon={Users}
-            title="Member list isn't available yet"
-            description="Viewing every member's status and join date requires a group-scoped member list endpoint that doesn't exist on the backend yet — only a total member count is exposed today."
-          />
+          <GroupMembersTab group={group} currentUserId={session?.userId} />
         </TabsContent>
 
         <TabsContent value="payments" className="pt-4">

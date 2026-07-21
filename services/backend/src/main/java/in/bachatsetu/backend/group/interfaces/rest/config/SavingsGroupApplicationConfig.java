@@ -23,6 +23,7 @@ import in.bachatsetu.backend.group.application.usecase.JoinGroupUseCase;
 import in.bachatsetu.backend.group.application.usecase.ListSavingsGroupsUseCase;
 import in.bachatsetu.backend.group.application.usecase.RemoveMemberUseCase;
 import in.bachatsetu.backend.group.application.usecase.SuspendGroupUseCase;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -71,8 +72,9 @@ public class SavingsGroupApplicationConfig {
     public GetSavingsGroupUseCase getSavingsGroupUseCase(
             SavingsGroupRepository repository,
             TransactionPort transaction,
-            SavingsGroupApplicationMapper mapper) {
-        return new GetSavingsGroupApplicationService(repository, transaction, mapper);
+            SavingsGroupApplicationMapper mapper,
+            UserRepository userRepository) {
+        return new GetSavingsGroupApplicationService(repository, transaction, mapper, userRepository);
     }
 
     @Bean

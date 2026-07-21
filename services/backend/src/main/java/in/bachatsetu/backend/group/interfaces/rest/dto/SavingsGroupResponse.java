@@ -2,6 +2,8 @@ package in.bachatsetu.backend.group.interfaces.rest.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
 
 /** Safe presentation view of a savings group returned by the REST API. */
 public record SavingsGroupResponse(
@@ -20,5 +22,11 @@ public record SavingsGroupResponse(
         @Schema(description = "Current active member count") int activeMemberCount,
         @Schema(description = "Creation timestamp") Instant createdAt,
         @Schema(description = "Last update timestamp") Instant updatedAt,
-        @Schema(description = "Optimistic-lock version") long version) {
+        @Schema(description = "Optimistic-lock version") long version,
+        @Schema(description = "Members of this group, including removed ones") List<GroupMemberResponse> members,
+        @Schema(description = "Display name of the group organizer") String organizerName) {
+
+    public SavingsGroupResponse {
+        members = List.copyOf(Objects.requireNonNull(members, "members must not be null"));
+    }
 }

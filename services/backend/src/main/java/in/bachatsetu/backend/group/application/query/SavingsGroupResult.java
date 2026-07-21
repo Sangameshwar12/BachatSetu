@@ -22,7 +22,8 @@ public record SavingsGroupResult(
         Instant createdAt,
         Instant updatedAt,
         long version,
-        List<GroupMemberResult> members) {
+        List<GroupMemberResult> members,
+        String organizerName) {
 
     public SavingsGroupResult {
         Objects.requireNonNull(groupId, "group id must not be null");

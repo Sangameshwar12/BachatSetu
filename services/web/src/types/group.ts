@@ -35,6 +35,14 @@ export interface CreateSavingsGroupRequest {
   rule: GroupRuleRequest;
 }
 
+/** Mirrors `group.interfaces.rest.dto.GroupMemberResponse` exactly. */
+export interface GroupMemberResponse {
+  memberId: string;
+  joinedAt: string;
+  removedAt: string | null;
+  active: boolean;
+}
+
 /** Mirrors `group.interfaces.rest.dto.SavingsGroupResponse` exactly. */
 export interface SavingsGroupResponse {
   groupId: string;
@@ -52,6 +60,8 @@ export interface SavingsGroupResponse {
   createdAt: string;
   updatedAt: string;
   version: number;
+  members: GroupMemberResponse[];
+  organizerName: string | null;
 }
 
 /** Mirrors `group.interfaces.rest.dto.SavingsGroupSummaryResponse` exactly. */

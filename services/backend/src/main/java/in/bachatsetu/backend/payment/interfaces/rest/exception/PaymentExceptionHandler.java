@@ -1,6 +1,11 @@
 package in.bachatsetu.backend.payment.interfaces.rest.exception;
 
 import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableException;
+import in.bachatsetu.backend.payment.application.exception.CollectionAccessDeniedException;
+import in.bachatsetu.backend.payment.application.exception.CollectionGroupNotFoundException;
+import in.bachatsetu.backend.payment.application.exception.MemberAlreadyPaidException;
+import in.bachatsetu.backend.payment.application.exception.MemberNotInGroupException;
+import in.bachatsetu.backend.payment.application.exception.NoActiveCollectionCycleException;
 import in.bachatsetu.backend.payment.application.exception.PaymentNotFoundException;
 import in.bachatsetu.backend.shared.domain.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -87,6 +92,66 @@ public class PaymentExceptionHandler {
                 HttpStatus.NOT_FOUND,
                 "payment-not-found",
                 "Payment not found",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(CollectionGroupNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleCollectionGroupNotFound(
+            CollectionGroupNotFoundException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.NOT_FOUND,
+                "group-not-found",
+                "Group not found",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(CollectionAccessDeniedException.class)
+    ResponseEntity<ProblemDetail> handleCollectionAccessDenied(
+            CollectionAccessDeniedException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.FORBIDDEN,
+                "access-denied",
+                "Access denied",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(MemberNotInGroupException.class)
+    ResponseEntity<ProblemDetail> handleMemberNotInGroup(
+            MemberNotInGroupException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.NOT_FOUND,
+                "member-not-in-group",
+                "Member not found",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(MemberAlreadyPaidException.class)
+    ResponseEntity<ProblemDetail> handleMemberAlreadyPaid(
+            MemberAlreadyPaidException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.CONFLICT,
+                "member-already-paid",
+                "Member already paid",
+                exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(NoActiveCollectionCycleException.class)
+    ResponseEntity<ProblemDetail> handleNoActiveCollectionCycle(
+            NoActiveCollectionCycleException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "no-active-collection-cycle",
+                "No active collection cycle",
                 exception.getMessage(),
                 request);
     }

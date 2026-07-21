@@ -369,7 +369,8 @@ class SavingsGroupControllerTest {
                 "Monthly society savings", "BHISHI", "ACTIVE", 500_000L, "INR", 10, 2, now, now, 1,
                 List.of(
                         new GroupMemberResult(OWNER_ID.value(), now, null, true),
-                        new GroupMemberResult(memberId, now, null, true)));
+                        new GroupMemberResult(memberId, now, null, true)),
+                "Priya Sharma");
         when(joinGroup.execute(any())).thenReturn(groupWithMember);
 
         mockMvc.perform(post("/api/v1/groups/" + groupId + "/members")
@@ -493,7 +494,8 @@ class SavingsGroupControllerTest {
                 now,
                 now,
                 0,
-                List.of(new GroupMemberResult(OWNER_ID.value(), now, null, true)));
+                List.of(new GroupMemberResult(OWNER_ID.value(), now, null, true)),
+                "Priya Sharma");
     }
 
     private SavingsGroupSummary summary() {

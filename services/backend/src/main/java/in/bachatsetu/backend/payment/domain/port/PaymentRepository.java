@@ -5,6 +5,8 @@ import in.bachatsetu.backend.payment.domain.model.Payment;
 import in.bachatsetu.backend.payment.domain.model.PaymentReference;
 import in.bachatsetu.backend.payment.domain.model.ProviderReference;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface PaymentRepository {
@@ -23,6 +25,10 @@ public interface PaymentRepository {
 
     /** Most recent payment a given member has made toward a given group, if any. */
     Optional<Payment> findLatestByGroupAndMember(AggregateId tenantId, AggregateId groupId, AggregateId memberId);
+
+    /** Every verified payment recorded for a group whose creation instant falls within {@code [from, to)}. */
+    List<Payment> findVerifiedByGroupWithinWindow(
+            AggregateId tenantId, AggregateId groupId, Instant from, Instant to);
 
     void save(Payment payment);
 }

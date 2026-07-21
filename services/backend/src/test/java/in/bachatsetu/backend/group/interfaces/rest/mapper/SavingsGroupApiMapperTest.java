@@ -115,7 +115,8 @@ class SavingsGroupApiMapperTest {
                 Instant.parse("2026-07-06T08:00:00Z"),
                 Instant.parse("2026-07-06T08:00:00Z"),
                 0,
-                List.of(new GroupMemberResult(UUID.randomUUID(), Instant.parse("2026-07-06T08:00:00Z"), null, true)));
+                List.of(new GroupMemberResult(UUID.randomUUID(), Instant.parse("2026-07-06T08:00:00Z"), null, true)),
+                "Priya Sharma");
 
         SavingsGroupResponse response = mapper.toResponse(result);
 
@@ -125,6 +126,8 @@ class SavingsGroupApiMapperTest {
         assertThat(response.currencyCode()).isEqualTo("INR");
         assertThat(response.status()).isEqualTo("INACTIVE");
         assertThat(response.version()).isZero();
+        assertThat(response.members()).hasSize(1);
+        assertThat(response.organizerName()).isEqualTo("Priya Sharma");
     }
 
     @Test
@@ -169,7 +172,7 @@ class SavingsGroupApiMapperTest {
         SavingsGroupResult result = new SavingsGroupResult(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "BS-1A2B3C4D5E6F7A8B",
                 "Sunrise Bhishi Circle", "Monthly society savings", "BHISHI", "ACTIVE", 500_000L, "INR", 10, 1,
-                now, now, 0, List.of(new GroupMemberResult(memberId, now, null, true)));
+                now, now, 0, List.of(new GroupMemberResult(memberId, now, null, true)), "Priya Sharma");
 
         GroupMemberResponse response = mapper.toMemberResponse(result, memberId.toString());
 
@@ -184,7 +187,7 @@ class SavingsGroupApiMapperTest {
         SavingsGroupResult result = new SavingsGroupResult(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "BS-1A2B3C4D5E6F7A8B",
                 "Sunrise Bhishi Circle", "Monthly society savings", "BHISHI", "ACTIVE", 500_000L, "INR", 10, 1,
-                now, now, 0, List.of(new GroupMemberResult(UUID.randomUUID(), now, null, true)));
+                now, now, 0, List.of(new GroupMemberResult(UUID.randomUUID(), now, null, true)), "Priya Sharma");
         String missingMemberId = UUID.randomUUID().toString();
 
         assertThat(catchThrowable(() -> mapper.toMemberResponse(result, missingMemberId)))
@@ -199,7 +202,7 @@ class SavingsGroupApiMapperTest {
         SavingsGroupResult expected = new SavingsGroupResult(
                 groupId.value().value(), currentUser.tenantId().value(), UUID.randomUUID(), "BS-1A2B3C4D5E6F7A8B",
                 "Sunrise Bhishi Circle", "Monthly society savings", "BHISHI", "ACTIVE", 500_000L, "INR", 10, 1,
-                now, now, 0, List.of());
+                now, now, 0, List.of(), "Priya Sharma");
         GetSavingsGroupUseCase useCase =
                 (tenantId, id) -> {
                     assertThat(tenantId).isEqualTo(currentUser.tenantId());

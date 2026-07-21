@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { groupQueryKey } from "@/hooks/use-group";
 import { activateGroup, closeGroup, suspendGroup } from "@/services/group-service";
 
 /** Organizer-only lifecycle transitions for a savings group. */
@@ -9,7 +10,7 @@ export function useGroupLifecycle(groupId: string) {
   const queryClient = useQueryClient();
 
   function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+    queryClient.invalidateQueries({ queryKey: groupQueryKey(groupId) });
     queryClient.invalidateQueries({ queryKey: ["dashboard", "organizer"] });
   }
 

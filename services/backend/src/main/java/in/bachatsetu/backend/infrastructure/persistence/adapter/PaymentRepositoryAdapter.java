@@ -7,6 +7,7 @@ import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.PaymentSp
 import in.bachatsetu.backend.payment.domain.model.IdempotencyKey;
 import in.bachatsetu.backend.payment.domain.model.Payment;
 import in.bachatsetu.backend.payment.domain.model.PaymentReference;
+import in.bachatsetu.backend.payment.domain.model.PaymentStatus;
 import in.bachatsetu.backend.payment.domain.model.ProviderReference;
 import in.bachatsetu.backend.payment.domain.port.PaymentPage;
 import in.bachatsetu.backend.payment.domain.port.PaymentPageRequest;
@@ -14,6 +15,7 @@ import in.bachatsetu.backend.payment.domain.port.PaymentRepository;
 import in.bachatsetu.backend.payment.domain.port.PaymentSortField;
 import in.bachatsetu.backend.payment.domain.port.SortDirection;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -94,6 +96,17 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
         return repository.findFirstByTenantIdAndGroup_IdAndPayer_IdAndDeletedFalseOrderByCreatedAtDesc(
                         tenantId.value(), groupId.value(), memberId.value())
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Payment> findVerifiedByGroupWithinWindow(
+            AggregateId tenantId, AggregateId groupId, Instant from, Instant to) {
+        return repository
+                .findAllByTenantIdAndGroup_IdAndStatusAndCreatedAtBetweenAndDeletedFalse(
+                        tenantId.value(), groupId.value(), PaymentStatus.VERIFIED, from, to)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

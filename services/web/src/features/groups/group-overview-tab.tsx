@@ -19,6 +19,7 @@ export function GroupOverviewTab({ group }: { group: SavingsGroupResponse }) {
         <CardContent className="divide-y divide-border/60">
           <InfoRow label="Group name" value={group.name} />
           <InfoRow label="Group code" value={group.groupCode} />
+          <InfoRow label="Organizer" value={group.organizerName ?? "Group organizer"} />
           {group.description && <InfoRow label="Description" value={group.description} />}
           <InfoRow label="Type" value={group.type} />
           <InfoRow label="Status" value={<StatusBadge status={group.status} />} />

@@ -114,7 +114,8 @@ class SavingsGroupApplicationMapperTest {
                 NOW,
                 NOW,
                 0,
-                source);
+                source,
+                "Query Organizer");
         source.clear();
 
         assertThat(result.members()).containsExactly(member);

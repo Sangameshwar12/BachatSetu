@@ -55,6 +55,7 @@ import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.DomainEvent;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,6 +71,7 @@ class SavingsGroupApplicationServiceTest {
     private TransactionPort transaction;
     private SavingsGroupApplicationMapper mapper;
     private GroupAuthorizationService authorization;
+    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
@@ -79,6 +81,7 @@ class SavingsGroupApplicationServiceTest {
         transaction = directTransaction();
         mapper = new SavingsGroupApplicationMapper();
         authorization = new GroupAuthorizationService();
+        userRepository = mock(UserRepository.class);
     }
 
     @Test
@@ -253,7 +256,8 @@ class SavingsGroupApplicationServiceTest {
         when(repository.findById(tenantId, first.groupId())).thenReturn(Optional.of(first));
         when(repository.findPage(tenantId, pageRequest))
                 .thenReturn(new GroupPage<>(List.of(first, second), 0, 20, 2));
-        GetSavingsGroupUseCase getService = new GetSavingsGroupApplicationService(repository, transaction, mapper);
+        GetSavingsGroupUseCase getService =
+                new GetSavingsGroupApplicationService(repository, transaction, mapper, userRepository);
         ListSavingsGroupsUseCase listService = new ListSavingsGroupsApplicationService(repository, transaction, mapper);
 
         SavingsGroupResult result = getService.execute(tenantId, first.groupId());
@@ -287,7 +291,8 @@ class SavingsGroupApplicationServiceTest {
         SavingsGroup group = newGroup(5);
         AggregateId otherTenantId = AggregateId.newId();
         when(repository.findById(otherTenantId, group.groupId())).thenReturn(Optional.empty());
-        GetSavingsGroupUseCase getService = new GetSavingsGroupApplicationService(repository, transaction, mapper);
+        GetSavingsGroupUseCase getService =
+                new GetSavingsGroupApplicationService(repository, transaction, mapper, userRepository);
 
         assertThatThrownBy(() -> getService.execute(otherTenantId, group.groupId()))
                 .isInstanceOf(SavingsGroupNotFoundException.class);
@@ -300,7 +305,7 @@ class SavingsGroupApplicationServiceTest {
         JoinGroupApplicationService join = new JoinGroupApplicationService(
                 repository, publisher, clock, transaction, mapper, authorization);
         GetSavingsGroupApplicationService get = new GetSavingsGroupApplicationService(
-                repository, transaction, mapper);
+                repository, transaction, mapper, userRepository);
 
         assertThatThrownBy(() -> join.execute(new JoinGroupCommand(
                         tenantId, groupId, AggregateId.newId(), AggregateId.newId())))
@@ -342,10 +347,10 @@ class SavingsGroupApplicationServiceTest {
                         repository, publisher, clock, transaction, mapper, authorization)
                 .execute(null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, mapper)
+        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, mapper, userRepository)
                         .execute(null, GroupId.newId()))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, mapper)
+        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, mapper, userRepository)
                         .execute(AggregateId.newId(), null))
                 .isInstanceOf(NullPointerException.class);
         GroupPageRequest defaultPageRequest = new GroupPageRequest(
@@ -384,11 +389,13 @@ class SavingsGroupApplicationServiceTest {
         assertThatThrownBy(() -> new JoinGroupApplicationService(
                         repository, publisher, clock, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(null, transaction, mapper))
+        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(null, transaction, mapper, userRepository))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, null, mapper))
+        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, null, mapper, userRepository))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, null))
+        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, null, userRepository))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new GetSavingsGroupApplicationService(repository, transaction, mapper, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new ListSavingsGroupsApplicationService(null, transaction, mapper))
                 .isInstanceOf(NullPointerException.class);

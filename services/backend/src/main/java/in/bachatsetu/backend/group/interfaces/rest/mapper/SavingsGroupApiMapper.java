@@ -79,7 +79,9 @@ public class SavingsGroupApiMapper {
                 result.activeMemberCount(),
                 result.createdAt(),
                 result.updatedAt(),
-                result.version());
+                result.version(),
+                result.members().stream().map(this::toMemberResponse).toList(),
+                result.organizerName());
     }
 
     public SavingsGroupResult getGroup(GetSavingsGroupUseCase useCase, AuthenticatedUser currentUser, String groupId) {

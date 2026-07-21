@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, MessageCircle, UserPlus, Users } from "lucide-react";
+import { FileText, MessageCircle, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -10,22 +10,27 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ErrorState } from "@/components/shared/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/auth-context";
+import { GroupMembersTab } from "@/features/groups/group-members-tab";
 import { GroupOverviewTab } from "@/features/groups/group-overview-tab";
 import { GroupTabPlaceholder } from "@/features/groups/group-tab-placeholder";
 import { OrganizerGroupDrawsTab } from "@/features/organizer/organizer-group-draws-tab";
 import { OrganizerGroupPaymentsTab } from "@/features/organizer/organizer-group-payments-tab";
 import { OrganizerGroupSettingsTab } from "@/features/organizer/organizer-group-settings-tab";
-import { useGroup } from "@/hooks/use-group";
+import { useGroup, useRemoveMember } from "@/hooks/use-group";
 import { isNoActiveInvitationError, useCurrentInvitation } from "@/hooks/use-group-invitation";
 import { useOrganizerDashboard } from "@/hooks/use-organizer-dashboard";
+import { ApiError } from "@/services/api-client";
 import { cn } from "@/lib/utils";
 import { buildInvitationShareMessage, shareViaWhatsApp } from "@/utils/share";
 
 export function OrganizerGroupDetailsContent({ groupId }: { groupId: string }) {
+  const { session } = useAuth();
   const { data: group, isPending, isError, error, refetch } = useGroup(groupId);
   const organizerDashboard = useOrganizerDashboard();
   const organizerGroup = organizerDashboard.data?.groups.find((g) => g.groupId === groupId);
   const invitation = useCurrentInvitation(groupId);
+  const removeMember = useRemoveMember(groupId);
 
   if (isPending) {
     return (
@@ -44,6 +49,16 @@ export function OrganizerGroupDetailsContent({ groupId }: { groupId: string }) {
   }
 
   const currentGroup = group;
+  const isOwner = session?.userId === currentGroup.ownerId;
+
+  async function handleRemoveMember(memberId: string) {
+    try {
+      await removeMember.mutateAsync(memberId);
+      toast.success("Member removed.");
+    } catch (cause) {
+      toast.error(cause instanceof ApiError ? cause.message : "Couldn't remove this member.");
+    }
+  }
 
   function handleShare() {
     if (!invitation.data) {
@@ -75,19 +90,25 @@ export function OrganizerGroupDetailsContent({ groupId }: { groupId: string }) {
               Invitation pending
             </Badge>
           )}
-          <Button
-            variant="outline"
-            onClick={handleShare}
-            disabled={invitation.isPending || (invitation.isError && !isNoActiveInvitationError(invitation.error))}
-          >
-            <MessageCircle className="size-4" /> Share
-          </Button>
-          <Link
-            href={`/dashboard/organizer/groups/${groupId}/invite`}
-            className={cn(buttonVariants())}
-          >
-            <UserPlus className="size-4" /> Invite members
-          </Link>
+          {isOwner && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleShare}
+                disabled={
+                  invitation.isPending || (invitation.isError && !isNoActiveInvitationError(invitation.error))
+                }
+              >
+                <MessageCircle className="size-4" /> Share
+              </Button>
+              <Link
+                href={`/dashboard/organizer/groups/${groupId}/invite`}
+                className={cn(buttonVariants())}
+              >
+                <UserPlus className="size-4" /> Invite members
+              </Link>
+            </>
+          )}
         </div>
       }
     >
@@ -95,7 +116,7 @@ export function OrganizerGroupDetailsContent({ groupId }: { groupId: string }) {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
+          <TabsTrigger value="payments">Collection</TabsTrigger>
           <TabsTrigger value="draws">Draws</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -106,15 +127,16 @@ export function OrganizerGroupDetailsContent({ groupId }: { groupId: string }) {
         </TabsContent>
 
         <TabsContent value="members" className="pt-4">
-          <GroupTabPlaceholder
-            icon={Users}
-            title="Member list isn't available yet"
-            description="Viewing every member's status and join date requires a group-scoped member list endpoint that doesn't exist on the backend yet — only a total member count is exposed today."
+          <GroupMembersTab
+            group={group}
+            currentUserId={session?.userId}
+            onRemove={isOwner ? handleRemoveMember : undefined}
+            removingMemberId={removeMember.isPending ? removeMember.variables : undefined}
           />
         </TabsContent>
 
         <TabsContent value="payments" className="pt-4">
-          <OrganizerGroupPaymentsTab group={organizerGroup} />
+          <OrganizerGroupPaymentsTab groupId={groupId} isOwner={isOwner} />
         </TabsContent>
 
         <TabsContent value="draws" className="pt-4">
@@ -130,7 +152,15 @@ export function OrganizerGroupDetailsContent({ groupId }: { groupId: string }) {
         </TabsContent>
 
         <TabsContent value="settings" className="pt-4">
-          <OrganizerGroupSettingsTab group={group} />
+          {isOwner ? (
+            <OrganizerGroupSettingsTab group={group} />
+          ) : (
+            <GroupTabPlaceholder
+              icon={FileText}
+              title="Organizer settings"
+              description="Only the group's organizer can activate, suspend, or close this group."
+            />
+          )}
         </TabsContent>
       </Tabs>
     </PageContainer>

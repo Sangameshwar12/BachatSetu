@@ -30,3 +30,8 @@ export async function closeGroup(groupId: string): Promise<SavingsGroupResponse>
   const { data } = await apiClient.patch<SavingsGroupResponse>(`/api/v1/groups/${groupId}/close`);
   return data;
 }
+
+/** `DELETE /api/v1/groups/{groupId}/members/{memberId}` — organizer-only. Removes a non-owner member. */
+export async function removeMember(groupId: string, memberId: string): Promise<void> {
+  await apiClient.delete(`/api/v1/groups/${groupId}/members/${memberId}`);
+}

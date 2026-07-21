@@ -21,6 +21,9 @@ public interface PaymentSpringDataRepository extends BaseJpaRepository<PaymentJp
     Optional<PaymentJpaEntity> findFirstByTenantIdAndGroup_IdAndPayer_IdAndDeletedFalseOrderByCreatedAtDesc(
             UUID tenantId, UUID groupId, UUID payerId);
 
+    List<PaymentJpaEntity> findAllByTenantIdAndGroup_IdAndStatusAndCreatedAtBetweenAndDeletedFalse(
+            UUID tenantId, UUID groupId, PaymentStatus status, Instant from, Instant to);
+
     long countByDeletedFalse();
 
     long countByStatusAndDeletedFalse(PaymentStatus status);

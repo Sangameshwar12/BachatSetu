@@ -12,6 +12,10 @@ import java.util.Objects;
 public final class SavingsGroupApplicationMapper {
 
     public SavingsGroupResult toResult(SavingsGroup group) {
+        return toResult(group, null);
+    }
+
+    public SavingsGroupResult toResult(SavingsGroup group, String organizerName) {
         Objects.requireNonNull(group, "savings group must not be null");
         return new SavingsGroupResult(
                 group.groupId().value().value(),
@@ -29,7 +33,8 @@ public final class SavingsGroupApplicationMapper {
                 group.createdAt().value(),
                 group.updatedAt().value(),
                 group.version(),
-                group.members().stream().map(this::toMemberResult).toList());
+                group.members().stream().map(this::toMemberResult).toList(),
+                organizerName);
     }
 
     public SavingsGroupSummary toSummary(SavingsGroup group) {
