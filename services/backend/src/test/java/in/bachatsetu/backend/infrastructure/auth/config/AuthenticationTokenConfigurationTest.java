@@ -25,6 +25,7 @@ class AuthenticationTokenConfigurationTest {
                         AuthenticationInfrastructureConfig.class,
                         AuthenticationTokenInfrastructureConfig.class))
                 .withPropertyValues(
+                        "bachatsetu.cache.enabled=false",
                         "bachatsetu.authentication.otp-validity=5m",
                         "bachatsetu.authentication.resend-limit=3",
                         "bachatsetu.authentication.verify-limit=5",

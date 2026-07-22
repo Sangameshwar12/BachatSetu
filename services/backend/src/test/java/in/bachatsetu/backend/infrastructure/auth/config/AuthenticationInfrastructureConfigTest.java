@@ -1,15 +1,18 @@
 package in.bachatsetu.backend.infrastructure.auth.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import in.bachatsetu.backend.auth.application.port.ClockPort;
 import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.auth.application.port.RateLimiterPort;
 import in.bachatsetu.backend.auth.domain.model.OtpCode;
 import in.bachatsetu.backend.infrastructure.auth.adapter.BCryptHashingAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.FixedTestOtpGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.LoggingOtpSenderAdapter;
+import in.bachatsetu.backend.infrastructure.auth.adapter.RedisRateLimiterAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SecureRandomGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SystemClockAdapter;
 import java.security.SecureRandom;
@@ -17,6 +20,7 @@ import java.time.Clock;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 class AuthenticationInfrastructureConfigTest {
@@ -25,6 +29,7 @@ class AuthenticationInfrastructureConfigTest {
             .withUserConfiguration(
                     AuthenticationInfrastructureConfig.class,
                     LocalOtpSenderConfig.class)
+            .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
             .withPropertyValues(
                     "bachatsetu.authentication.otp-validity=5m",
                     "bachatsetu.authentication.resend-limit=3",
@@ -46,6 +51,7 @@ class AuthenticationInfrastructureConfigTest {
                             .isInstanceOf(SecureRandomGeneratorAdapter.class);
                     assertThat(context).getBean(HashingPort.class).isInstanceOf(BCryptHashingAdapter.class);
                     assertThat(context).getBean(OtpSenderPort.class).isInstanceOf(LoggingOtpSenderAdapter.class);
+                    assertThat(context).getBean(RateLimiterPort.class).isInstanceOf(RedisRateLimiterAdapter.class);
 
                     AuthenticationProperties properties = context.getBean(AuthenticationProperties.class);
                     assertThat(properties.otpValidity()).isEqualTo(Duration.ofMinutes(5));

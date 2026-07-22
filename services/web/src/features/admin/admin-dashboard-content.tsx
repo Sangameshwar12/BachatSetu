@@ -7,6 +7,7 @@ import {
   Building2,
   Gavel,
   HardDrive,
+  LifeBuoy,
   Receipt,
   Settings,
   Shield,
@@ -32,6 +33,7 @@ const adminQuickActions = [
   { label: "Tenants", href: "/dashboard/admin/tenants", icon: Building2 },
   { label: "Configuration", href: "/dashboard/admin/configuration", icon: Settings },
   { label: "Monitoring", href: "/dashboard/admin/monitoring", icon: Shield },
+  { label: "Support", href: "/dashboard/admin/support", icon: LifeBuoy },
 ];
 
 export function AdminDashboardContent() {

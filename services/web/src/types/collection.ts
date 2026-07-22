@@ -1,6 +1,7 @@
 /** Mirrors `payment.interfaces.rest.dto.MemberCollectionResponse` exactly. */
 export interface MemberCollectionResponse {
   memberId: string;
+  memberName: string | null;
   status: string;
   expectedAmountPaise: number;
   collectedAmountPaise: number;

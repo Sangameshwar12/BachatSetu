@@ -131,7 +131,8 @@ class TokenControllerTest {
                 Arguments.of(TokenFailureReason.USER_NOT_ACTIVE, 403, "user-not-active"),
                 Arguments.of(TokenFailureReason.ROLE_NOT_FOUND, 500, "internal-error"),
                 Arguments.of(TokenFailureReason.PERMISSION_NOT_FOUND, 500, "internal-error"),
-                Arguments.of(TokenFailureReason.ACTIVE_REFRESH_TOKEN_EXISTS, 409, "active-refresh-token-exists"));
+                Arguments.of(TokenFailureReason.ACTIVE_REFRESH_TOKEN_EXISTS, 409, "active-refresh-token-exists"),
+                Arguments.of(TokenFailureReason.REFRESH_TOKEN_CONFLICT, 401, "refresh-token-conflict"));
     }
 
     private TokenPairResult tokenPairResult() {

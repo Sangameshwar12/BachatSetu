@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.notification.interfaces.rest.config;
 
+import in.bachatsetu.backend.email.application.port.EmailSenderPort;
 import in.bachatsetu.backend.notification.application.port.ClockPort;
 import in.bachatsetu.backend.notification.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.notification.application.port.EmailSender;
@@ -9,10 +10,10 @@ import in.bachatsetu.backend.notification.application.port.TransactionPort;
 import in.bachatsetu.backend.notification.application.port.WhatsappSender;
 import in.bachatsetu.backend.notification.domain.service.NotificationTemplateRenderer;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.ApplicationEventNotificationEventPublisherAdapter;
-import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingEmailSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingInAppNotificationSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingSmsSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingWhatsappSenderAdapter;
+import in.bachatsetu.backend.notification.interfaces.rest.adapter.RealEmailSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.SpringNotificationTransactionAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.SystemNotificationClockAdapter;
 import java.time.Clock;
@@ -70,9 +71,14 @@ public class NotificationInfrastructureConfig {
         return new ApplicationEventNotificationEventPublisherAdapter(publisher);
     }
 
+    /**
+     * Delegates to whichever {@link EmailSenderPort} the {@code email} module has wired — a real
+     * provider or its local logging fallback — rather than a notification-module-local logging
+     * stand-in, so every channel this module dispatches over shares one real delivery path.
+     */
     @Bean
-    EmailSender loggingEmailSenderAdapter() {
-        return new LoggingEmailSenderAdapter();
+    EmailSender realEmailSenderAdapter(EmailSenderPort emailSenderPort) {
+        return new RealEmailSenderAdapter(emailSenderPort);
     }
 
     @Bean

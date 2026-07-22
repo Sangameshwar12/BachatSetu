@@ -8,6 +8,7 @@ import java.time.LocalDate;
 public record MemberCollectionResponse(
 
         @Schema(description = "Member identifier") String memberId,
+        @Schema(description = "Member's display name, if their profile could be resolved") String memberName,
         @Schema(description = "Contribution status for the current cycle", example = "PAID") String status,
         @Schema(description = "Expected contribution amount in paise") long expectedAmountPaise,
         @Schema(description = "Amount actually collected from this member this cycle, in paise")

@@ -10,6 +10,7 @@ import in.bachatsetu.backend.draw.domain.model.Draw;
 import in.bachatsetu.backend.draw.domain.port.DrawRepository;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import in.bachatsetu.backend.group.domain.model.GroupId;
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.member.domain.model.GroupParticipation;
 import in.bachatsetu.backend.member.domain.model.MemberProfile;
@@ -20,8 +21,10 @@ import in.bachatsetu.backend.notification.domain.port.NotificationRepository;
 import in.bachatsetu.backend.payment.domain.model.Payment;
 import in.bachatsetu.backend.payment.domain.port.PaymentRepository;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Composes the member Welcome/Home dashboard from existing group, payment, draw, and notification data. */
 public final class GetMemberDashboardApplicationService implements GetMemberDashboardUseCase {
@@ -53,14 +56,29 @@ public final class GetMemberDashboardApplicationService implements GetMemberDash
 
         MemberProfile profile = memberRepository.findByUserId(tenantId, userId)
                 .orElseThrow(() -> new NoActiveGroupException("no member profile exists for this user"));
-        AggregateId groupId = profile.participations().stream()
+        List<GroupParticipation> activeParticipations = profile.participations().stream()
                 .filter(participation -> participation.status() == ParticipationStatus.ACTIVE)
-                .map(GroupParticipation::groupId)
-                .findFirst()
-                .orElseThrow(() -> new NoActiveGroupException("this user has not yet joined or created a group"));
+                .sorted(Comparator.comparing(GroupParticipation::joinedAt).reversed())
+                .toList();
+        if (activeParticipations.isEmpty()) {
+            throw new NoActiveGroupException("this user has not yet joined or created a group");
+        }
 
-        SavingsGroup group = groupRepository.findById(tenantId, new GroupId(groupId))
-                .orElseThrow(() -> new NoActiveGroupException("the joined group no longer exists"));
+        AggregateId groupId = null;
+        SavingsGroup group = null;
+        for (GroupParticipation participation : activeParticipations) {
+            Optional<SavingsGroup> candidate = groupRepository.findById(tenantId, new GroupId(participation.groupId()));
+            if (candidate.isPresent() && candidate.get().status() == GroupStatus.ACTIVE) {
+                groupId = participation.groupId();
+                group = candidate.get();
+                break;
+            }
+        }
+        if (group == null) {
+            groupId = activeParticipations.getFirst().groupId();
+            group = groupRepository.findById(tenantId, new GroupId(groupId))
+                    .orElseThrow(() -> new NoActiveGroupException("the joined group no longer exists"));
+        }
 
         CurrentGroupSummary currentGroup = new CurrentGroupSummary(
                 group.groupId().value(), group.code().value(), group.name().value(),

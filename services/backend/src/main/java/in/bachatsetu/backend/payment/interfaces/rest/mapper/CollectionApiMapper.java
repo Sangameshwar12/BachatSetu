@@ -51,6 +51,7 @@ public class CollectionApiMapper {
         Objects.requireNonNull(member, "member must not be null");
         return new MemberCollectionResponse(
                 member.memberId().toString(),
+                member.memberName(),
                 member.status(),
                 member.expectedAmountPaise(),
                 member.collectedAmountPaise(),

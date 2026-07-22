@@ -126,7 +126,9 @@ export function OrganizerGroupPaymentsTab({ groupId, isOwner }: { groupId: strin
               <div key={member.memberId} className="flex items-center justify-between gap-4 px-4 py-3">
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">{shortId(member.memberId)}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {member.memberName ?? shortId(member.memberId)}
+                    </span>
                     <StatusBadge status={member.status} />
                   </div>
                   <span className="text-xs text-muted-foreground">

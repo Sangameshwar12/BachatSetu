@@ -68,6 +68,7 @@ class RecordManualPaymentApplicationServiceTest {
         service = new RecordManualPaymentApplicationService(
                 groupRepository, paymentRepository, paymentFactory, eventPublisher, clock, transaction, mapper);
         when(paymentRepository.findVerifiedByGroupWithinWindow(any(), any(), any(), any())).thenReturn(List.of());
+        when(paymentRepository.findByIdempotencyKey(any(), any())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -151,6 +152,33 @@ class RecordManualPaymentApplicationServiceTest {
                         new RecordManualPaymentCommand(group.tenantId(), group.groupId().value(), ownerId, ownerId)))
                 .isInstanceOf(MemberAlreadyPaidException.class);
         verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    void returnsTheExistingPaymentInsteadOfDuplicatingItWhenTheIdempotencyKeyAlreadyExists() {
+        AggregateId ownerId = AggregateId.newId();
+        SavingsGroup group = newGroup(ownerId, 5);
+        group.activate(ownerId, NOW);
+        AggregateId memberId = AggregateId.newId();
+        group.joinMember(memberId, ownerId, NOW.plusSeconds(1));
+        when(groupRepository.findById(group.tenantId(), group.groupId())).thenReturn(Optional.of(group));
+        Payment existingPayment = Payment.initiate(
+                AggregateId.newId(), group.tenantId(), group.groupId().value(), memberId,
+                new PaymentReference("PAY-RETRY"),
+                new IdempotencyKey("manual-" + group.groupId().value().value() + "-" + memberId.value() + "-1"),
+                Money.inr(100_000), PaymentMethod.CASH, ownerId,
+                CYCLE_START.atStartOfDay(ZoneOffset.UTC).toInstant());
+        existingPayment.verify(new ProviderReference("MANUAL", "organizer-recorded-cycle-1"), ownerId,
+                CYCLE_START.atStartOfDay(ZoneOffset.UTC).toInstant());
+        when(paymentRepository.findByIdempotencyKey(any(), any())).thenReturn(Optional.of(existingPayment));
+
+        PaymentResult result = service.execute(
+                new RecordManualPaymentCommand(group.tenantId(), group.groupId().value(), memberId, ownerId));
+
+        assertThat(result.memberId()).isEqualTo(memberId.value());
+        assertThat(result.status()).isEqualTo("VERIFIED");
+        verify(paymentRepository, never()).save(any());
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test

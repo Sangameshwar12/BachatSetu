@@ -73,6 +73,13 @@ See [`login.md`](../../services/backend/docs/application/login.md) for the full 
 | GET | `/api/v1/payments` | List payments | User |
 | PATCH | `/api/v1/payments/{paymentId}/status` | Transition a payment's status (e.g. to `VERIFIED`, `FAILED`, `REFUNDED`) | Organizer or admin |
 
+## Collection — `payment` (Collection endpoints)
+
+| Method | Path | Purpose | Auth |
+| --- | --- | --- | --- |
+| GET | `/api/v1/groups/{groupId}/collection` | Get the group's current-cycle contribution collection summary (per-member paid/pending status, percent collected) | Group participant |
+| POST | `/api/v1/groups/{groupId}/collection/members/{memberId}/mark-paid` | Organizer records a member's current-cycle contribution as collected in cash, on the member's behalf | Organizer |
+
 ## Payment Gateway Integration — `paymentgateway`
 
 | Method | Path | Purpose | Auth |

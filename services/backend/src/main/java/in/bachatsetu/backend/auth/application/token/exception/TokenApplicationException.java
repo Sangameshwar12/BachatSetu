@@ -11,6 +11,11 @@ public final class TokenApplicationException extends RuntimeException {
         this.reason = Objects.requireNonNull(reason, "token failure reason must not be null");
     }
 
+    public TokenApplicationException(TokenFailureReason reason, String message, Throwable cause) {
+        super(message, cause);
+        this.reason = Objects.requireNonNull(reason, "token failure reason must not be null");
+    }
+
     public TokenFailureReason reason() {
         return reason;
     }

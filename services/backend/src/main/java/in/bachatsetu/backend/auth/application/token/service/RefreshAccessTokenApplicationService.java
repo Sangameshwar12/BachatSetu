@@ -12,6 +12,7 @@ import in.bachatsetu.backend.auth.application.token.port.TokenHasherPort;
 import in.bachatsetu.backend.auth.application.token.query.RefreshTokenResult;
 import in.bachatsetu.backend.auth.application.token.query.TokenPairResult;
 import in.bachatsetu.backend.auth.application.token.usecase.RefreshAccessTokenUseCase;
+import in.bachatsetu.backend.auth.domain.exception.RefreshTokenConflictException;
 import in.bachatsetu.backend.auth.domain.model.RefreshToken;
 import in.bachatsetu.backend.auth.domain.model.RefreshTokenId;
 import in.bachatsetu.backend.auth.domain.model.TokenStatus;
@@ -75,7 +76,14 @@ public final class RefreshAccessTokenApplicationService implements RefreshAccess
                 now.plus(lifetime),
                 command.actorId());
         current.rotate(replacementId, command.actorId(), now);
-        repository.replace(current, replacement);
+        try {
+            repository.replace(current, replacement);
+        } catch (RefreshTokenConflictException exception) {
+            throw new TokenApplicationException(
+                    TokenFailureReason.REFRESH_TOKEN_CONFLICT,
+                    "refresh token was already used by another request",
+                    exception);
+        }
         eventPublisher.publish(replacement.pullDomainEvents());
         return new TokenPairResult(
                 accessToken,
@@ -87,7 +95,14 @@ public final class RefreshAccessTokenApplicationService implements RefreshAccess
             token.markReused(actorId, now);
             Optional<RefreshToken> active = repository.findActive(token.userId(), token.sessionId());
             active.ifPresent(replacement -> revokeOrExpire(replacement, actorId, now));
-            repository.recordReuse(token, active);
+            try {
+                repository.recordReuse(token, active);
+            } catch (RefreshTokenConflictException exception) {
+                throw new TokenApplicationException(
+                        TokenFailureReason.REFRESH_TOKEN_CONFLICT,
+                        "refresh token was already used by another request",
+                        exception);
+            }
             throw failure(TokenFailureReason.REFRESH_TOKEN_REUSED, "refresh token reuse was detected");
         }
         if (token.status() == TokenStatus.REUSED) {

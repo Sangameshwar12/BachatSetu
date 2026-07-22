@@ -63,15 +63,6 @@ class NotificationInfrastructureAdapterTest {
     }
 
     @Test
-    void emailSenderReturnsAProviderMessageId() {
-        LoggingEmailSenderAdapter adapter = new LoggingEmailSenderAdapter();
-
-        String providerMessageId = adapter.send(recipient(), content());
-
-        assertThat(providerMessageId).startsWith("EMAIL-");
-    }
-
-    @Test
     void smsSenderReturnsAProviderMessageId() {
         LoggingSmsSenderAdapter adapter = new LoggingSmsSenderAdapter();
 

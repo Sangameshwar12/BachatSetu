@@ -39,6 +39,12 @@ spring:
       password: ${REDIS_PASSWORD:}
       connect-timeout: 2s
       timeout: 2s
+  servlet:
+    multipart:
+      # Explicit rather than relying on Spring Boot's own defaults (1MB/10MB) — see
+      # UploadFileApplicationService for the content-type allow-list enforced alongside this.
+      max-file-size: ${STORAGE_UPLOAD_MAX_FILE_SIZE:10MB}
+      max-request-size: ${STORAGE_UPLOAD_MAX_REQUEST_SIZE:10MB}
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
@@ -102,6 +108,16 @@ bachatsetu:
     resend-limit: 3
     verify-limit: 5
     hash-strength: ${AUTH_OTP_BCRYPT_STRENGTH:12}
+    otp-rate-limit:
+      # Throttles OTP generation (signup/login/resend all funnel through GenerateOtpApplicationService)
+      # per mobile number, independent of the existing per-challenge resend/verify caps above.
+      max-attempts: ${AUTH_OTP_RATE_LIMIT_MAX_ATTEMPTS:5}
+      window: ${AUTH_OTP_RATE_LIMIT_WINDOW:1m}
+    login-rate-limit:
+      # Throttles login/OTP-triggering requests per client IP — see LoginRateLimitFilter. A higher
+      # ceiling than the per-mobile-number limit above since one IP can legitimately represent many users.
+      max-attempts: ${AUTH_LOGIN_RATE_LIMIT_MAX_ATTEMPTS:20}
+      window: ${AUTH_LOGIN_RATE_LIMIT_WINDOW:1m}
     otp:
       # TEMPORARY MVP TEST OTP — REMOVE BEFORE PRODUCTION
       # MVP/demo only: when true, every generated OTP is the fixed code 102030 instead of random,

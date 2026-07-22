@@ -7,6 +7,7 @@ import in.bachatsetu.backend.payment.application.exception.MemberAlreadyPaidExce
 import in.bachatsetu.backend.payment.application.exception.MemberNotInGroupException;
 import in.bachatsetu.backend.payment.application.exception.NoActiveCollectionCycleException;
 import in.bachatsetu.backend.payment.application.exception.PaymentNotFoundException;
+import in.bachatsetu.backend.payment.domain.exception.PaymentConflictException;
 import in.bachatsetu.backend.shared.domain.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -153,6 +154,16 @@ public class PaymentExceptionHandler {
                 "no-active-collection-cycle",
                 "No active collection cycle",
                 exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(PaymentConflictException.class)
+    ResponseEntity<ProblemDetail> handlePaymentConflict(HttpServletRequest request) {
+        return response(
+                HttpStatus.CONFLICT,
+                "concurrent-request-conflict",
+                "Request already in progress",
+                "This action was already completed by another request. Refresh to see the latest state.",
                 request);
     }
 

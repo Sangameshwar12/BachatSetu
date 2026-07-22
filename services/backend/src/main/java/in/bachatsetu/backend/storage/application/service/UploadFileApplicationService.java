@@ -16,7 +16,9 @@ import in.bachatsetu.backend.storage.domain.model.StorageProvider;
 import in.bachatsetu.backend.storage.domain.model.StoredFile;
 import in.bachatsetu.backend.storage.domain.port.StorageRepository;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Stores a new file's bytes through the configured default provider and records its metadata. The checksum
@@ -24,6 +26,14 @@ import java.util.Objects;
  * never recomputed from provider-returned data, so it always reflects exactly what the caller uploaded.
  */
 public final class UploadFileApplicationService implements UploadFileUseCase {
+
+    /**
+     * The only content types any caller uploads today (a profile photo during onboarding, per
+     * {@code onboarding-form.tsx}'s {@code accept="image/*"} picker), plus PDF for the documents/receipts
+     * this provider-independent endpoint is otherwise documented to support.
+     */
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp", "application/pdf");
 
     private final StorageRepository repository;
     private final List<StoragePort> storagePorts;
@@ -62,6 +72,10 @@ public final class UploadFileApplicationService implements UploadFileUseCase {
     }
 
     private UploadFileResult upload(UploadFileCommand command) {
+        String contentType = command.contentType().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("unsupported file type: " + command.contentType());
+        }
         StoragePort storagePort = StoragePortResolver.resolveStoragePort(storagePorts, defaultProvider);
         byte[] content = command.content();
         String checksum = checksumGenerator.generate(content);

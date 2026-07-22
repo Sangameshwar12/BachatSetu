@@ -71,11 +71,6 @@ export interface OtpResendRequest {
   purpose: OtpPurpose;
 }
 
-export interface OtpInvalidateRequest {
-  userId: string;
-  purpose: OtpPurpose;
-}
-
 export interface LoginStartRequest {
   mobileNumber: string;
 }

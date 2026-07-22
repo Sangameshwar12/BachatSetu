@@ -8,6 +8,7 @@ import java.util.UUID;
 /** One group member's contribution status for the current cycle. */
 public record MemberCollectionResult(
         UUID memberId,
+        String memberName,
         String status,
         long expectedAmountPaise,
         long collectedAmountPaise,

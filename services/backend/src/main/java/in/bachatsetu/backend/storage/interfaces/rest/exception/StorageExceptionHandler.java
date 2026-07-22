@@ -18,6 +18,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /** Converts Storage REST boundary failures to RFC 7807 problem details. */
@@ -51,6 +52,13 @@ public class StorageExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException exception, HttpServletRequest request) {
         return response(HttpStatus.BAD_REQUEST, "invalid-request", "Invalid request", exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ProblemDetail> handleUploadTooLarge(HttpServletRequest request) {
+        return response(
+                HttpStatus.PAYLOAD_TOO_LARGE, "file-too-large", "File too large",
+                "The uploaded file exceeds the maximum allowed size.", request);
     }
 
     @ExceptionHandler(StoredFileNotFoundException.class)

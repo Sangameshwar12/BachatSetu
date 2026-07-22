@@ -73,6 +73,63 @@ class GetMemberDashboardApplicationServiceTest {
     }
 
     @Test
+    void selectsTheNewestActiveGroupOverAnOlderClosedOne() {
+        SavingsGroup closedGroup = GroupDomainFixtures.newGroup(10);
+        closedGroup.close(USER_ID, NOW);
+        SavingsGroup activeGroup = GroupDomainFixtures.newGroup(10);
+        activeGroup.activate(USER_ID, NOW);
+
+        AggregateId closedGroupId = closedGroup.groupId().value();
+        AggregateId activeGroupId = activeGroup.groupId().value();
+        GroupParticipation olderParticipation = new GroupParticipation(
+                AggregateId.newId(), closedGroupId, GroupRole.MEMBER, NOW, ParticipationStatus.ACTIVE, null);
+        GroupParticipation newerParticipation = new GroupParticipation(
+                AggregateId.newId(), activeGroupId, GroupRole.MEMBER, NOW.plusSeconds(60), ParticipationStatus.ACTIVE, null);
+        MemberProfile profile = new MemberProfile(
+                USER_ID, TENANT_ID, USER_ID, new MemberNumber("MEM-0001"), MemberStatus.ACTIVE,
+                List.of(olderParticipation, newerParticipation), List.of(), AuditInfo.createdBy(USER_ID, NOW), 0);
+
+        when(memberRepository.findByUserId(TENANT_ID, USER_ID)).thenReturn(Optional.of(profile));
+        when(groupRepository.findById(TENANT_ID, new GroupId(closedGroupId))).thenReturn(Optional.of(closedGroup));
+        when(groupRepository.findById(TENANT_ID, new GroupId(activeGroupId))).thenReturn(Optional.of(activeGroup));
+        when(drawRepository.findNextScheduledByGroup(TENANT_ID, activeGroupId)).thenReturn(Optional.empty());
+        when(paymentRepository.findLatestByGroupAndMember(TENANT_ID, activeGroupId, USER_ID)).thenReturn(Optional.empty());
+        when(notificationRepository.findRecentForRecipient(TENANT_ID, USER_ID)).thenReturn(List.of());
+
+        MemberDashboardResult result = service.execute(TENANT_ID, USER_ID);
+
+        assertThat(result.currentGroup().groupId()).isEqualTo(activeGroupId);
+    }
+
+    @Test
+    void fallsBackToTheNewestParticipationWhenNoneOfTheGroupsAreActive() {
+        SavingsGroup closedGroup = GroupDomainFixtures.newGroup(10);
+        closedGroup.close(USER_ID, NOW);
+        SavingsGroup inactiveGroup = GroupDomainFixtures.newGroup(10);
+
+        AggregateId closedGroupId = closedGroup.groupId().value();
+        AggregateId inactiveGroupId = inactiveGroup.groupId().value();
+        GroupParticipation olderParticipation = new GroupParticipation(
+                AggregateId.newId(), closedGroupId, GroupRole.MEMBER, NOW, ParticipationStatus.ACTIVE, null);
+        GroupParticipation newerParticipation = new GroupParticipation(
+                AggregateId.newId(), inactiveGroupId, GroupRole.MEMBER, NOW.plusSeconds(60), ParticipationStatus.ACTIVE, null);
+        MemberProfile profile = new MemberProfile(
+                USER_ID, TENANT_ID, USER_ID, new MemberNumber("MEM-0001"), MemberStatus.ACTIVE,
+                List.of(olderParticipation, newerParticipation), List.of(), AuditInfo.createdBy(USER_ID, NOW), 0);
+
+        when(memberRepository.findByUserId(TENANT_ID, USER_ID)).thenReturn(Optional.of(profile));
+        when(groupRepository.findById(TENANT_ID, new GroupId(closedGroupId))).thenReturn(Optional.of(closedGroup));
+        when(groupRepository.findById(TENANT_ID, new GroupId(inactiveGroupId))).thenReturn(Optional.of(inactiveGroup));
+        when(drawRepository.findNextScheduledByGroup(TENANT_ID, inactiveGroupId)).thenReturn(Optional.empty());
+        when(paymentRepository.findLatestByGroupAndMember(TENANT_ID, inactiveGroupId, USER_ID)).thenReturn(Optional.empty());
+        when(notificationRepository.findRecentForRecipient(TENANT_ID, USER_ID)).thenReturn(List.of());
+
+        MemberDashboardResult result = service.execute(TENANT_ID, USER_ID);
+
+        assertThat(result.currentGroup().groupId()).isEqualTo(inactiveGroupId);
+    }
+
+    @Test
     void rejectsWhenNoMemberProfileExists() {
         when(memberRepository.findByUserId(TENANT_ID, USER_ID)).thenReturn(Optional.empty());
 

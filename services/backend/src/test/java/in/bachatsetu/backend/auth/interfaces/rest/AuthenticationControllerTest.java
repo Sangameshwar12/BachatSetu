@@ -219,7 +219,8 @@ class AuthenticationControllerTest {
                 Arguments.of(OtpFailureReason.OTP_NOT_FOUND, 404, "otp-not-found"),
                 Arguments.of(OtpFailureReason.ACTIVE_OTP_EXISTS, 409, "active-otp-exists"),
                 Arguments.of(OtpFailureReason.RESEND_LIMIT_REACHED, 429, "otp-resend-limit-exceeded"),
-                Arguments.of(OtpFailureReason.SMS_DELIVERY_FAILED, 503, "otp-delivery-failed"));
+                Arguments.of(OtpFailureReason.SMS_DELIVERY_FAILED, 503, "otp-delivery-failed"),
+                Arguments.of(OtpFailureReason.RATE_LIMIT_EXCEEDED, 429, "otp-rate-limit-exceeded"));
     }
 
     private static Stream<Arguments> rejections() {

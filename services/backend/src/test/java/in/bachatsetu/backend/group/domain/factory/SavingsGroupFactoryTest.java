@@ -15,8 +15,6 @@ import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.group.domain.service.GroupCodeGenerator;
 import in.bachatsetu.backend.group.domain.service.GroupValidationService;
 import in.bachatsetu.backend.shared.domain.AggregateId;
-import java.time.Clock;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 
 class SavingsGroupFactoryTest {
@@ -61,23 +59,5 @@ class SavingsGroupFactoryTest {
                         null,
                         new CreatedAt(NOW)))
                 .isInstanceOf(NullPointerException.class);
-    }
-
-    @Test
-    void legacyFactoryUsesProvidedClockAndCode() {
-        AggregateId owner = AggregateId.newId();
-        GroupFactory factory = new GroupFactory(Clock.fixed(NOW, ZoneOffset.UTC));
-
-        SavingsGroup group = factory.create(
-                AggregateId.newId(),
-                owner,
-                new in.bachatsetu.backend.group.domain.model.GroupCode("BS-PROVIDED"),
-                new GroupName("Legacy Factory"),
-                GroupType.BHISHI,
-                monthlyRule(5));
-
-        assertThat(group.createdAt().value()).isEqualTo(NOW);
-        assertThat(group.code().value()).isEqualTo("BS-PROVIDED");
-        assertThatThrownBy(() -> new GroupFactory(null)).isInstanceOf(NullPointerException.class);
     }
 }

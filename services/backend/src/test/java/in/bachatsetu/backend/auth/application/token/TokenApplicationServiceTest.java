@@ -34,6 +34,7 @@ import in.bachatsetu.backend.auth.application.token.service.RefreshTokenCredenti
 import in.bachatsetu.backend.auth.application.token.service.RevokeRefreshTokenApplicationService;
 import in.bachatsetu.backend.auth.application.token.service.TokenPrincipalResolver;
 import in.bachatsetu.backend.auth.application.token.service.ValidateAccessTokenApplicationService;
+import in.bachatsetu.backend.auth.domain.exception.RefreshTokenConflictException;
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
 import in.bachatsetu.backend.auth.domain.model.PasswordHash;
 import in.bachatsetu.backend.auth.domain.model.Permission;
@@ -234,6 +235,39 @@ class TokenApplicationServiceTest {
                 clock,
                 Duration.ZERO,
                 eventPublisher));
+    }
+
+    @Test
+    void translatesAConcurrentRotationConflictIntoARefreshTokenConflictReason() {
+        stubActivePrincipal();
+        RefreshToken current = token(TokenStatus.ACTIVE, NOW.plusSeconds(60), null);
+        stubVerified(current);
+        stubIssuedRefresh();
+        when(clock.now()).thenReturn(NOW);
+        when(jwtProvider.issue(any())).thenReturn(issuedAccess);
+        org.mockito.Mockito.doThrow(new RefreshTokenConflictException("conflict", new RuntimeException("cause")))
+                .when(refreshTokens).replace(any(), any());
+
+        assertReason(
+                () -> refreshService().refresh(new RefreshAccessTokenCommand(
+                        credential(current.refreshTokenId()).value(), ACTOR_ID)),
+                TokenFailureReason.REFRESH_TOKEN_CONFLICT);
+    }
+
+    @Test
+    void translatesAConcurrentReuseRecordingConflictIntoARefreshTokenConflictReason() {
+        RefreshToken rotated = token(TokenStatus.ROTATED, NOW.plusSeconds(60), RefreshTokenId.newId());
+        RefreshToken active = token(TokenStatus.ACTIVE, NOW.plusSeconds(60), null);
+        stubVerified(rotated);
+        when(clock.now()).thenReturn(NOW);
+        when(refreshTokens.findActive(USER_ID, SESSION_ID)).thenReturn(Optional.of(active));
+        org.mockito.Mockito.doThrow(new RefreshTokenConflictException("conflict", new RuntimeException("cause")))
+                .when(refreshTokens).recordReuse(any(), any());
+
+        assertReason(
+                () -> refreshService().refresh(new RefreshAccessTokenCommand(
+                        credential(rotated.refreshTokenId()).value(), ACTOR_ID)),
+                TokenFailureReason.REFRESH_TOKEN_CONFLICT);
     }
 
     @Test

@@ -30,6 +30,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(JoinController.class)
@@ -87,6 +88,21 @@ class JoinControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/v1/groups/" + groupId + "/members/" + memberId))
                 .andExpect(jsonPath("$.groupId").value(groupId.toString()));
+    }
+
+    @Test
+    void reportsAConcurrentJoinRaceAsConflict() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(acceptInvitation.execute(any())).thenThrow(
+                new ObjectOptimisticLockingFailureException("SavingsGroup", "1"));
+
+        mockMvc.perform(post("/api/v1/groups/join")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"AB3D9F2K","channel":"CODE"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("concurrent-modification"));
     }
 
     private AuthenticatedUser authenticatedUser() {

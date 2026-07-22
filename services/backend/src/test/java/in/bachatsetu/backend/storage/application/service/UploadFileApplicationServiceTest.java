@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,11 +62,11 @@ class UploadFileApplicationServiceTest {
         AggregateId actorId = AggregateId.newId();
         byte[] content = "hello world".getBytes();
         when(checksumGenerator.generate(content)).thenReturn("checksum-1");
-        when(storagePort.store(eq(tenantId), any(), eq("file.txt"), eq("text/plain"), eq(content)))
+        when(storagePort.store(eq(tenantId), any(), eq("receipt.pdf"), eq("application/pdf"), eq(content)))
                 .thenReturn("/data/storage/tenant/file-1");
 
         UploadFileResult result = service.execute(
-                new UploadFileCommand(tenantId, "file.txt", "text/plain", content, actorId));
+                new UploadFileCommand(tenantId, "receipt.pdf", "application/pdf", content, actorId));
 
         assertThat(result.provider()).isEqualTo(StorageProvider.LOCAL);
         assertThat(result.path()).isEqualTo("/data/storage/tenant/file-1");
@@ -74,6 +75,34 @@ class UploadFileApplicationServiceTest {
         assertThat(captor.getValue().checksum()).isEqualTo("checksum-1");
         assertThat(captor.getValue().size()).isEqualTo(content.length);
         verify(createAuditEntry).execute(any());
+    }
+
+    @Test
+    void acceptsEveryAllowedImageAndDocumentContentType() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId actorId = AggregateId.newId();
+        byte[] content = "image-bytes".getBytes();
+        when(checksumGenerator.generate(content)).thenReturn("checksum-2");
+        when(storagePort.store(eq(tenantId), any(), any(), any(), eq(content))).thenReturn("/data/storage/tenant/file-2");
+
+        for (String contentType : List.of("image/jpeg", "image/png", "image/webp", "application/pdf")) {
+            UploadFileResult result = service.execute(
+                    new UploadFileCommand(tenantId, "upload", contentType, content, actorId));
+            assertThat(result.provider()).isEqualTo(StorageProvider.LOCAL);
+        }
+    }
+
+    @Test
+    void rejectsAnUnsupportedContentType() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId actorId = AggregateId.newId();
+        byte[] content = "hello world".getBytes();
+
+        assertThatThrownBy(() -> service.execute(
+                        new UploadFileCommand(tenantId, "script.js", "application/javascript", content, actorId)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("application/javascript");
+        verify(repository, never()).save(any());
     }
 
     @Test

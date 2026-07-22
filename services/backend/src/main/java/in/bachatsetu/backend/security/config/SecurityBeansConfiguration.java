@@ -2,6 +2,7 @@ package in.bachatsetu.backend.security.config;
 
 import in.bachatsetu.backend.admin.application.configuration.service.FeatureFlagQueryService;
 import in.bachatsetu.backend.admin.application.configuration.service.MaintenanceStatusQueryService;
+import in.bachatsetu.backend.auth.application.port.RateLimiterPort;
 import in.bachatsetu.backend.auth.application.security.CurrentUserProvider;
 import in.bachatsetu.backend.auth.application.token.usecase.ValidateAccessTokenUseCase;
 import in.bachatsetu.backend.infrastructure.persistence.audit.CurrentAuditorProvider;
@@ -9,9 +10,11 @@ import in.bachatsetu.backend.security.context.CurrentUserService;
 import in.bachatsetu.backend.security.context.SecurityContextCurrentAuditorProvider;
 import in.bachatsetu.backend.security.filter.FeatureFlagEnforcementFilter;
 import in.bachatsetu.backend.security.filter.JwtAuthenticationFilter;
+import in.bachatsetu.backend.security.filter.LoginRateLimitFilter;
 import in.bachatsetu.backend.security.filter.MaintenanceModeFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -86,5 +89,14 @@ public class SecurityBeansConfiguration {
     FeatureFlagEnforcementFilter featureFlagEnforcementFilter(
             ObjectProvider<FeatureFlagQueryService> featureFlagServiceProvider, ObjectMapper objectMapper) {
         return new FeatureFlagEnforcementFilter(featureFlagServiceProvider::getIfAvailable, objectMapper);
+    }
+
+    @Bean
+    LoginRateLimitFilter loginRateLimitFilter(
+            ObjectProvider<RateLimiterPort> rateLimiterProvider,
+            @Value("${bachatsetu.authentication.login-rate-limit.max-attempts:20}") int maxAttempts,
+            @Value("${bachatsetu.authentication.login-rate-limit.window:1m}") Duration window,
+            ObjectMapper objectMapper) {
+        return new LoginRateLimitFilter(rateLimiterProvider::getIfAvailable, maxAttempts, window, objectMapper);
     }
 }

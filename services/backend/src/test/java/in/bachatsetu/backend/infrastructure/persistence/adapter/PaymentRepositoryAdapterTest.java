@@ -1,6 +1,7 @@
 package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -8,9 +9,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.PaymentJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.exception.PersistenceConflictException;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvider;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.PaymentJpaMapper;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.PaymentSpringDataRepository;
+import in.bachatsetu.backend.payment.domain.exception.PaymentConflictException;
 import in.bachatsetu.backend.payment.domain.model.IdempotencyKey;
 import in.bachatsetu.backend.payment.domain.model.Payment;
 import in.bachatsetu.backend.payment.domain.model.PaymentMethod;
@@ -162,6 +165,21 @@ class PaymentRepositoryAdapterTest {
         adapter.save(payment);
 
         verify(repository).save(candidate);
+    }
+
+    @Test
+    void translatesAConcurrentSaveConflictIntoAPaymentDomainException() {
+        Payment payment = newPayment(AggregateId.newId());
+        PaymentJpaEntity candidate = mock(PaymentJpaEntity.class);
+        when(repository.findById(payment.id().value())).thenReturn(Optional.empty());
+        when(mapper.toEntity(payment, references)).thenReturn(candidate);
+        org.springframework.dao.DataIntegrityViolationException violation =
+                new org.springframework.dao.DataIntegrityViolationException("duplicate idempotency key");
+        when(repository.save(candidate)).thenThrow(violation);
+
+        assertThatThrownBy(() -> adapter.save(payment))
+                .isInstanceOf(PaymentConflictException.class)
+                .hasCauseInstanceOf(PersistenceConflictException.class);
     }
 
     private Payment newPayment(AggregateId paymentId) {

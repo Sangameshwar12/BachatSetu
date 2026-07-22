@@ -6,11 +6,13 @@ import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.PasswordHashGeneratorPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.auth.application.port.RateLimiterPort;
 import in.bachatsetu.backend.infrastructure.auth.adapter.ApplicationEventDomainEventPublisherAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.ApplicationEventOtpPublisherAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.BCryptHashingAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.FixedTestOtpGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.RandomPasswordHashGeneratorAdapter;
+import in.bachatsetu.backend.infrastructure.auth.adapter.RedisRateLimiterAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SecureRandomGeneratorAdapter;
 import in.bachatsetu.backend.infrastructure.auth.adapter.SystemClockAdapter;
 import java.security.SecureRandom;
@@ -20,6 +22,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder.BCryptVersion;
 
@@ -95,5 +98,18 @@ public class AuthenticationInfrastructureConfig {
     @Bean
     DomainEventPublisherPort authApplicationEventDomainEventPublisherAdapter(ApplicationEventPublisher publisher) {
         return new ApplicationEventDomainEventPublisherAdapter(publisher);
+    }
+
+    /**
+     * Gated on {@code bachatsetu.cache.enabled} (default {@code true}) — the same flag several
+     * minimal-context tests already set to {@code false} to exclude Redis auto-configuration
+     * entirely (see {@code HealthEndpointTest}, {@code SecurityIntegrationTest}, and similar).
+     * Without this guard, {@link StringRedisTemplate} would be unavailable in those contexts and
+     * this bean's creation would fail outright.
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "bachatsetu.cache", name = "enabled", havingValue = "true", matchIfMissing = true)
+    RateLimiterPort redisRateLimiterAdapter(StringRedisTemplate redisTemplate) {
+        return new RedisRateLimiterAdapter(redisTemplate);
     }
 }

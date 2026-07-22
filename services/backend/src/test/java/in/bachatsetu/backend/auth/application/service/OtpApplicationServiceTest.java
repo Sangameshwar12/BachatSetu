@@ -22,6 +22,7 @@ import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.auth.application.port.RateLimiterPort;
 import in.bachatsetu.backend.auth.application.query.OtpActionResult;
 import in.bachatsetu.backend.auth.application.validation.OtpRequestValidator;
 import in.bachatsetu.backend.auth.domain.model.MobileNumber;
@@ -42,6 +43,7 @@ import in.bachatsetu.backend.infrastructure.auth.adapter.FixedTestOtpGeneratorAd
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import in.bachatsetu.backend.shared.domain.AuditInfo;
 import in.bachatsetu.backend.shared.domain.Email;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -74,6 +76,26 @@ class OtpApplicationServiceTest {
         assertThatThrownBy(() -> result.events().add(result.events().getFirst()))
                 .isInstanceOf(UnsupportedOperationException.class);
         assertThat(fixture.eventPublisher.published).hasExactlyElementsOfTypes(OtpRequested.class, OtpSent.class);
+    }
+
+    @Test
+    void generateFailsWhenTheMobileNumberHasExceededItsRateLimit() {
+        Fixture fixture = new Fixture((RateLimiterPort) (key, maxAttempts, window) -> false);
+
+        assertFailure(
+                () -> fixture.generate.generate(new GenerateOtpCommand(USER_ID, OtpPurpose.SIGN_IN, ACTOR_ID)),
+                OtpFailureReason.RATE_LIMIT_EXCEEDED);
+    }
+
+    @Test
+    void constructorRejectsNonPositiveRateLimitMaxAttempts() {
+        OtpRequestValidator validator = new OtpRequestValidator(new StubUserRepository(user()));
+        assertThatThrownBy(() -> new GenerateOtpApplicationService(
+                        validator, new InMemoryOtpRepository(), new OtpPolicyService(), new MutableClock(),
+                        new QueueRandomGenerator(), new FakeHashingPort(), new CapturingSender(),
+                        new CapturingOtpEventPublisher(), new AlwaysAllowRateLimiter(), 0, Duration.ofMinutes(1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("rateLimitMaxAttempts must be positive");
     }
 
     @Test
@@ -242,11 +264,20 @@ class OtpApplicationServiceTest {
         }
 
         private Fixture(boolean userExists) {
+            this(userExists, new AlwaysAllowRateLimiter());
+        }
+
+        private Fixture(RateLimiterPort rateLimiter) {
+            this(true, rateLimiter);
+        }
+
+        private Fixture(boolean userExists, RateLimiterPort rateLimiter) {
             UserRepository userRepository = new StubUserRepository(userExists ? user() : null);
             validator = new OtpRequestValidator(userRepository);
             OtpPolicyService policy = new OtpPolicyService();
             generate = new GenerateOtpApplicationService(
-                    validator, repository, policy, clock, random, hashing, sender, eventPublisher);
+                    validator, repository, policy, clock, random, hashing, sender, eventPublisher,
+                    rateLimiter, 5, Duration.ofMinutes(1));
             verify = new VerifyOtpApplicationService(validator, repository, clock, hashing, eventPublisher);
             resend = new ResendOtpApplicationService(
                     validator, repository, policy, clock, random, hashing, sender, eventPublisher);
@@ -261,7 +292,8 @@ class OtpApplicationServiceTest {
             validator = new OtpRequestValidator(userRepository);
             OtpPolicyService policy = new OtpPolicyService();
             generate = new GenerateOtpApplicationService(
-                    validator, repository, policy, clock, randomGeneratorPort, hashingPort, sender, eventPublisher);
+                    validator, repository, policy, clock, randomGeneratorPort, hashingPort, sender, eventPublisher,
+                    new AlwaysAllowRateLimiter(), 5, Duration.ofMinutes(1));
             verify = new VerifyOtpApplicationService(validator, repository, clock, hashingPort, eventPublisher);
             resend = new ResendOtpApplicationService(
                     validator, repository, policy, clock, randomGeneratorPort, hashingPort, sender, eventPublisher);
@@ -302,6 +334,13 @@ class OtpApplicationServiceTest {
         @Override
         public Instant now() {
             return now;
+        }
+    }
+
+    private static final class AlwaysAllowRateLimiter implements RateLimiterPort {
+        @Override
+        public boolean tryConsume(String key, int maxAttempts, Duration window) {
+            return true;
         }
     }
 

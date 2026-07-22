@@ -1,9 +1,11 @@
 package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
 import in.bachatsetu.backend.infrastructure.persistence.entity.finance.PaymentJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.exception.PersistenceConflictException;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvider;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.PaymentJpaMapper;
 import in.bachatsetu.backend.infrastructure.persistence.repository.jpa.PaymentSpringDataRepository;
+import in.bachatsetu.backend.payment.domain.exception.PaymentConflictException;
 import in.bachatsetu.backend.payment.domain.model.IdempotencyKey;
 import in.bachatsetu.backend.payment.domain.model.Payment;
 import in.bachatsetu.backend.payment.domain.model.PaymentReference;
@@ -119,11 +121,20 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
     @Override
     @Transactional
     public void save(Payment payment) {
-        RepositoryOperations.execute(() -> {
-            Optional<PaymentJpaEntity> existing = repository.findById(payment.id().value());
-            PaymentJpaEntity candidate = mapper.toEntity(payment, references);
-            repository.save(RepositoryOperations.preserveState(candidate, existing));
-            return null;
-        });
+        try {
+            RepositoryOperations.execute(() -> {
+                Optional<PaymentJpaEntity> existing = repository.findById(payment.id().value());
+                PaymentJpaEntity candidate = mapper.toEntity(payment, references);
+                repository.save(RepositoryOperations.preserveState(candidate, existing));
+                return null;
+            });
+        } catch (PersistenceConflictException exception) {
+            // Two concurrent requests for the same payment (e.g. a double-clicked "Mark paid") can both pass
+            // the caller's in-memory duplicate check before either commits; the idempotency-key unique
+            // constraint then rejects the loser here. Translate to a payment-domain exception the REST layer
+            // can map to a clean, retryable response instead of letting this infrastructure-level failure
+            // propagate unhandled.
+            throw new PaymentConflictException("a conflicting payment write already completed", exception);
+        }
     }
 }

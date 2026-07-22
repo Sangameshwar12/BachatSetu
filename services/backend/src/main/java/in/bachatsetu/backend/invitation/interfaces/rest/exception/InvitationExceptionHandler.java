@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -100,6 +101,19 @@ public class InvitationExceptionHandler {
         return response(
                 HttpStatus.UNAUTHORIZED, "authentication-required", "Authentication required",
                 "A valid bearer access token is required.", request);
+    }
+
+    /**
+     * Every JPA entity in this codebase carries an optimistic-lock version (see
+     * {@code BaseJpaEntity}), so two near-simultaneous joins against the same group aggregate
+     * cannot both commit — one always loses this way, rather than silently double-joining. Mapped
+     * to 409 (a retryable conflict) instead of falling through to the generic 500 handler below.
+     */
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    ResponseEntity<ProblemDetail> handleConcurrentModification(HttpServletRequest request) {
+        return response(
+                HttpStatus.CONFLICT, "concurrent-modification", "Concurrent modification",
+                "This group was modified concurrently by another request; please retry.", request);
     }
 
     @ExceptionHandler(Exception.class)

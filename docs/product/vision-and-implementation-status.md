@@ -79,7 +79,7 @@ Two modules exist in the real system with **no equivalent bounded context** in `
 | Contribution schedule setup | ✅ Implemented — contribution amount, frequency, duration, capacity, payout method are all set at group creation |
 | Collection cycle tracking | ✅ Implemented (`MonthlyCycle`) |
 | Contribution due tracking | ✅ Implemented (`Installment`) |
-| Manual payment recording with audit | 🟡 Partially Implemented — payments can be recorded and are audited, but there is no dedicated "organizer records a manual/cash payment on a member's behalf" workflow; all payment creation is currently payer-initiated |
+| Manual payment recording with audit | ✅ Implemented — an organizer can mark a member's contribution as paid on their behalf via `POST /api/v1/groups/{groupId}/collection/members/{memberId}/mark-paid` (`RecordManualPaymentApplicationService`), backed by the same idempotency-key and audit-trail guarantees as payer-initiated payments |
 | Payment provider integration | ✅ Implemented — Razorpay, Stripe, and Cashfree adapters behind a common gateway port, with webhook ingestion |
 | Basic ledger records | ⛔ Not Implemented (see [§1](#1-ubiquitous-language-reconciliation)) |
 | Member reminders | ✅ Implemented — scheduled installment-due reminders via the `automation` module |

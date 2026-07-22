@@ -17,6 +17,7 @@ import in.bachatsetu.backend.payment.application.service.RecordManualPaymentAppl
 import in.bachatsetu.backend.payment.application.service.UpdatePaymentStatusApplicationService;
 import in.bachatsetu.backend.payment.domain.factory.PaymentFactory;
 import in.bachatsetu.backend.payment.domain.port.PaymentRepository;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
 import java.time.Clock;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,7 @@ class PaymentApplicationConfigTest {
     private final PaymentApplicationMapper mapper = config.paymentApplicationMapper();
     private final PaymentRepository repository = mock(PaymentRepository.class);
     private final SavingsGroupRepository groupRepository = mock(SavingsGroupRepository.class);
+    private final UserRepository userRepository = mock(UserRepository.class);
     private final PaymentFactory paymentFactory = new PaymentFactory(Clock.systemUTC());
     private final DomainEventPublisherPort eventPublisher = mock(DomainEventPublisherPort.class);
     private final ClockPort clock = mock(ClockPort.class);
@@ -59,7 +61,7 @@ class PaymentApplicationConfigTest {
 
     @Test
     void composesGetCollectionSummaryUseCase() {
-        assertThat(config.getCollectionSummaryUseCase(groupRepository, repository, clock, transaction))
+        assertThat(config.getCollectionSummaryUseCase(groupRepository, repository, userRepository, clock, transaction))
                 .isInstanceOf(GetCollectionSummaryApplicationService.class);
     }
 

@@ -23,7 +23,12 @@ import in.bachatsetu.backend.payment.domain.model.PaymentReference;
 import in.bachatsetu.backend.payment.domain.model.ProviderReference;
 import in.bachatsetu.backend.payment.domain.port.PaymentRepository;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import in.bachatsetu.backend.shared.domain.AuditInfo;
 import in.bachatsetu.backend.shared.domain.Money;
+import in.bachatsetu.backend.user.domain.model.PersonName;
+import in.bachatsetu.backend.user.domain.model.UserProfile;
+import in.bachatsetu.backend.user.domain.model.UserStatus;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -38,6 +43,7 @@ class GetCollectionSummaryApplicationServiceTest {
 
     private SavingsGroupRepository groupRepository;
     private PaymentRepository paymentRepository;
+    private UserRepository userRepository;
     private ClockPort clock;
     private TransactionPort transaction;
     private GetCollectionSummaryApplicationService service;
@@ -46,10 +52,13 @@ class GetCollectionSummaryApplicationServiceTest {
     void setUp() {
         groupRepository = mock(SavingsGroupRepository.class);
         paymentRepository = mock(PaymentRepository.class);
+        userRepository = mock(UserRepository.class);
         clock = () -> CYCLE_START.atStartOfDay(ZoneOffset.UTC).toInstant();
         transaction = directTransaction();
-        service = new GetCollectionSummaryApplicationService(groupRepository, paymentRepository, clock, transaction);
+        service = new GetCollectionSummaryApplicationService(
+                groupRepository, paymentRepository, userRepository, clock, transaction);
         when(paymentRepository.findVerifiedByGroupWithinWindow(any(), any(), any(), any())).thenReturn(List.of());
+        when(userRepository.findById(any())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -100,7 +109,8 @@ class GetCollectionSummaryApplicationServiceTest {
     @Test
     void reportsUnpaidMembersAsOverdueAfterTheDueDateHasPassed() {
         clock = () -> CYCLE_START.plusDays(5).atStartOfDay(ZoneOffset.UTC).toInstant();
-        service = new GetCollectionSummaryApplicationService(groupRepository, paymentRepository, clock, transaction);
+        service = new GetCollectionSummaryApplicationService(
+                groupRepository, paymentRepository, userRepository, clock, transaction);
         AggregateId ownerId = AggregateId.newId();
         SavingsGroup group = newGroup(ownerId, 5);
         group.activate(ownerId, NOW);
@@ -138,6 +148,39 @@ class GetCollectionSummaryApplicationServiceTest {
     }
 
     @Test
+    void resolvesEachMembersDisplayNameTheSameWayTheOrganizerNameIsResolvedElsewhere() {
+        AggregateId ownerId = AggregateId.newId();
+        SavingsGroup group = newGroup(ownerId, 5);
+        group.activate(ownerId, NOW);
+        when(groupRepository.findById(group.tenantId(), group.groupId())).thenReturn(Optional.of(group));
+        UserProfile ownerProfile = new UserProfile(
+                ownerId, new PersonName("QA", "Tester"),
+                new in.bachatsetu.backend.user.domain.model.UserContact(
+                        null, new in.bachatsetu.backend.shared.domain.PhoneNumber("+919876543210")),
+                null, in.bachatsetu.backend.user.domain.model.PreferredLanguage.ENGLISH, UserStatus.ACTIVE,
+                List.of(), AuditInfo.createdBy(ownerId, NOW), 0);
+        when(userRepository.findById(ownerId)).thenReturn(Optional.of(ownerProfile));
+
+        CollectionSummaryResult result = service.execute(group.tenantId(), group.groupId());
+
+        assertThat(result.members()).singleElement()
+                .satisfies(member -> assertThat(member.memberName()).isEqualTo("QA Tester"));
+    }
+
+    @Test
+    void fallsBackToANullNameWhenNoProfileCanBeResolved() {
+        AggregateId ownerId = AggregateId.newId();
+        SavingsGroup group = newGroup(ownerId, 5);
+        group.activate(ownerId, NOW);
+        when(groupRepository.findById(group.tenantId(), group.groupId())).thenReturn(Optional.of(group));
+
+        CollectionSummaryResult result = service.execute(group.tenantId(), group.groupId());
+
+        assertThat(result.members()).singleElement()
+                .satisfies(member -> assertThat(member.memberName()).isNull());
+    }
+
+    @Test
     void rejectsNullInputs() {
         AggregateId tenantId = AggregateId.newId();
         GroupId groupId = GroupId.newId();
@@ -147,13 +190,20 @@ class GetCollectionSummaryApplicationServiceTest {
 
     @Test
     void validatesRequiredServiceDependencies() {
-        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(null, paymentRepository, clock, transaction))
+        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(
+                null, paymentRepository, userRepository, clock, transaction))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(groupRepository, null, clock, transaction))
+        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(
+                groupRepository, null, userRepository, clock, transaction))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(groupRepository, paymentRepository, null, transaction))
+        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(
+                groupRepository, paymentRepository, null, clock, transaction))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(groupRepository, paymentRepository, clock, null))
+        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(
+                groupRepository, paymentRepository, userRepository, null, transaction))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new GetCollectionSummaryApplicationService(
+                groupRepository, paymentRepository, userRepository, clock, null))
                 .isInstanceOf(NullPointerException.class);
     }
 

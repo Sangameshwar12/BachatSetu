@@ -8,6 +8,7 @@ import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.auth.application.port.RateLimiterPort;
 import in.bachatsetu.backend.auth.application.service.GenerateOtpApplicationService;
 import in.bachatsetu.backend.auth.application.service.InvalidateOtpApplicationService;
 import in.bachatsetu.backend.auth.application.service.ResendOtpApplicationService;
@@ -21,6 +22,7 @@ import in.bachatsetu.backend.auth.interfaces.rest.config.AuthenticationOpenApiCo
 import in.bachatsetu.backend.auth.interfaces.rest.exception.OtpRestException;
 import io.swagger.v3.oas.models.OpenAPI;
 import java.net.URI;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -36,11 +38,13 @@ class AuthenticationRestConfigurationTest {
         HashingPort hashing = mock(HashingPort.class);
         OtpSenderPort sender = mock(OtpSenderPort.class);
         OtpEventPublisherPort eventPublisher = mock(OtpEventPublisherPort.class);
+        RateLimiterPort rateLimiter = mock(RateLimiterPort.class);
         OtpRequestValidator validator = config.otpRequestValidator(users);
         OtpPolicyService policy = config.otpPolicyService();
 
         assertThat(config.generateOtpUseCase(
-                        validator, verifications, policy, clock, random, hashing, sender, eventPublisher))
+                        validator, verifications, policy, clock, random, hashing, sender, eventPublisher,
+                        rateLimiter, 5, Duration.ofMinutes(1)))
                 .isInstanceOf(GenerateOtpApplicationService.class);
         assertThat(config.verifyOtpUseCase(validator, verifications, clock, hashing, eventPublisher))
                 .isInstanceOf(VerifyOtpApplicationService.class);

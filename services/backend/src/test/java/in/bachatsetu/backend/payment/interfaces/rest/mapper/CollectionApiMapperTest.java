@@ -48,7 +48,10 @@ class CollectionApiMapperTest {
         assertThat(response.cycleActive()).isTrue();
         assertThat(response.cycleNumber()).isEqualTo(1);
         assertThat(response.members()).singleElement()
-                .satisfies(member -> assertThat(member.status()).isEqualTo("PAID"));
+                .satisfies(member -> {
+                    assertThat(member.status()).isEqualTo("PAID");
+                    assertThat(member.memberName()).isEqualTo("QA Tester");
+                });
     }
 
     @Test
@@ -81,6 +84,7 @@ class CollectionApiMapperTest {
         return new CollectionSummaryResult(
                 groupId, true, 1, today, today.plusMonths(1), today, 100_000, "INR", 1, 1, 0, 0,
                 100_000, 100_000, 0,
-                List.of(new MemberCollectionResult(UUID.randomUUID(), "PAID", 100_000, 100_000, now, today)));
+                List.of(new MemberCollectionResult(
+                        UUID.randomUUID(), "QA Tester", "PAID", 100_000, 100_000, now, today)));
     }
 }

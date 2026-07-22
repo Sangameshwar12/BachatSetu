@@ -41,6 +41,7 @@ public final class RecordManualPaymentApplicationService implements RecordManual
     private final PaymentFactory paymentFactory;
     private final ClockPort clock;
     private final TransactionPort transaction;
+    private final PaymentApplicationMapper mapper;
     private final PaymentApplicationSupport support;
 
     public RecordManualPaymentApplicationService(
@@ -56,6 +57,7 @@ public final class RecordManualPaymentApplicationService implements RecordManual
         this.paymentFactory = Objects.requireNonNull(paymentFactory, "paymentFactory must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
+        this.mapper = Objects.requireNonNull(mapper, "mapper must not be null");
         this.support = new PaymentApplicationSupport(paymentRepository, eventPublisher, mapper);
     }
 
@@ -97,6 +99,10 @@ public final class RecordManualPaymentApplicationService implements RecordManual
 
         IdempotencyKey idempotencyKey = new IdempotencyKey("manual-" + command.groupId().value() + "-"
                 + command.memberId().value() + "-" + cycle.cycleNumber());
+        Optional<Payment> existing = paymentRepository.findByIdempotencyKey(command.tenantId(), idempotencyKey);
+        if (existing.isPresent()) {
+            return mapper.toResult(existing.get());
+        }
         Payment payment = paymentFactory.initiate(
                 command.tenantId(), command.groupId(), command.memberId(), idempotencyKey,
                 schedule.contributionAmount(), PaymentMethod.CASH, command.actorId());

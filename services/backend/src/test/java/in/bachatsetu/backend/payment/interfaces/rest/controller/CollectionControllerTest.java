@@ -22,6 +22,7 @@ import in.bachatsetu.backend.payment.application.query.CollectionSummaryResult;
 import in.bachatsetu.backend.payment.application.query.MemberCollectionResult;
 import in.bachatsetu.backend.payment.application.usecase.GetCollectionSummaryUseCase;
 import in.bachatsetu.backend.payment.application.usecase.RecordManualPaymentUseCase;
+import in.bachatsetu.backend.payment.domain.exception.PaymentConflictException;
 import in.bachatsetu.backend.payment.interfaces.rest.exception.PaymentExceptionHandler;
 import in.bachatsetu.backend.payment.interfaces.rest.mapper.CollectionApiMapper;
 import in.bachatsetu.backend.shared.domain.AggregateId;
@@ -126,6 +127,19 @@ class CollectionControllerTest {
     }
 
     @Test
+    void reportsAConcurrentMarkPaidRaceAsConflictNotServerError() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        org.mockito.Mockito.doThrow(new PaymentConflictException(
+                        "a conflicting payment write already completed", new RuntimeException("cause")))
+                .when(recordManualPayment).execute(any());
+
+        mockMvc.perform(post("/api/v1/groups/" + UUID.randomUUID() + "/collection/members/"
+                        + UUID.randomUUID() + "/mark-paid"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("concurrent-request-conflict"));
+    }
+
+    @Test
     void reportsNoActiveCycleAsUnprocessable() throws Exception {
         when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
         org.mockito.Mockito.doThrow(new NoActiveCollectionCycleException("group has no active contribution cycle right now"))
@@ -162,6 +176,7 @@ class CollectionControllerTest {
         return new CollectionSummaryResult(
                 groupId, true, 1, today, today.plusMonths(1), today, 100_000, "INR", 1, 1, 0, 0,
                 100_000, 100_000, 0,
-                List.of(new MemberCollectionResult(UUID.randomUUID(), "PAID", 100_000, 100_000, now, today)));
+                List.of(new MemberCollectionResult(
+                        UUID.randomUUID(), "QA Tester", "PAID", 100_000, 100_000, now, today)));
     }
 }

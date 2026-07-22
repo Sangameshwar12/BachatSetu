@@ -12,6 +12,7 @@ import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.auth.application.port.RateLimiterPort;
 import in.bachatsetu.backend.auth.application.query.OtpActionResult;
 import in.bachatsetu.backend.auth.application.usecase.GenerateOtpUseCase;
 import in.bachatsetu.backend.auth.application.validation.OtpRequestValidator;
@@ -21,6 +22,7 @@ import in.bachatsetu.backend.auth.domain.model.User;
 import in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository;
 import in.bachatsetu.backend.auth.domain.service.OtpPolicyService;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +30,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
+
+    private static final String RATE_LIMIT_KEY_PREFIX = "otp-generate:";
 
     private final OtpRequestValidator validator;
     private final OtpVerificationRepository repository;
@@ -37,6 +41,9 @@ public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
     private final HashingPort hashing;
     private final OtpSenderPort sender;
     private final OtpEventPublisherPort eventPublisher;
+    private final RateLimiterPort rateLimiter;
+    private final int rateLimitMaxAttempts;
+    private final Duration rateLimitWindow;
 
     public GenerateOtpApplicationService(
             OtpRequestValidator validator,
@@ -46,7 +53,10 @@ public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
             RandomGeneratorPort randomGenerator,
             HashingPort hashing,
             OtpSenderPort sender,
-            OtpEventPublisherPort eventPublisher) {
+            OtpEventPublisherPort eventPublisher,
+            RateLimiterPort rateLimiter,
+            int rateLimitMaxAttempts,
+            Duration rateLimitWindow) {
         this.validator = Objects.requireNonNull(validator, "OTP validator must not be null");
         this.repository = Objects.requireNonNull(repository, "OTP repository must not be null");
         this.policyService = Objects.requireNonNull(policyService, "OTP policy must not be null");
@@ -55,12 +65,24 @@ public final class GenerateOtpApplicationService implements GenerateOtpUseCase {
         this.hashing = Objects.requireNonNull(hashing, "hashing port must not be null");
         this.sender = Objects.requireNonNull(sender, "OTP sender must not be null");
         this.eventPublisher = Objects.requireNonNull(eventPublisher, "event publisher must not be null");
+        this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter must not be null");
+        if (rateLimitMaxAttempts <= 0) {
+            throw new IllegalArgumentException("rateLimitMaxAttempts must be positive");
+        }
+        this.rateLimitMaxAttempts = rateLimitMaxAttempts;
+        this.rateLimitWindow = Objects.requireNonNull(rateLimitWindow, "rateLimitWindow must not be null");
     }
 
     @Override
     public OtpActionResult generate(GenerateOtpCommand command) {
         Objects.requireNonNull(command, "generate OTP command must not be null");
         User user = validator.requireUser(command.userId());
+        if (!rateLimiter.tryConsume(
+                RATE_LIMIT_KEY_PREFIX + user.mobileNumber().value(), rateLimitMaxAttempts, rateLimitWindow)) {
+            throw new OtpApplicationException(
+                    OtpFailureReason.RATE_LIMIT_EXCEEDED,
+                    "too many OTP requests for this mobile number, please try again shortly");
+        }
         Instant now = clock.now();
         List<OtpApplicationEvent> events = new ArrayList<>();
         repository.findActive(command.userId(), command.purpose()).ifPresent(active -> {

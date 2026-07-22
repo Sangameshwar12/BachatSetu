@@ -3,6 +3,7 @@ package in.bachatsetu.backend.notification.interfaces.rest.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import in.bachatsetu.backend.email.application.port.EmailSenderPort;
 import in.bachatsetu.backend.notification.application.port.ClockPort;
 import in.bachatsetu.backend.notification.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.notification.application.port.EmailSender;
@@ -12,10 +13,10 @@ import in.bachatsetu.backend.notification.application.port.TransactionPort;
 import in.bachatsetu.backend.notification.application.port.WhatsappSender;
 import in.bachatsetu.backend.notification.domain.service.NotificationTemplateRenderer;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.ApplicationEventNotificationEventPublisherAdapter;
-import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingEmailSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingInAppNotificationSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingSmsSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.LoggingWhatsappSenderAdapter;
+import in.bachatsetu.backend.notification.interfaces.rest.adapter.RealEmailSenderAdapter;
 import in.bachatsetu.backend.notification.interfaces.rest.adapter.SpringNotificationTransactionAdapter;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -30,6 +31,7 @@ class NotificationInfrastructureConfigTest {
     void wiresEveryPortWhenTransactionManagerIsAvailable() {
         contextRunner
                 .withBean(PlatformTransactionManager.class, () -> mock(PlatformTransactionManager.class))
+                .withBean(EmailSenderPort.class, () -> mock(EmailSenderPort.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).getBean(ClockPort.class).isNotNull();
@@ -38,7 +40,7 @@ class NotificationInfrastructureConfigTest {
                     assertThat(context).getBean(DomainEventPublisherPort.class)
                             .isInstanceOf(ApplicationEventNotificationEventPublisherAdapter.class);
                     assertThat(context).getBean(NotificationTemplateRenderer.class).isNotNull();
-                    assertThat(context).getBean(EmailSender.class).isInstanceOf(LoggingEmailSenderAdapter.class);
+                    assertThat(context).getBean(EmailSender.class).isInstanceOf(RealEmailSenderAdapter.class);
                     assertThat(context).getBean(SmsSender.class).isInstanceOf(LoggingSmsSenderAdapter.class);
                     assertThat(context).getBean(WhatsappSender.class).isInstanceOf(LoggingWhatsappSenderAdapter.class);
                     assertThat(context).getBean(InAppNotificationSender.class)

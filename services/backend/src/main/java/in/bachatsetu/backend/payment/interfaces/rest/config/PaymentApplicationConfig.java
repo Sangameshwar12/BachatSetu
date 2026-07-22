@@ -20,6 +20,7 @@ import in.bachatsetu.backend.payment.application.usecase.RecordManualPaymentUseC
 import in.bachatsetu.backend.payment.application.usecase.UpdatePaymentStatusUseCase;
 import in.bachatsetu.backend.payment.domain.factory.PaymentFactory;
 import in.bachatsetu.backend.payment.domain.port.PaymentRepository;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -89,9 +90,11 @@ public class PaymentApplicationConfig {
     public GetCollectionSummaryUseCase getCollectionSummaryUseCase(
             SavingsGroupRepository groupRepository,
             PaymentRepository repository,
+            UserRepository userRepository,
             ClockPort clock,
             TransactionPort transaction) {
-        return new GetCollectionSummaryApplicationService(groupRepository, repository, clock, transaction);
+        return new GetCollectionSummaryApplicationService(
+                groupRepository, repository, userRepository, clock, transaction);
     }
 
     @Bean

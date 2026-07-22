@@ -2,6 +2,7 @@ package in.bachatsetu.backend.security.config;
 
 import in.bachatsetu.backend.security.filter.FeatureFlagEnforcementFilter;
 import in.bachatsetu.backend.security.filter.JwtAuthenticationFilter;
+import in.bachatsetu.backend.security.filter.LoginRateLimitFilter;
 import in.bachatsetu.backend.security.filter.MaintenanceModeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +34,7 @@ public class SecurityConfiguration {
             JwtAuthenticationFilter jwtAuthenticationFilter,
             MaintenanceModeFilter maintenanceModeFilter,
             FeatureFlagEnforcementFilter featureFlagEnforcementFilter,
+            LoginRateLimitFilter loginRateLimitFilter,
             AuthenticationEntryPoint authenticationEntryPoint,
             AccessDeniedHandler accessDeniedHandler) throws Exception {
         String[] publicEndpoints = properties.publicEndpoints().toArray(String[]::new);
@@ -56,6 +58,7 @@ public class SecurityConfiguration {
                         .requestMatchers(publicEndpoints).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(loginRateLimitFilter, JwtAuthenticationFilter.class)
                 .addFilterAfter(maintenanceModeFilter, JwtAuthenticationFilter.class)
                 .addFilterAfter(featureFlagEnforcementFilter, MaintenanceModeFilter.class);
         return http.build();

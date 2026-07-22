@@ -17,6 +17,9 @@ import in.bachatsetu.backend.payment.application.usecase.GetCollectionSummaryUse
 import in.bachatsetu.backend.payment.domain.model.Payment;
 import in.bachatsetu.backend.payment.domain.port.PaymentRepository;
 import in.bachatsetu.backend.shared.domain.AggregateId;
+import in.bachatsetu.backend.user.domain.model.PersonName;
+import in.bachatsetu.backend.user.domain.model.UserProfile;
+import in.bachatsetu.backend.user.domain.port.UserRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -31,16 +34,19 @@ public final class GetCollectionSummaryApplicationService implements GetCollecti
 
     private final SavingsGroupRepository groupRepository;
     private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
     private final ClockPort clock;
     private final TransactionPort transaction;
 
     public GetCollectionSummaryApplicationService(
             SavingsGroupRepository groupRepository,
             PaymentRepository paymentRepository,
+            UserRepository userRepository,
             ClockPort clock,
             TransactionPort transaction) {
         this.groupRepository = Objects.requireNonNull(groupRepository, "groupRepository must not be null");
         this.paymentRepository = Objects.requireNonNull(paymentRepository, "paymentRepository must not be null");
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.transaction = Objects.requireNonNull(transaction, "transaction must not be null");
     }
@@ -87,6 +93,7 @@ public final class GetCollectionSummaryApplicationService implements GetCollecti
         long totalCollectedPaise = 0;
         List<MemberCollectionResult> members = new java.util.ArrayList<>();
         for (GroupMember member : activeMembers) {
+            String memberName = resolveMemberName(member.memberId());
             List<Payment> memberPayments = paymentsByMember.getOrDefault(member.memberId(), List.of());
             if (!memberPayments.isEmpty()) {
                 long collected = memberPayments.stream().mapToLong(payment -> payment.amount().minorUnits()).sum();
@@ -95,17 +102,19 @@ public final class GetCollectionSummaryApplicationService implements GetCollecti
                         .min(Instant::compareTo)
                         .orElse(null);
                 members.add(new MemberCollectionResult(
-                        member.memberId().value(), "PAID", contributionAmountPaise, collected, paidAt,
+                        member.memberId().value(), memberName, "PAID", contributionAmountPaise, collected, paidAt,
                         cycle.dueDate()));
                 paidCount++;
                 totalCollectedPaise += collected;
             } else if (pastDueDate) {
                 members.add(new MemberCollectionResult(
-                        member.memberId().value(), "OVERDUE", contributionAmountPaise, 0, null, cycle.dueDate()));
+                        member.memberId().value(), memberName, "OVERDUE", contributionAmountPaise, 0, null,
+                        cycle.dueDate()));
                 overdueCount++;
             } else {
                 members.add(new MemberCollectionResult(
-                        member.memberId().value(), "PENDING", contributionAmountPaise, 0, null, cycle.dueDate()));
+                        member.memberId().value(), memberName, "PENDING", contributionAmountPaise, 0, null,
+                        cycle.dueDate()));
                 pendingCount++;
             }
         }
@@ -117,5 +126,13 @@ public final class GetCollectionSummaryApplicationService implements GetCollecti
                 groupId.value().value(), true, cycle.cycleNumber(), cycle.periodStart(), cycle.periodEnd(),
                 cycle.dueDate(), contributionAmountPaise, currencyCode, totalMembers, paidCount, pendingCount,
                 overdueCount, totalExpectedPaise, totalCollectedPaise, totalRemainingPaise, members);
+    }
+
+    /** Resolves a member's display name the same way {@code GetSavingsGroupApplicationService} resolves the organizer's. */
+    private String resolveMemberName(AggregateId memberId) {
+        return userRepository.findById(memberId)
+                .map(UserProfile::name)
+                .map(PersonName::displayName)
+                .orElse(null);
     }
 }

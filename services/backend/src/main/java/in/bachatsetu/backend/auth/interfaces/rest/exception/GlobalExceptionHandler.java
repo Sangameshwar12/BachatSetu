@@ -89,6 +89,12 @@ public class GlobalExceptionHandler {
                     "OTP delivery failed",
                     exception.getMessage(),
                     request);
+            case RATE_LIMIT_EXCEEDED -> response(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "otp-rate-limit-exceeded",
+                    "Too many OTP requests",
+                    exception.getMessage(),
+                    request);
         };
     }
 
@@ -226,6 +232,12 @@ public class GlobalExceptionHandler {
                     "refresh-token-revoked",
                     "Refresh token revoked",
                     exception.getMessage(),
+                    request);
+            case REFRESH_TOKEN_CONFLICT -> response(
+                    HttpStatus.UNAUTHORIZED,
+                    "refresh-token-conflict",
+                    "Refresh token already used",
+                    "This refresh token was already used by a concurrent request. Please sign in again.",
                     request);
         };
     }

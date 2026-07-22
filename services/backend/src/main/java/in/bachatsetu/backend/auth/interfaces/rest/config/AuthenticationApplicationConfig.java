@@ -5,6 +5,7 @@ import in.bachatsetu.backend.auth.application.port.HashingPort;
 import in.bachatsetu.backend.auth.application.port.OtpEventPublisherPort;
 import in.bachatsetu.backend.auth.application.port.OtpSenderPort;
 import in.bachatsetu.backend.auth.application.port.RandomGeneratorPort;
+import in.bachatsetu.backend.auth.application.port.RateLimiterPort;
 import in.bachatsetu.backend.auth.application.service.GenerateOtpApplicationService;
 import in.bachatsetu.backend.auth.application.service.InvalidateOtpApplicationService;
 import in.bachatsetu.backend.auth.application.service.ResendOtpApplicationService;
@@ -17,6 +18,8 @@ import in.bachatsetu.backend.auth.application.validation.OtpRequestValidator;
 import in.bachatsetu.backend.auth.domain.port.OtpVerificationRepository;
 import in.bachatsetu.backend.auth.domain.port.UserRepository;
 import in.bachatsetu.backend.auth.domain.service.OtpPolicyService;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,9 +62,13 @@ public class AuthenticationApplicationConfig {
             RandomGeneratorPort randomGenerator,
             HashingPort hashing,
             OtpSenderPort sender,
-            OtpEventPublisherPort eventPublisher) {
+            OtpEventPublisherPort eventPublisher,
+            RateLimiterPort rateLimiter,
+            @Value("${bachatsetu.authentication.otp-rate-limit.max-attempts:5}") int rateLimitMaxAttempts,
+            @Value("${bachatsetu.authentication.otp-rate-limit.window:1m}") Duration rateLimitWindow) {
         return new GenerateOtpApplicationService(
-                validator, repository, policyService, clock, randomGenerator, hashing, sender, eventPublisher);
+                validator, repository, policyService, clock, randomGenerator, hashing, sender, eventPublisher,
+                rateLimiter, rateLimitMaxAttempts, rateLimitWindow);
     }
 
     @Bean

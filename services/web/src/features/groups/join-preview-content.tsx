@@ -55,6 +55,7 @@ export function JoinPreviewContent({ token }: { token: string }) {
   }
 
   const invite = preview.data;
+  const groupIsActive = invite.status === "ACTIVE";
 
   return (
     <AuthShell title={invite.groupName} description="You've been invited to join this savings group.">
@@ -87,7 +88,17 @@ export function JoinPreviewContent({ token }: { token: string }) {
           </div>
         </div>
 
-        <Button className="w-full" disabled={joinGroup.isPending} onClick={handleJoin}>
+        {!groupIsActive && (
+          <p className="text-sm text-muted-foreground">
+            This group isn&apos;t open for new members right now — ask the organizer to activate it first.
+          </p>
+        )}
+
+        <Button
+          className="w-full"
+          disabled={joinGroup.isPending || !groupIsActive}
+          onClick={handleJoin}
+        >
           {joinGroup.isPending && <Loader2 className="size-4 animate-spin" />}
           {isAuthenticated ? "Join this group" : "Log in to join"} <ArrowRight className="size-4" />
         </Button>

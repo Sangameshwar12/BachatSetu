@@ -5,7 +5,6 @@ import type {
   LoginVerifyRequest,
   LoginVerifyResponse,
   LogoutRequest,
-  OtpInvalidateRequest,
   OtpRequestRequest,
   OtpRequestResponse,
   OtpResendRequest,
@@ -49,15 +48,6 @@ export async function verifyOtp(payload: OtpVerifyRequest): Promise<OtpVerifyRes
 /** `POST /api/v1/auth/otp/resend` — invalidates the active code and dispatches a replacement. */
 export async function resendOtp(payload: OtpResendRequest): Promise<OtpRequestResponse> {
   const { data } = await apiClient.post<OtpRequestResponse>("/api/v1/auth/otp/resend", payload);
-  return data;
-}
-
-/** `POST /api/v1/auth/otp/invalidate` — immediately invalidates the active OTP challenge. */
-export async function invalidateOtp(payload: OtpInvalidateRequest): Promise<OtpRequestResponse> {
-  const { data } = await apiClient.post<OtpRequestResponse>(
-    "/api/v1/auth/otp/invalidate",
-    payload
-  );
   return data;
 }
 
