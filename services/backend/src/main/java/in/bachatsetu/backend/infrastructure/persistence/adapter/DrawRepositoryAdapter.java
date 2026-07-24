@@ -1,5 +1,6 @@
 package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
+import in.bachatsetu.backend.draw.domain.exception.DrawConflictException;
 import in.bachatsetu.backend.draw.domain.model.AuctionBid;
 import in.bachatsetu.backend.draw.domain.model.Draw;
 import in.bachatsetu.backend.draw.domain.model.DrawNumber;
@@ -12,6 +13,7 @@ import in.bachatsetu.backend.draw.domain.port.DrawSortField;
 import in.bachatsetu.backend.draw.domain.port.SortDirection;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.AuctionBidJpaEntity;
 import in.bachatsetu.backend.infrastructure.persistence.entity.community.DrawJpaEntity;
+import in.bachatsetu.backend.infrastructure.persistence.exception.PersistenceConflictException;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.AuctionBidJpaMapper;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.DrawJpaMapper;
 import in.bachatsetu.backend.infrastructure.persistence.mapper.JpaReferenceProvider;
@@ -122,17 +124,25 @@ public class DrawRepositoryAdapter implements DrawRepository {
     @Override
     @Transactional
     public void save(Draw draw) {
-        RepositoryOperations.execute(() -> {
-            Optional<DrawJpaEntity> existing = repository.findById(draw.id().value());
-            DrawJpaEntity candidate = mapper.toEntity(draw, references);
-            repository.save(RepositoryOperations.preserveState(candidate, existing));
-            for (AuctionBid bid : draw.bids()) {
-                Optional<AuctionBidJpaEntity> existingBid = bidRepository.findById(bid.id().value());
-                AuctionBidJpaEntity bidCandidate = bidMapper.toEntity(
-                        bid, draw.tenantId(), draw.groupId(), draw.id(), references);
-                bidRepository.save(RepositoryOperations.preserveState(bidCandidate, existingBid));
-            }
-            return null;
-        });
+        try {
+            RepositoryOperations.execute(() -> {
+                Optional<DrawJpaEntity> existing = repository.findById(draw.id().value());
+                DrawJpaEntity candidate = mapper.toEntity(draw, references);
+                repository.save(RepositoryOperations.preserveState(candidate, existing));
+                for (AuctionBid bid : draw.bids()) {
+                    Optional<AuctionBidJpaEntity> existingBid = bidRepository.findById(bid.id().value());
+                    AuctionBidJpaEntity bidCandidate = bidMapper.toEntity(
+                            bid, draw.tenantId(), draw.groupId(), draw.id(), references);
+                    bidRepository.save(RepositoryOperations.preserveState(bidCandidate, existingBid));
+                }
+                return null;
+            });
+        } catch (PersistenceConflictException exception) {
+            // Two concurrent requests to schedule a draw for the same cycle (uk_draws_cycle) or two
+            // concurrent conduct/close requests against the same draw (optimistic-lock version) land here.
+            // Translate to a draw-domain exception the REST layer can map to a clean 409 instead of letting
+            // this infrastructure-level failure propagate unhandled.
+            throw new DrawConflictException("a conflicting draw write already completed", exception);
+        }
     }
 }

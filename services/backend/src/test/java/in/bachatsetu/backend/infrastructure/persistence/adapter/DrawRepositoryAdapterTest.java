@@ -1,12 +1,14 @@
 package in.bachatsetu.backend.infrastructure.persistence.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import in.bachatsetu.backend.draw.domain.exception.DrawConflictException;
 import in.bachatsetu.backend.draw.domain.model.BidAmount;
 import in.bachatsetu.backend.draw.domain.model.Draw;
 import in.bachatsetu.backend.draw.domain.model.DrawNumber;
@@ -196,6 +198,22 @@ class DrawRepositoryAdapterTest {
 
         verify(repository).save(candidate);
         verify(bidRepository).save(bidCandidate);
+    }
+
+    @Test
+    void translatesAConcurrentSaveConflictIntoADrawDomainException() {
+        Draw draw = newDraw(AggregateId.newId());
+        DrawJpaEntity candidate = mock(DrawJpaEntity.class);
+        when(repository.findById(draw.id().value())).thenReturn(Optional.empty());
+        when(mapper.toEntity(draw, references)).thenReturn(candidate);
+        org.springframework.dao.DataIntegrityViolationException violation =
+                new org.springframework.dao.DataIntegrityViolationException("duplicate cycle");
+        when(repository.save(candidate)).thenThrow(violation);
+
+        assertThatThrownBy(() -> adapter.save(draw))
+                .isInstanceOf(DrawConflictException.class)
+                .hasCauseInstanceOf(
+                        in.bachatsetu.backend.infrastructure.persistence.exception.PersistenceConflictException.class);
     }
 
     private Draw newDraw(AggregateId drawId) {

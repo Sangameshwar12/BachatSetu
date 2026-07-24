@@ -67,7 +67,7 @@ The Admin Portal role-gating gap (any authenticated user could navigate into `/d
 | Database backups active | ⛔ Not started — no production database exists |
 | Restore drill completed | ⛔ Not started |
 | Centralized logging | 🟡 Frontend has a logging abstraction ready to wire up (see above); backend logging conventions are defined in [`docs/standards/logging-standards.md`](../standards/logging-standards.md) but no centralized log aggregation is deployed |
-| Metrics and alerts | ⛔ Not started |
+| Metrics and alerts | 🟡 Metrics: Prometheus + Grafana deployed (Sprint 9.1 — see [`docs/deployment/monitoring-guide.md`](../deployment/monitoring-guide.md)), scraping JVM/HTTP/HikariCP/Redis-client metrics. Alerts: ⛔ not started — no Alertmanager, no Grafana alert rules |
 | Error tracking | 🟡 Frontend seam exists (`logger.ts`); no provider wired on either service |
 | Security scans | 🟡 Dependabot and Dependency Review are active at the repository level (see [`SECURITY.md`](../../SECURITY.md)); no SAST, secret-scanning-in-CI, container scanning, or penetration test confirmed |
 | Incident response process documented | ✅ [`docs/governance/security-process.md`](../governance/security-process.md) exists |

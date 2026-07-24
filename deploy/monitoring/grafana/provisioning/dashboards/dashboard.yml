@@ -1,0 +1,15 @@
+# Auto-provisions every dashboard JSON file placed in /var/lib/grafana-dashboards (mounted from
+# deploy/monitoring/grafana/dashboards/ — see docs/deployment/monitoring-guide.md "How to add a
+# dashboard" for the steps to add another one).
+apiVersion: 1
+
+providers:
+  - name: BachatSetu
+    orgId: 1
+    folder: BachatSetu
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana-dashboards

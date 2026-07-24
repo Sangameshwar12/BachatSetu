@@ -14,6 +14,12 @@
 # Balancer with an ACM certificate, or an equivalent), not inside the `nginx` service —
 # see docs/deployment/infrastructure-guide.md. `nginx` here terminates plain HTTP on the
 # internal network the load balancer forwards to.
+#
+# `prometheus` and `grafana` — the monitoring stack added in Sprint 9.1 (see
+# docs/deployment/monitoring-guide.md) — bind only to 127.0.0.1 on the host, on top of already
+# being on the internal-only `bachatsetu-internal` network: nginx does not proxy them, and the
+# ALB never reaches them either. Reach Grafana from a workstation via an SSH port-forward to the
+# host (see the monitoring guide), never by opening a port on the load balancer or security group.
 
 name: bachatsetu-prod
 
@@ -191,6 +197,68 @@ services:
     networks:
       - bachatsetu-internal
 
+  # --- Monitoring (Sprint 9.1) --- see docs/deployment/monitoring-guide.md for the full guide.
+  # Neither service is proxied by nginx or reachable through the load balancer; both bind only to
+  # 127.0.0.1 on the host, reachable solely via an SSH tunnel into the host itself.
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-prod-data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    networks:
+      - bachatsetu-internal
+
+  grafana:
+    image: grafana/grafana-oss:11.3.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+    volumes:
+      - grafana-prod-data:/var/lib/grafana
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/var/lib/grafana-dashboards:ro
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    networks:
+      - bachatsetu-internal
+
 networks:
   bachatsetu-internal:
     driver: bridge
@@ -199,3 +267,5 @@ volumes:
   postgres-prod-data:
   redis-prod-data:
   backend-prod-storage:
+  prometheus-prod-data:
+  grafana-prod-data:

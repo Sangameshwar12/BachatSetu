@@ -76,6 +76,18 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    distribution:
+      # Publishes http.server.requests as a Prometheus histogram (the _bucket series) rather than
+      # only client-side-computed percentiles, so Grafana/Prometheus can compute p95/p99 across
+      # instances with histogram_quantile() — see docs/deployment/monitoring-guide.md.
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+      slo:
+        http:
+          server:
+            requests: 50ms,100ms,200ms,500ms,1s,2s
   prometheus:
     metrics:
       export:

@@ -17,6 +17,7 @@ import in.bachatsetu.backend.auth.domain.model.MobileNumber;
 import in.bachatsetu.backend.auth.domain.model.UserId;
 import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
+import in.bachatsetu.backend.draw.application.exception.GroupNotActiveException;
 import in.bachatsetu.backend.draw.application.query.DrawResult;
 import in.bachatsetu.backend.draw.application.query.DrawSummary;
 import in.bachatsetu.backend.draw.application.usecase.CloseDrawUseCase;
@@ -24,6 +25,7 @@ import in.bachatsetu.backend.draw.application.usecase.ConductDrawUseCase;
 import in.bachatsetu.backend.draw.application.usecase.CreateDrawUseCase;
 import in.bachatsetu.backend.draw.application.usecase.GetDrawUseCase;
 import in.bachatsetu.backend.draw.application.usecase.ListDrawsUseCase;
+import in.bachatsetu.backend.draw.domain.exception.DrawConflictException;
 import in.bachatsetu.backend.draw.domain.exception.InvalidDrawStateException;
 import in.bachatsetu.backend.draw.domain.port.DrawPage;
 import in.bachatsetu.backend.draw.domain.port.DrawPageRequest;
@@ -113,6 +115,33 @@ class DrawControllerTest {
                         .content(validRequestBody()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("access-denied"));
+    }
+
+    @Test
+    void reportsCreateOnAnInactiveGroupAsUnprocessable() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(createDraw.execute(any()))
+                .thenThrow(new GroupNotActiveException("only an active group can schedule, conduct, or close a draw"));
+
+        mockMvc.perform(post("/api/v1/draws")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequestBody()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("group-not-active"));
+    }
+
+    @Test
+    void reportsAConcurrentCreateRaceAsConflictNotServerError() throws Exception {
+        when(currentUserProvider.requireCurrentUser()).thenReturn(authenticatedUser());
+        when(createDraw.execute(any()))
+                .thenThrow(new DrawConflictException(
+                        "a conflicting draw write already completed", new RuntimeException("cause")));
+
+        mockMvc.perform(post("/api/v1/draws")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequestBody()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("concurrent-request-conflict"));
     }
 
     @Test

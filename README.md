@@ -15,6 +15,9 @@ BachatSetu/
   deploy/
     nginx/
       nginx.conf             # Edge reverse proxy used by docker-compose.prod.yml
+    monitoring/
+      prometheus.yml         # Scrape config — see docs/deployment/monitoring-guide.md
+      grafana/               # Datasource + dashboard provisioning, starter dashboard
   docs/
     README.md
     api/
@@ -158,6 +161,7 @@ Runs the full test suite plus Checkstyle, PMD, SpotBugs, ArchUnit, and JaCoCo co
 - [Documentation Home](docs/README.md)
 - [**Product Documentation (start here for what's actually built)**](docs/product/README.md)
 - [**Deployment Documentation (Docker, environment, AWS, runbook)**](docs/deployment/README.md)
+- [Monitoring Guide (Prometheus, Grafana, metrics reference)](docs/deployment/monitoring-guide.md)
 - [SMS Provider Integration (MSG91 / Fast2SMS / Twilio)](docs/integrations/sms-provider.md)
 - [Repository Structure](docs/architecture/repository-structure.md)
 - [Documentation Structure](docs/architecture/documentation-structure.md)

@@ -1,0 +1,15 @@
+# Auto-provisions the Prometheus datasource on Grafana startup — see
+# docs/deployment/monitoring-guide.md. Editable in the UI (editable: true) so an operator can
+# adjust it without redeploying, but it always exists even before anyone opens Grafana for the
+# first time.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s

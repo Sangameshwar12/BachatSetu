@@ -1,0 +1,39 @@
+# Prometheus scrape configuration for the BachatSetu production stack (Sprint 9.1).
+# See docs/deployment/monitoring-guide.md for the full monitoring architecture.
+#
+# Only the backend is scraped today. A PostgreSQL exporter (prometheuscommunity/postgres-exporter)
+# and a Redis exporter (oliver006/redis_exporter) are NOT yet deployed anywhere in this repository
+# — no such service exists in docker-compose.prod.yml. Do not point Prometheus at exporter targets
+# that don't exist; the "Known limitations" section of the monitoring guide documents how to add
+# them later without inventing a scrape target for a service that isn't running.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: production
+
+scrape_configs:
+  # Prometheus scraping itself — standard practice, not an invented dependency.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # The Spring Boot backend's Micrometer registry, exported via
+  # management.endpoints.web.exposure.include: health,info,prometheus (application-prod.yml).
+  - job_name: bachatsetu-backend
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["backend:8080"]
+        labels:
+          service: backend
+
+  # --- Not yet available — do not enable until the corresponding exporter is actually deployed ---
+  #
+  # - job_name: postgres
+  #   static_configs:
+  #     - targets: ["postgres-exporter:9187"]
+  #
+  # - job_name: redis
+  #   static_configs:
+  #     - targets: ["redis-exporter:9121"]

@@ -20,16 +20,21 @@ Production readiness must be treated as an engineering milestone, not a final ch
 
 Minimum dashboards:
 
-- API latency
-- API error rate
-- Authentication failures
-- Payment initiation count
-- Payment success and failure rates
-- Webhook failures
-- Reconciliation mismatches
-- Database CPU, memory, connections, slow queries
-- Redis memory and eviction
-- Background job failures
+- API latency ✅ delivered (Sprint 9.1 — `deploy/monitoring/grafana/dashboards/bachatsetu-overview.json`, see [monitoring-guide.md](../deployment/monitoring-guide.md))
+- API error rate ✅ delivered (Sprint 9.1, same dashboard)
+- Authentication failures — not delivered; needs a purpose-built counter in the auth module
+- Payment initiation count — not delivered; needs a purpose-built counter in the payment module
+- Payment success and failure rates — not delivered; needs a purpose-built counter in the payment module
+- Webhook failures — not delivered; needs a purpose-built counter in the payment-gateway module
+- Reconciliation mismatches — not delivered; no reconciliation job exists yet
+- Database CPU, memory, connections, slow queries — connections ✅ delivered (HikariCP pool metrics, Sprint 9.1); CPU/memory/slow-queries need a PostgreSQL exporter, not yet deployed (see [monitoring-guide.md §7](../deployment/monitoring-guide.md#7-known-limitations))
+- Redis memory and eviction — not delivered; needs a Redis exporter, not yet deployed (Sprint 9.1 delivers Redis *client* command latency instead, see [monitoring-guide.md §7](../deployment/monitoring-guide.md#7-known-limitations))
+- Background job failures — not delivered; needs a purpose-built counter in the automation module
+
+JVM heap/non-heap, GC, and thread-count dashboards — not listed above, but also delivered in
+Sprint 9.1 — round out the infrastructure/runtime half of this list. Every "not delivered" item
+above is a business-metric gap, not an infrastructure one; see
+[monitoring-guide.md](../deployment/monitoring-guide.md) for exactly what Sprint 9.1 covers.
 
 ## Alerts
 

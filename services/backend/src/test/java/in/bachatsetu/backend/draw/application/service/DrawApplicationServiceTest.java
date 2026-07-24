@@ -17,6 +17,7 @@ import in.bachatsetu.backend.draw.application.command.ConductDrawCommand;
 import in.bachatsetu.backend.draw.application.command.CreateDrawCommand;
 import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
+import in.bachatsetu.backend.draw.application.exception.GroupNotActiveException;
 import in.bachatsetu.backend.draw.application.mapper.DrawApplicationMapper;
 import in.bachatsetu.backend.draw.application.port.ClockPort;
 import in.bachatsetu.backend.draw.application.port.DomainEventPublisherPort;
@@ -114,6 +115,18 @@ class DrawApplicationServiceTest {
     }
 
     @Test
+    void createRejectsWhenTheTargetGroupIsNotActive() {
+        CreateDrawCommand command = createCommand();
+        stubInactiveOwningGroup(command.tenantId(), command.groupId(), command.actorId());
+        CreateDrawUseCase service = new CreateDrawApplicationService(
+                repository, groupRepository, drawFactory, publisher, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(command)).isInstanceOf(GroupNotActiveException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
     void createRejectsWhenTheTargetGroupDoesNotExist() {
         CreateDrawCommand command = createCommand();
         when(groupRepository.findById(command.tenantId(), new GroupId(command.groupId())))
@@ -201,6 +214,22 @@ class DrawApplicationServiceTest {
     }
 
     @Test
+    void conductRejectsWhenTheGroupIsNotActive() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId ownerId = AggregateId.newId();
+        Draw draw = newScheduledDraw(AggregateId.newId());
+        when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
+        stubInactiveOwningGroup(draw.tenantId(), draw.groupId(), ownerId);
+        ConductDrawUseCase service = new ConductDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization);
+
+        assertThatThrownBy(() -> service.execute(new ConductDrawCommand(tenantId, draw.id(), ownerId)))
+                .isInstanceOf(GroupNotActiveException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
     void rejectsConductingBeforeTheScheduledTime() {
         AggregateId tenantId = AggregateId.newId();
         AggregateId ownerId = AggregateId.newId();
@@ -267,6 +296,25 @@ class DrawApplicationServiceTest {
         assertThatThrownBy(() -> service.execute(
                         new CloseDrawCommand(tenantId, draw.id(), AggregateId.newId(), AggregateId.newId())))
                 .isInstanceOf(DrawAccessDeniedException.class);
+        verify(repository, never()).save(any());
+        verify(publisher, never()).publish(any());
+    }
+
+    @Test
+    void closeRejectsWhenTheGroupIsNotActive() {
+        AggregateId tenantId = AggregateId.newId();
+        AggregateId actorId = AggregateId.newId();
+        Draw draw = newScheduledDraw(actorId, DrawType.RANDOM);
+        draw.open(actorId, NOW.plusSeconds(3600));
+        draw.pullDomainEvents();
+        when(repository.findById(tenantId, draw.id())).thenReturn(Optional.of(draw));
+        stubInactiveOwningGroup(draw.tenantId(), draw.groupId(), actorId);
+        CloseDrawUseCase service = new CloseDrawApplicationService(
+                repository, groupRepository, publisher, clock, transaction, mapper, authorization, createAuditEntry);
+
+        assertThatThrownBy(() -> service.execute(
+                        new CloseDrawCommand(tenantId, draw.id(), AggregateId.newId(), actorId)))
+                .isInstanceOf(GroupNotActiveException.class);
         verify(repository, never()).save(any());
         verify(publisher, never()).publish(any());
     }
@@ -406,7 +454,19 @@ class DrawApplicationServiceTest {
     }
 
     private void stubOwningGroup(AggregateId tenantId, AggregateId groupId, AggregateId ownerId) {
-        SavingsGroup group = SavingsGroup.create(
+        SavingsGroup group = newGroup(tenantId, groupId, ownerId);
+        group.activate(ownerId, GroupDomainFixtures.NOW);
+        group.pullDomainEvents();
+        when(groupRepository.findById(tenantId, new GroupId(groupId))).thenReturn(Optional.of(group));
+    }
+
+    private void stubInactiveOwningGroup(AggregateId tenantId, AggregateId groupId, AggregateId ownerId) {
+        SavingsGroup group = newGroup(tenantId, groupId, ownerId);
+        when(groupRepository.findById(tenantId, new GroupId(groupId))).thenReturn(Optional.of(group));
+    }
+
+    private SavingsGroup newGroup(AggregateId tenantId, AggregateId groupId, AggregateId ownerId) {
+        return SavingsGroup.create(
                 new GroupId(groupId),
                 tenantId,
                 new OwnerId(ownerId),
@@ -416,7 +476,6 @@ class DrawApplicationServiceTest {
                 GroupType.BHISHI,
                 GroupDomainFixtures.monthlyRule(5),
                 new CreatedAt(GroupDomainFixtures.NOW));
-        when(groupRepository.findById(tenantId, new GroupId(groupId))).thenReturn(Optional.of(group));
     }
 
     private Draw newScheduledDraw(AggregateId actorId) {

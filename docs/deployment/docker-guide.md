@@ -143,6 +143,12 @@ reachable only on the internal `bachatsetu-internal` Docker network. See
 [production-deployment-guide.md](production-deployment-guide.md) for the full procedure,
 including what has to be true about the host/environment before this command is safe to run.
 
+Since Sprint 9.1, the same file also starts `prometheus` and `grafana` — scraping/dashboarding
+the backend's `/actuator/prometheus` metrics. Both are on `bachatsetu-internal` like every other
+service, and additionally bind their host ports to `127.0.0.1` only (not `0.0.0.0`), so neither
+is reachable outside the host itself. See [monitoring-guide.md](monitoring-guide.md) for how to
+reach Grafana from a workstation, default credentials, and how to add a dashboard.
+
 ## 3. What this sprint does not include
 
 - No image is published to a registry (ECR, Docker Hub) — that is a CI/CD pipeline concern,

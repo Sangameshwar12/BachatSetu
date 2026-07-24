@@ -25,17 +25,26 @@ bachatsetu:
       # Overrides (not merges) the base public-endpoints list — Swagger UI and the raw OpenAPI
       # document are reconnaissance surfaces with no reason to be unauthenticated in production;
       # every other environment (local/dev/test) still gets them via the base application.yml list.
+      # /actuator/metrics is deliberately absent — Sprint 9.1 restricts production to the three
+      # endpoints actually exposed below (health, info, prometheus); metrics returns 404 in prod
+      # so there is nothing left for this allowlist to permit.
       public-endpoints:
         - /actuator/health
         - /actuator/health/**
-        - /actuator/metrics
-        - /actuator/metrics/**
+        - /actuator/info
         - /actuator/prometheus
         - /api/v1/auth/**
         - /api/v1/payments/webhooks/**
         - /api/v1/join/**
 
 management:
+  endpoints:
+    web:
+      exposure:
+        # Sprint 9.1: production must expose ONLY health, info, prometheus — overrides the base
+        # application.yml list (which also includes the generic `metrics` endpoint, useful for
+        # local/dev troubleshooting but unnecessary once Prometheus scrapes /actuator/prometheus).
+        include: health,info,prometheus
   endpoint:
     health:
       show-details: never

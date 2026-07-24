@@ -3,6 +3,8 @@ package in.bachatsetu.backend.draw.interfaces.rest.exception;
 import in.bachatsetu.backend.auth.application.security.CurrentUserUnavailableException;
 import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
+import in.bachatsetu.backend.draw.application.exception.GroupNotActiveException;
+import in.bachatsetu.backend.draw.domain.exception.DrawConflictException;
 import in.bachatsetu.backend.shared.domain.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -104,6 +106,18 @@ public class DrawExceptionHandler {
                 request);
     }
 
+    @ExceptionHandler(GroupNotActiveException.class)
+    ResponseEntity<ProblemDetail> handleGroupNotActive(
+            GroupNotActiveException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "group-not-active",
+                "Group not active",
+                exception.getMessage(),
+                request);
+    }
+
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ProblemDetail> handleDomainFailure(DomainException exception, HttpServletRequest request) {
         return response(
@@ -111,6 +125,16 @@ public class DrawExceptionHandler {
                 "draw-validation-failed",
                 "Business validation failed",
                 exception.getMessage(),
+                request);
+    }
+
+    @ExceptionHandler(DrawConflictException.class)
+    ResponseEntity<ProblemDetail> handleDrawConflict(HttpServletRequest request) {
+        return response(
+                HttpStatus.CONFLICT,
+                "concurrent-request-conflict",
+                "Request already in progress",
+                "This action was already completed by another request. Refresh to see the latest state.",
                 request);
     }
 

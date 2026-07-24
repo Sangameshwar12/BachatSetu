@@ -2,6 +2,7 @@ package in.bachatsetu.backend.draw.application.service;
 
 import in.bachatsetu.backend.draw.application.exception.DrawAccessDeniedException;
 import in.bachatsetu.backend.draw.application.exception.DrawNotFoundException;
+import in.bachatsetu.backend.draw.application.exception.GroupNotActiveException;
 import in.bachatsetu.backend.draw.application.mapper.DrawApplicationMapper;
 import in.bachatsetu.backend.draw.application.port.DomainEventPublisherPort;
 import in.bachatsetu.backend.draw.application.query.DrawResult;
@@ -9,6 +10,7 @@ import in.bachatsetu.backend.draw.domain.model.Draw;
 import in.bachatsetu.backend.draw.domain.port.DrawRepository;
 import in.bachatsetu.backend.group.application.port.SavingsGroupRepository;
 import in.bachatsetu.backend.group.domain.model.GroupId;
+import in.bachatsetu.backend.group.domain.model.GroupStatus;
 import in.bachatsetu.backend.group.domain.model.SavingsGroup;
 import in.bachatsetu.backend.shared.domain.AggregateId;
 import java.util.Objects;
@@ -38,8 +40,12 @@ final class DrawApplicationSupport {
     }
 
     SavingsGroup requireOwningGroup(AggregateId tenantId, AggregateId groupId) {
-        return groupRepository.findById(tenantId, new GroupId(groupId))
+        SavingsGroup group = groupRepository.findById(tenantId, new GroupId(groupId))
                 .orElseThrow(() -> new DrawAccessDeniedException("only the group owner may perform this operation"));
+        if (group.status() != GroupStatus.ACTIVE) {
+            throw new GroupNotActiveException("only an active group can schedule, conduct, or close a draw");
+        }
+        return group;
     }
 
     DrawResult saveAndPublish(Draw draw) {

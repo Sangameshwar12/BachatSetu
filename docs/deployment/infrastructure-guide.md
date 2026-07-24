@@ -112,24 +112,31 @@ guidance for provisioning the bucket itself:
 
 ## 5. Monitoring network layout
 
-The backend exposes `/actuator/health`, `/actuator/metrics`, and `/actuator/prometheus` (see
-[non-functional-and-production-readiness.md](../product/non-functional-and-production-readiness.md)).
-`/actuator/health` and its sub-paths (`/liveness`, `/readiness`), `/actuator/metrics` and its
-sub-paths, and `/actuator/prometheus` are all unauthenticated
-(`bachatsetu.authentication.security.public-endpoints` in `application-prod.yml`) — deeper
-actuator paths (env, beans, mappings, etc.) are not exposed and still require a valid bearer
-token. The Nginx edge (§1.3 of [docker-guide.md](docker-guide.md)) only proxies
-`/actuator/health*` to the public internet; `/actuator/metrics` and `/actuator/prometheus` are
-reachable only from inside the internal Docker network today, so an internal Prometheus server
-needs to run alongside the stack (same EC2 instance or same VPC) rather than scrape through the
-public ALB/Nginx path. Restrict access at the network layer (security group on the private
-subnet) rather than relying on application-level auth for these endpoints, since they are
-intentionally unauthenticated.
+As of Sprint 9.1, Prometheus and Grafana are deployed alongside the rest of the stack in
+`docker-compose.prod.yml` — see
+[monitoring-guide.md](monitoring-guide.md) for the full architecture, how to start it, and how
+to reach Grafana. The summary relevant to this chapter's network layout:
 
-Neither a Prometheus server nor a Grafana dashboard is deployed by this sprint — that remains
-Future Work (see
-[roadmap-and-future-work.md](../product/roadmap-and-future-work.md)); this section documents
-where they would plug in.
+- The backend exposes only `/actuator/health`, `/actuator/info`, and `/actuator/prometheus` in
+  production (`management.endpoints.web.exposure.include` in `application-prod.yml`) — the
+  generic `/actuator/metrics` endpoint, useful for local/dev troubleshooting, is deliberately
+  disabled in prod (see [monitoring-guide.md](monitoring-guide.md)).
+- The Nginx edge (§1.3 of [docker-guide.md](docker-guide.md)) only proxies `/actuator/health*`
+  to the public internet; `/actuator/info` and `/actuator/prometheus` are reachable only from
+  inside the internal Docker network — the `prometheus` service scrapes the backend directly
+  over that network (`backend:8080`), never through the public ALB/Nginx path.
+- `prometheus` and `grafana` are both on the same `bachatsetu-internal` network as every other
+  service, and additionally bind their host-side ports to `127.0.0.1` only
+  (`docker-compose.prod.yml`) — reachable from the EC2 instance itself (e.g. via an SSH
+  port-forward), never from the public internet, the ALB, or the VPC's other subnets. Restrict
+  access at the network layer (security group) as defense in depth on top of this — the loopback
+  binding alone must not be the only control if the host is ever multi-tenant.
+
+A PostgreSQL exporter (RDS's own CloudWatch metrics, or `prometheuscommunity/postgres-exporter`
+against RDS) and a Redis exporter (ElastiCache's own CloudWatch metrics, or
+`oliver006/redis_exporter` against ElastiCache) are not yet deployed — see
+[monitoring-guide.md](monitoring-guide.md#known-limitations) for what that would take once RDS
+and ElastiCache (§2–3 above) are actually provisioned.
 
 ## 6. Secrets management
 

@@ -55,6 +55,15 @@ class DockerConfigurationValidationTest {
     }
 
     @Test
+    void monitoringServicesRequireASecretAndDoNotPublishAPublicPort() throws IOException {
+        String compose = readFile(REPOSITORY_ROOT.resolve("docker-compose.prod.yml"));
+
+        assertThat(compose).contains("GRAFANA_ADMIN_PASSWORD:?");
+        assertThat(compose).contains("127.0.0.1:${PROMETHEUS_PORT:-9090}:9090");
+        assertThat(compose).contains("127.0.0.1:${GRAFANA_PORT:-3001}:3000");
+    }
+
+    @Test
     void developmentComposeFileIsAdditiveToTheExistingBackendOnlyComposeFile() throws IOException {
         assertThat(Files.exists(REPOSITORY_ROOT.resolve("services/backend/docker-compose.yml"))).isTrue();
         assertThat(Files.exists(REPOSITORY_ROOT.resolve("docker-compose.dev.yml"))).isTrue();

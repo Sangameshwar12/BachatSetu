@@ -24,6 +24,10 @@ application in production — it does not add or change any business functionali
    secrets, database migrations, maintenance mode.
 7. **[Recovery Guide](recovery-guide.md)** — failure scenarios: a container failing its
    healthcheck, a failed migration, rolling back a bad deployment, data loss.
+8. **[Monitoring Guide](monitoring-guide.md)** — Prometheus and Grafana, added in Sprint 9.1:
+   architecture, how to start it, how to reach Grafana, default credentials, how to add a
+   dashboard, the full metrics reference, and known limitations (no PostgreSQL/Redis exporter,
+   no alerting yet).
 
 ## Relationship to `docs/product/`
 
